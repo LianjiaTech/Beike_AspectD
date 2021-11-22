@@ -1,0 +1,30 @@
+<component name="libraryTable">
+  <library name="Dart Packages">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/../.flutterw/stable/2.2/.pub-cache/hosted/http%58%47%47pub.ke.com/async-2.6.1/lib" />
+      <root url="file://$PROJECT_DIR$/../.flutterw/stable/2.2/.pub-cache/hosted/http%58%47%47pub.ke.com/boolean_selector-2.1.0/lib" />
+      <root url="file://$PROJECT_DIR$/../.flutterw/stable/2.2/.pub-cache/hosted/http%58%47%47pub.ke.com/characters-1.1.0/lib" />
+      <root url="file://$PROJECT_DIR$/../.flutterw/stable/2.2/.pub-cache/hosted/http%58%47%47pub.ke.com/charcode-1.2.0/lib" />
+      <root url="file://$PROJECT_DIR$/../.flutterw/stable/2.2/.pub-cache/hosted/http%58%47%47pub.ke.com/clock-1.1.0/lib" />
+      <root url="file://$PROJECT_DIR$/../.flutterw/stable/2.2/.pub-cache/hosted/http%58%47%47pub.ke.com/collection-1.15.0/lib" />
+      <root url="file://$PROJECT_DIR$/../.flutterw/stable/2.2/.pub-cache/hosted/http%58%47%47pub.ke.com/cupertino_icons-0.1.3/lib" />
+      <root url="file://$PROJECT_DIR$/../.flutterw/stable/2.2/.pub-cache/hosted/http%58%47%47pub.ke.com/fake_async-1.2.0/lib" />
+      <root url="file://$PROJECT_DIR$/../.flutterw/stable/2.2/.pub-cache/hosted/http%58%47%47pub.ke.com/matcher-0.12.10/lib" />
+      <root url="file://$PROJECT_DIR$/../.flutterw/stable/2.2/.pub-cache/hosted/http%58%47%47pub.ke.com/meta-1.3.0/lib" />
+      <root url="file://$PROJECT_DIR$/../.flutterw/stable/2.2/.pub-cache/hosted/http%58%47%47pub.ke.com/path-1.8.0/lib" />
+      <root url="file://$PROJECT_DIR$/../.flutterw/stable/2.2/.pub-cache/hosted/http%58%47%47pub.ke.com/source_span-1.8.1/lib" />
+      <root url="file://$PROJECT_DIR$/../.flutterw/stable/2.2/.pub-cache/hosted/http%58%47%47pub.ke.com/stack_trace-1.10.0/lib" />
+      <root url="file://$PROJECT_DIR$/../.flutterw/stable/2.2/.pub-cache/hosted/http%58%47%47pub.ke.com/stream_channel-2.1.0/lib" />
+      <root url="file://$PROJECT_DIR$/../.flutterw/stable/2.2/.pub-cache/hosted/http%58%47%47pub.ke.com/string_scanner-1.1.0/lib" />
+      <root url="file://$PROJECT_DIR$/../.flutterw/stable/2.2/.pub-cache/hosted/http%58%47%47pub.ke.com/term_glyph-1.2.0/lib" />
+      <root url="file://$PROJECT_DIR$/../.flutterw/stable/2.2/.pub-cache/hosted/http%58%47%47pub.ke.com/test_api-0.3.0/lib" />
+      <root url="file://$PROJECT_DIR$/../.flutterw/stable/2.2/.pub-cache/hosted/http%58%47%47pub.ke.com/typed_data-1.3.0/lib" />
+      <root url="file://$PROJECT_DIR$/../.flutterw/stable/2.2/.pub-cache/hosted/http%58%47%47pub.ke.com/vector_math-2.1.0/lib" />
+      <root url="file://$PROJECT_DIR$/../.flutterw/stable/2.2/bin/cache/pkg/sky_engine/lib" />
+      <root url="file://$PROJECT_DIR$/../.flutterw/stable/2.2/packages/flutter/lib" />
+      <root url="file://$PROJECT_DIR$/../.flutterw/stable/2.2/packages/flutter_test/lib" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

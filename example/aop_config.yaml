@@ -1,0 +1,3 @@
+flutter_tools_hook:
+  - project_name: 'beike_aspectd'
+    exec_path: 'bin/starter.snapshot'

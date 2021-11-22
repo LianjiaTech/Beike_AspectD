@@ -1,0 +1,146 @@
+{
+  "configVersion": 2,
+  "packages": [
+    {
+      "name": "async",
+      "rootUri": "file:///Users/beike/.flutterw/stable/2.2/.pub-cache/hosted/http%2558%2547%2547pub.ke.com/async-2.6.1",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "boolean_selector",
+      "rootUri": "file:///Users/beike/.flutterw/stable/2.2/.pub-cache/hosted/http%2558%2547%2547pub.ke.com/boolean_selector-2.1.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "characters",
+      "rootUri": "file:///Users/beike/.flutterw/stable/2.2/.pub-cache/hosted/http%2558%2547%2547pub.ke.com/characters-1.1.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "charcode",
+      "rootUri": "file:///Users/beike/.flutterw/stable/2.2/.pub-cache/hosted/http%2558%2547%2547pub.ke.com/charcode-1.2.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "clock",
+      "rootUri": "file:///Users/beike/.flutterw/stable/2.2/.pub-cache/hosted/http%2558%2547%2547pub.ke.com/clock-1.1.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "collection",
+      "rootUri": "file:///Users/beike/.flutterw/stable/2.2/.pub-cache/hosted/http%2558%2547%2547pub.ke.com/collection-1.15.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "cupertino_icons",
+      "rootUri": "file:///Users/beike/.flutterw/stable/2.2/.pub-cache/hosted/http%2558%2547%2547pub.ke.com/cupertino_icons-0.1.3",
+      "packageUri": "lib/",
+      "languageVersion": "2.0"
+    },
+    {
+      "name": "fake_async",
+      "rootUri": "file:///Users/beike/.flutterw/stable/2.2/.pub-cache/hosted/http%2558%2547%2547pub.ke.com/fake_async-1.2.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "flutter",
+      "rootUri": "file:///Users/beike/.flutterw/stable/2.2/packages/flutter",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "flutter_test",
+      "rootUri": "file:///Users/beike/.flutterw/stable/2.2/packages/flutter_test",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "matcher",
+      "rootUri": "file:///Users/beike/.flutterw/stable/2.2/.pub-cache/hosted/http%2558%2547%2547pub.ke.com/matcher-0.12.10",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "meta",
+      "rootUri": "file:///Users/beike/.flutterw/stable/2.2/.pub-cache/hosted/http%2558%2547%2547pub.ke.com/meta-1.3.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "path",
+      "rootUri": "file:///Users/beike/.flutterw/stable/2.2/.pub-cache/hosted/http%2558%2547%2547pub.ke.com/path-1.8.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "sky_engine",
+      "rootUri": "file:///Users/beike/.flutterw/stable/2.2/bin/cache/pkg/sky_engine",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "source_span",
+      "rootUri": "file:///Users/beike/.flutterw/stable/2.2/.pub-cache/hosted/http%2558%2547%2547pub.ke.com/source_span-1.8.1",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "stack_trace",
+      "rootUri": "file:///Users/beike/.flutterw/stable/2.2/.pub-cache/hosted/http%2558%2547%2547pub.ke.com/stack_trace-1.10.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "stream_channel",
+      "rootUri": "file:///Users/beike/.flutterw/stable/2.2/.pub-cache/hosted/http%2558%2547%2547pub.ke.com/stream_channel-2.1.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "string_scanner",
+      "rootUri": "file:///Users/beike/.flutterw/stable/2.2/.pub-cache/hosted/http%2558%2547%2547pub.ke.com/string_scanner-1.1.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "term_glyph",
+      "rootUri": "file:///Users/beike/.flutterw/stable/2.2/.pub-cache/hosted/http%2558%2547%2547pub.ke.com/term_glyph-1.2.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "test_api",
+      "rootUri": "file:///Users/beike/.flutterw/stable/2.2/.pub-cache/hosted/http%2558%2547%2547pub.ke.com/test_api-0.3.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "typed_data",
+      "rootUri": "file:///Users/beike/.flutterw/stable/2.2/.pub-cache/hosted/http%2558%2547%2547pub.ke.com/typed_data-1.3.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "vector_math",
+      "rootUri": "file:///Users/beike/.flutterw/stable/2.2/.pub-cache/hosted/http%2558%2547%2547pub.ke.com/vector_math-2.1.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "beike_aspectd",
+      "rootUri": "../",
+      "packageUri": "lib/",
+      "languageVersion": "2.1"
+    }
+  ],
+  "generated": "2021-11-22T02:43:24.233068Z",
+  "generator": "pub",
+  "generatorVersion": "2.13.3"
+}
