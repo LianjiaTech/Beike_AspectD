@@ -1,0 +1,21 @@
+.DS_Store
+.dart_tool/
+
+.packages
+.pub/
+
+build/
+ios/*
+
+
+.idea/
+flutter_link_rent_package.iml
+pubspec.lock
+.metadata
+./android/
+.flutter-plugins
+android/*
+# flutterw忽略文件
+flutter/wrapper/flutterw/__pycache__
+.vscode/settings.json
+flutter/wrapper/.idea/flutterw_sdk.path

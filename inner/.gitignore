@@ -1,0 +1,17 @@
+.DS_Store
+.dart_tool/
+
+.packages
+.pub/
+
+build/
+ios/*
+
+
+.idea/
+flutter_link_rent_package.iml
+pubspec.lock
+.metadata
+./android/
+.flutter-plugins
+android/*

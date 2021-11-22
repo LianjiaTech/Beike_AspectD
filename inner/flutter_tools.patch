@@ -1,0 +1,762 @@
+From 56b5beff905cf1e045b1471f6555b4b46fb7d5e3 Mon Sep 17 00:00:00 2001
+From: xiaopeng
+Date: Wed, 11 Aug 2021 18:39:03 +0800
+Subject: [PATCH] 1
+
+---
+ .../lib/src/aop/aop_manager.dart              | 198 ++++++++++++
+ .../lib/src/aop/hook_factory.dart             |  95 ++++++
+ packages/flutter_tools/lib/src/aspectd.dart   | 283 ++++++++++++++++++
+ .../lib/src/build_system/targets/common.dart  |  10 +
+ .../lib/src/build_system/targets/web.dart     |  21 +-
+ .../lib/src/commands/build_bundle.dart        |   4 +
+ packages/flutter_tools/lib/src/compile.dart   |   4 +
+ .../flutter_tools/lib/src/web/chrome.dart     |   1 +
+ 8 files changed, 610 insertions(+), 6 deletions(-)
+ create mode 100644 packages/flutter_tools/lib/src/aop/aop_manager.dart
+ create mode 100644 packages/flutter_tools/lib/src/aop/hook_factory.dart
+ create mode 100644 packages/flutter_tools/lib/src/aspectd.dart
+
+diff --git a/packages/flutter_tools/lib/src/aop/aop_manager.dart b/packages/flutter_tools/lib/src/aop/aop_manager.dart
+new file mode 100644
+index 0000000000..b33bda963e
+--- /dev/null
++++ b/packages/flutter_tools/lib/src/aop/aop_manager.dart
+@@ -0,0 +1,198 @@
++
++// @dart = 2.8
++
++import 'package:flutter_tools/src/aop/hook_factory.dart';
++import 'package:flutter_tools/src/dart/package_map.dart';
++import 'package:package_config/package_config.dart';
++import 'package:yaml/yaml.dart';
++import 'package:file/file.dart' as f;
++import '../globals.dart' as globals;
++import '../artifacts.dart';
++
++import '../build_info.dart';
++import '../globals.dart';
++
++/// 创建时间：2020-03-28
++/// 作者：liujingguang
++/// 描述：AopManager管理类
++///
++/// aop_config.yaml文件配置需要处理app.dill文件的工程, 在根项目下进行配置.
++/// project_name为项目名称
++/// exec_path为生成的snapshot的路径
++///
++/// 配置样例如下:
++///
++/// flutter_tools_hook:
++///  - project_name: 'beike_aspectd'
++///    exec_path: 'bin/starter.snapshot'
++///
++///  - project_name: 'flutter_aop_data_parse'
++///    exec_path: 'bin/starter.snapshot'
++class AopManager {
++  static const String sYamlConfigName = 'aop_config.yaml';
++  static const String key_flutter_tools_hook = 'flutter_tools_hook';
++  static const String key_project_name = 'project_name';
++  static const String key_exec_path = 'exec_path';
++
++  static Future<void> hookBuildBundleCommand(
++    String productDirPath,
++    BuildMode buildMode,
++  ) async {
++    await _handleHook(productDirPath, buildMode, CommandType4Aop.Bundle);
++  }
++
++  static Future<void> hookBuildAotCommand(
++    String productDirPath,
++    BuildMode buildMode,
++  ) async {
++    await _handleHook(productDirPath, buildMode, CommandType4Aop.Aot);
++  }
++
++  static Future<void> hookSnapshotCommand(
++    String productDirPath,
++    BuildMode buildMode,
++  ) async {
++    await _handleHook(productDirPath, buildMode, CommandType4Aop.Snapshot);
++  }
++
++  static Future<List<String>> aopArgs(BuildMode buildMode) async {
++    final String dart_path =
++        globals.artifacts.getArtifactPath(Artifact.engineDartBinary);
++
++    final List proceduresList = await _aopProcedures();
++
++    final List<String> args = [
++      '--build-mode',
++      buildMode.name,
++      '--dart-path',
++      dart_path
++    ];
++
++    if (proceduresList != null && proceduresList.isNotEmpty) {
++      final String produces = proceduresList.join(',');
++      args.add('--aop-packages');
++      args.add(produces);
++    }
++
++    return args;
++  }
++
++  static Future<List<String>> _aopProcedures() async {
++    List<String> procedures = List<String>();
++
++    final String configYamlPath =
++        fs.path.join(fs.currentDirectory.path, sYamlConfigName);
++
++    if (fs.file(configYamlPath).existsSync()) {
++      final dynamic yamlInfo =
++          loadYaml(fs.file(configYamlPath).readAsStringSync());
++
++      if (yamlInfo == null) {
++        return null;
++      }
++
++      if (yamlInfo[key_flutter_tools_hook] is! YamlList) {
++        return null;
++      }
++
++      final YamlList yamlNodes = yamlInfo[key_flutter_tools_hook] as YamlList;
++      for (dynamic v in yamlNodes) {
++        if (v == null) {
++          continue;
++        }
++
++        final String projectName = v[key_project_name] as String;
++        final String execPath = v[key_exec_path] as String;
++
++        if (projectName == null || execPath == null) {
++          continue;
++        }
++
++        final String packagePath = await _findAopPackagePath(projectName);
++        if (packagePath == null) {
++          continue;
++        }
++
++        procedures.add(fs.path.join(packagePath, execPath));
++      }
++    }
++
++    return procedures;
++  }
++
++  static Future<void> _handleHook(
++      String productDirPath, BuildMode buildMode, CommandType4Aop type) async {
++//    return Future.value();
++    try {
++      final String configYamlPath =
++          fs.path.join(fs.currentDirectory.path, sYamlConfigName);
++
++      print(configYamlPath);
++
++      if (fs.file(configYamlPath).existsSync()) {
++        final dynamic yamlInfo =
++            loadYaml(fs.file(configYamlPath).readAsStringSync());
++
++        if (yamlInfo == null) {
++          return;
++        }
++
++        if (yamlInfo[key_flutter_tools_hook] is! YamlList) {
++          return;
++        }
++
++        final YamlList yamlNodes = yamlInfo[key_flutter_tools_hook] as YamlList;
++        for (dynamic v in yamlNodes) {
++          if (v == null) {
++            return;
++          }
++
++          final String projectName = v[key_project_name] as String;
++          final String execPath = v[key_exec_path] as String;
++
++          if (projectName == null || execPath == null) {
++            return;
++          }
++          final String packagePath = await _findAopPackagePath(projectName);
++          if (packagePath == null) {
++            return;
++          }
++
++          await HookFactory.hook(productDirPath,
++              fs.path.join(packagePath, execPath), buildMode, type);
++        }
++      }
++      // ignore: avoid_catches_without_on_clauses
++    } catch (e) {
++      printTrace('error in _handleHook of $type : ${e.toString()}');
++    }
++  }
++
++  /// 获取项目中引用flutter_aop_data_parse的路径
++  static Future<String> _findAopPackagePath(String projectName) async {
++    Map<String, dynamic> packages;
++    try {
++      final String packagesFilePath =
++          fs.path.join(fs.currentDirectory.path, '.packages');
++
++      final f.File packageFile = fs.file(packagesFilePath);
++      final PackageConfig packageConfig =
++          await loadPackageConfigWithLogging(packageFile);
++      packages = PackageConfig.toJson(packageConfig);
++
++      for (Package package in packageConfig.packages) {
++        if (package.name == projectName) {
++          final Uri uri = package.packageUriRoot;
++          final String uriString = uri.path;
++          return uriString;
++        }
++      }
++      // ignore: avoid_catches_without_on_clauses
++    } catch (e) {
++      printTrace('Invalid .packages file: $e');
++      return null;
++    }
++
++    return null;
++  }
++}
+diff --git a/packages/flutter_tools/lib/src/aop/hook_factory.dart b/packages/flutter_tools/lib/src/aop/hook_factory.dart
+new file mode 100644
+index 0000000000..4c3e5652e8
+--- /dev/null
++++ b/packages/flutter_tools/lib/src/aop/hook_factory.dart
+@@ -0,0 +1,95 @@
++// @dart = 2.8
++
++import 'dart:io';
++
++import 'package:flutter_tools/src/artifacts.dart';
++import 'package:flutter_tools/src/base/common.dart';
++import 'package:flutter_tools/src/base/file_system.dart';
++import 'package:flutter_tools/src/build_info.dart';
++import 'package:flutter_tools/src/globals.dart';
++
++/// 创建时间：2020-03-28
++/// 作者：liujingguang
++/// 描述：Hook处理工厂
++enum CommandType4Aop { Bundle, Aot, Snapshot }
++
++class HookFactory {
++  static Future<void> hook(String productDirPath, String executorPath,
++      BuildMode buildMode, CommandType4Aop type) async {
++
++    if (productDirPath == null ||
++        executorPath == null ||
++        !fs.file(executorPath).existsSync()) {
++      return;
++    }
++
++    String inputPath;
++    switch (type) {
++      case CommandType4Aop.Bundle:
++        inputPath = _getBundleInputPath(productDirPath);
++        break;
++      case CommandType4Aop.Aot:
++        inputPath = _getAotInputPath(productDirPath);
++        break;
++      case CommandType4Aop.Snapshot:
++        inputPath = _getSnapShotInputPath(productDirPath);
++        break;
++    }
++    if (!inputPath.startsWith(fs.currentDirectory.path)) {
++      inputPath = fs.path.join(fs.currentDirectory.path, inputPath);
++    }
++    if (!fs.file(inputPath).existsSync()) {
++      return;
++    }
++
++    final String outputPath =
++        inputPath + '.${type.toString().toLowerCase()}.result.dill';
++
++    /// 执行hook命令
++    final List<String> command = <String>[
++      artifacts.getArtifactPath(Artifact.engineDartBinary),
++      executorPath,
++      '--input',
++      inputPath,
++      '--output',
++      outputPath,
++      if (buildMode != BuildMode.release) ...<String>[
++        '--sdk-root',
++        fs
++                .file(artifacts.getArtifactPath(Artifact.platformKernelDill))
++                .parent
++                .path +
++            fs.path.separator
++      ],
++    ];
++
++    print(command.toString());
++    final ProcessResult result = await processManager.run(command);
++    if (result.exitCode != 0) {
++      print(result.stderr);
++      throwToolExit(
++          'hook by aop terminated unexpectedly in ${type.toString()}.');
++      return;
++    }
++
++    print('aop hook succeed');
++
++    /// 删除input输入文件
++    final File inputFile = fs.file(inputPath);
++    if (inputFile.existsSync()) {
++//      inputFile.copySync(inputPath + '.old'); //调试时可以打开查看信息
++      inputFile.deleteSync();
++    }
++
++    /// 将Aop处理生成后的output文件重命名为input文件名
++    fs.file(outputPath).renameSync(inputPath);
++  }
++
++  static String _getBundleInputPath(String assetsDir) =>
++      fs.path.join(assetsDir, 'kernel_blob.bin');
++
++  static String _getAotInputPath(String path) =>
++      fs.path.join(path ?? getAotBuildDirectory(), 'app.dill');
++
++  static String _getSnapShotInputPath(String path) => path;
++}
+diff --git a/packages/flutter_tools/lib/src/aspectd.dart b/packages/flutter_tools/lib/src/aspectd.dart
+new file mode 100644
+index 0000000000..b7d6478b6e
+--- /dev/null
++++ b/packages/flutter_tools/lib/src/aspectd.dart
+@@ -0,0 +1,283 @@
++// Copyright 2018 The Chromium Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++// @dart = 2.8
++
++import 'dart:io';
++
++import 'package:crypto/crypto.dart';
++import 'package:yaml/yaml.dart';
++import 'package:package_config/package_config.dart';
++
++import 'artifacts.dart';
++import 'base/common.dart';
++import 'base/file_system.dart';
++import 'build_system/build_system.dart';
++import 'build_system/targets/common.dart';
++import 'cache.dart';
++import 'compile.dart';
++import 'dart/package_map.dart';
++import 'globals.dart' as globals;
++
++const String aspectdImplPackageRelPath = '..';
++const String frontendServerDartSnapshot = 'frontend_server.dart.snapshot';
++const String sYamlConfigName = 'aop_config.yaml';
++const String key_flutter_tools_hook = 'flutter_tools_hook';
++const String key_project_name = 'project_name';
++const String key_exec_path = 'exec_path';
++const String beike_aspectd = 'beike_aspectd';
++const String inner_path = 'inner';
++const String globalPackagesPath = '.packages';
++
++class AspectdHook {
++  static Future<Directory> getPackagePathFromConfig(
++      String packageConfigPath, String packageName) async {
++    final PackageConfig packageConfig = await loadPackageConfigWithLogging(
++      globals.fs.file(packageConfigPath),
++      logger: globals.logger,
++    );
++    if ((packageConfig?.packages?.length ?? 0) > 0) {
++      final Package aspectdPackage = packageConfig.packages.toList().firstWhere(
++          (Package element) => element.name == packageName,
++          orElse: () => null);
++
++      if(aspectdPackage == null) {
++        return null;
++      }
++      return globals.fs.directory(aspectdPackage.root.toFilePath());
++    }
++    return null;
++  }
++
++  static Future<Directory> getFlutterFrontendServerDirectory(
++      String packagesPath) async {
++
++    final Directory directory = await getPackagePathFromConfig(packagesPath, beike_aspectd);
++
++    if(directory == null) {
++      return null;
++    }
++
++    return globals.fs.directory(globals.fs.path.join(
++        directory
++            .absolute
++            .path, inner_path,
++        'flutter_frontend_server'));
++  }
++
++  static bool configFileExists() {
++    final String configYamlPath =
++        globals.fs.path.join(globals.fs.currentDirectory.path, sYamlConfigName);
++
++    if (globals.fs.file(configYamlPath).existsSync()) {
++      final dynamic yamlInfo =
++          loadYaml(globals.fs.file(configYamlPath).readAsStringSync());
++
++      if (yamlInfo == null) {
++        return false;
++      }
++
++      if (yamlInfo[key_flutter_tools_hook] is! YamlList) {
++        return false;
++      }
++
++      final YamlList yamlNodes = yamlInfo[key_flutter_tools_hook] as YamlList;
++
++      if (yamlNodes.nodes.isNotEmpty) {
++        return true;
++      }
++    }
++
++    return false;
++  }
++
++  static Directory getAspectdDirectory(Directory rootProjectDir) {
++    return globals.fs.directory(globals.fs.path.normalize(globals.fs.path
++        .join(rootProjectDir.path, aspectdImplPackageRelPath, beike_aspectd)));
++  }
++
++  static Future<void> enableAspectd() async {
++    // if (!configFileExists()) {
++    //   print('aop  not enabled');
++    //   return false;
++    // }
++
++
++    final Directory currentDirectory = globals.fs.currentDirectory;
++
++    final String packagesPath = globals.fs.path
++        .join(currentDirectory.absolute.path, globalPackagesPath);
++
++    final Directory beikeAspectdDirectory =
++        await getPackagePathFromConfig(packagesPath, beike_aspectd);
++    // final String innerDirectory =
++    //     globals.fs.path.join(beikeAspectdDirectory.absolute.path, inner_path);
++
++    final Directory flutterFrontendServerDirectory =
++        await getFlutterFrontendServerDirectory(packagesPath);
++
++    if(beikeAspectdDirectory == null || flutterFrontendServerDirectory == null) {
++      return;
++    }
++
++    final String aspectdPackagesPath = globals.fs.path.join(
++        beikeAspectdDirectory.absolute.path, inner_path, globalPackagesPath);
++
++    await checkAspectdFlutterFrontendServerSnapshot(aspectdPackagesPath, flutterFrontendServerDirectory);
++    // if (!(beikeAspectdDirectory.existsSync() &&
++    //     flutterFrontendServerDirectory.existsSync() &&
++    //     currentDirectory.absolute.path != beikeAspectdDirectory.absolute.path &&
++    //     globals.fs
++    //         .file(globals.fs.path
++    //             .join(beikeAspectdDirectory.path, 'pubspec.yaml'))
++    //         .existsSync() &&
++    //     globals.fs
++    //         .file(globals.fs.path
++    //             .join(beikeAspectdDirectory.path, globalPackagesPath))
++    //         .existsSync())) {
++    //   return false;
++    // }
++
++  }
++
++  static Future<void> checkAspectdFlutterFrontendServerSnapshot(
++      String packagesPath, Directory flutterFrontendServerDirectory) async {
++
++    final String aspectdFlutterFrontendServerSnapshot = globals.fs.path.join(
++        flutterFrontendServerDirectory.absolute.path,
++        frontendServerDartSnapshot);
++    final String defaultFlutterFrontendServerSnapshot = globals.artifacts
++        .getArtifactPath(Artifact.frontendServerSnapshotForEngineDartSdk);
++    final File defaultServerFile = globals.fs.file(defaultFlutterFrontendServerSnapshot);
++    final File aspectdServerFile = globals.fs.file(aspectdFlutterFrontendServerSnapshot);
++
++    if (defaultServerFile.existsSync()) {
++
++      if(md5.convert(defaultServerFile.readAsBytesSync()) == md5.convert(aspectdServerFile.readAsBytesSync())) {
++        return true;
++      }
++
++      globals.fs.file(defaultFlutterFrontendServerSnapshot).deleteSync();
++    }
++
++    aspectdServerFile
++        .copySync(defaultFlutterFrontendServerSnapshot);
++
++    // if (!globals.fs.file(aspectdFlutterFrontendServerSnapshot).existsSync()) {
++    //   print('generating frontend snapshot');
++    //
++    //   final String dartSdkDir = await getDartSdkDependency(
++    //       (await getPackagePathFromConfig(packagesPath, beike_aspectd))
++    //           .absolute
++    //           .path);
++    //
++    //   final String frontendServerPackageConfigJsonFile =
++    //       '${flutterFrontendServerDirectory.absolute.path}/package_config.json';
++    //   final String rebasedFrontendServerPackageConfigJsonFile =
++    //       '${flutterFrontendServerDirectory.absolute.path}/rebased_package_config.json';
++    //   String frontendServerPackageConfigJson = globals.fs
++    //       .file(frontendServerPackageConfigJsonFile)
++    //       .readAsStringSync();
++    //   frontendServerPackageConfigJson = frontendServerPackageConfigJson
++    //       .replaceAll('../../../third_party/dart', dartSdkDir);
++    //   globals.fs
++    //       .file(rebasedFrontendServerPackageConfigJsonFile)
++    //       .writeAsStringSync(frontendServerPackageConfigJson);
++    //
++    //   final List<String> commands = <String>[
++    //     globals.artifacts.getArtifactPath(Artifact.engineDartBinary),
++    //     '--deterministic',
++    //     '--packages=$rebasedFrontendServerPackageConfigJsonFile',
++    //     '--snapshot=$aspectdFlutterFrontendServerSnapshot',
++    //     '--snapshot-kind=kernel',
++    //     '${flutterFrontendServerDirectory.absolute.path}/starter.dart'
++    //   ];
++    //   final ProcessResult processResult =
++    //       await globals.processManager.run(commands);
++    //   globals.fs.file(rebasedFrontendServerPackageConfigJsonFile).deleteSync();
++    //   if (processResult.exitCode != 0 ||
++    //       globals.fs.file(aspectdFlutterFrontendServerSnapshot).existsSync() ==
++    //           false) {
++    //     throwToolExit(
++    //         'Aspectd unexpected error: ${processResult.stderr.toString()}');
++    //   }
++    // }
++
++
++  }
++
++
++  static Future<String> getDartSdkDependency(String aspectdDir) async {
++    final ProcessResult processResult = await globals.processManager.run(
++        <String>[
++          globals.fs.path.join(
++              globals.artifacts.getArtifactPath(Artifact.engineDartSdkPath),
++              'bin',
++              'pub'),
++          'get',
++          '--verbosity=warning'
++        ],
++        workingDirectory: aspectdDir,
++        environment: <String, String>{'FLUTTER_ROOT': Cache.flutterRoot});
++    if (processResult.exitCode != 0) {
++      throwToolExit(
++          'Aspectd unexpected error: ${processResult.stderr.toString()}');
++    }
++    final Directory kernelDir = await getPackagePathFromConfig(
++        globals.fs.path.join(aspectdDir, globalPackagesPath), 'kernel');
++    return kernelDir.parent.parent.path;
++  }
++
++  Future<void> runBuildDillCommand(Environment environment) async {
++    print('aop front end compiling');
++
++    final Directory mainDirectory = globals.fs.currentDirectory;
++
++    String relativeDir = environment.outputDir.absolute.path
++        .substring(environment.projectDir.absolute.path.length + 1);
++    final String outputDir =
++        globals.fs.path.join(mainDirectory.path, relativeDir);
++
++    final String buildDir =
++        globals.fs.path.join(mainDirectory.path, '.dart_tool', 'flutter_build');
++
++    final Map<String, String> defines = environment.defines;
++    relativeDir = defines[kTargetFile]
++        .substring(environment.projectDir.absolute.path.length + 1);
++
++    String targetFile = environment.defines[kTargetFile];
++    targetFile ??= globals.fs.path.join(mainDirectory.path, 'lib', 'main.dart');
++
++    defines[kTargetFile] = targetFile;
++
++    final Environment auxEnvironment = Environment(
++        projectDir: mainDirectory,
++        outputDir: globals.fs.directory(outputDir),
++        cacheDir: environment.cacheDir,
++        flutterRootDir: environment.flutterRootDir,
++        fileSystem: environment.fileSystem,
++        logger: environment.logger,
++        artifacts: environment.artifacts,
++        processManager: environment.processManager,
++        engineVersion: environment.engineVersion,
++        buildDir: globals.fs.directory(buildDir),
++        defines: defines,
++        inputs: environment.inputs);
++    const KernelSnapshot auxKernelSnapshot = KernelSnapshot();
++    final CompilerOutput compilerOutput =
++        await auxKernelSnapshot.buildImpl(auxEnvironment);
++
++    final String aspectdDill = compilerOutput.outputFilename;
++
++    print('Aspectdill path : ' + aspectdDill);
++    final File originalDillFile = globals.fs.file(
++        globals.fs.path.join(environment.buildDir.absolute.path, 'app.dill'));
++
++    print('originalDillFile path : ' + originalDillFile.path);
++    if (originalDillFile.existsSync()) {
++      await  originalDillFile.copy(originalDillFile.absolute.path + '.bak');
++    }
++    globals.fs.file(aspectdDill).copySync(originalDillFile.absolute.path);
++  }
++}
+diff --git a/packages/flutter_tools/lib/src/build_system/targets/common.dart b/packages/flutter_tools/lib/src/build_system/targets/common.dart
+index f22100901d..23a21a6f52 100644
+--- a/packages/flutter_tools/lib/src/build_system/targets/common.dart
++++ b/packages/flutter_tools/lib/src/build_system/targets/common.dart
+@@ -19,6 +19,7 @@ import '../exceptions.dart';
+ import 'assets.dart';
+ import 'icon_tree_shaker.dart';
+ import 'localizations.dart';
++import '../../aspectd.dart';
+ 
+ /// The define to pass a [BuildMode].
+ const String kBuildMode = 'BuildMode';
+@@ -211,8 +212,17 @@ class KernelSnapshot extends Target {
+     GenerateLocalizationsTarget(),
+   ];
+ 
++
+   @override
+   Future<void> build(Environment environment) async {
++
++    await AspectdHook.enableAspectd();
++
++    await buildImpl(environment);
++  }
++
++  Future<CompilerOutput> buildImpl(Environment environment) async {
++
+     final KernelCompiler compiler = KernelCompiler(
+       fileSystem: environment.fileSystem,
+       logger: environment.logger,
+diff --git a/packages/flutter_tools/lib/src/build_system/targets/web.dart b/packages/flutter_tools/lib/src/build_system/targets/web.dart
+index a2c9ca1235..533a9c1e19 100644
+--- a/packages/flutter_tools/lib/src/build_system/targets/web.dart
++++ b/packages/flutter_tools/lib/src/build_system/targets/web.dart
+@@ -24,6 +24,7 @@ import '../depfile.dart';
+ import 'assets.dart';
+ import 'common.dart';
+ import 'localizations.dart';
++import '../../aop/aop_manager.dart';
+ 
+ /// Whether the application has web plugins.
+ const String kHasWebPlugins = 'HasWebPlugins';
+@@ -217,25 +218,30 @@ class Dart2JSTarget extends Target {
+         '--no-source-maps',
+     ];
+ 
+-    // Run the dart2js compilation in two stages, so that icon tree shaking can
+-    // parse the kernel file for web builds.
+-    final ProcessResult kernelResult = await globals.processManager.run(<String>[
++    final kernelCommands = <String>[
+       ...sharedCommandOptions,
+       '-o',
+       environment.buildDir.childFile('app.dill').path,
+       '--packages=.packages',
+       '--cfe-only',
+       environment.buildDir.childFile('main.dart').path, // dartfile
+-    ]);
++    ];
++
++    print(kernelCommands);
++    // Run the dart2js compilation in two stages, so that icon tree shaking can
++    // parse the kernel file for web builds.
++    final ProcessResult kernelResult = await globals.processManager.run(kernelCommands);
+     if (kernelResult.exitCode != 0) {
+       throw Exception(kernelResult.stdout + kernelResult.stderr);
+     }
+ 
++    await AopManager.hookSnapshotCommand(environment.buildDir.childFile('app.dill').path, buildMode);
++
+     final String dart2jsOptimization = environment.defines[kDart2jsOptimization];
+     final File outputJSFile = environment.buildDir.childFile('main.dart.js');
+     final bool csp = environment.defines[kCspMode] == 'true';
+ 
+-    final ProcessResult javaScriptResult = await environment.processManager.run(<String>[
++    final commands = <String>[
+       ...sharedCommandOptions,
+       if (dart2jsOptimization != null) '-$dart2jsOptimization' else '-O4',
+       if (buildMode == BuildMode.profile) '--no-minify',
+@@ -243,7 +249,10 @@ class Dart2JSTarget extends Target {
+       '-o',
+       outputJSFile.path,
+       environment.buildDir.childFile('app.dill').path, // dartfile
+-    ]);
++    ];
++
++    print(commands);
++    final ProcessResult javaScriptResult = await environment.processManager.run(commands);
+     if (javaScriptResult.exitCode != 0) {
+       throw Exception(javaScriptResult.stdout + javaScriptResult.stderr);
+     }
+diff --git a/packages/flutter_tools/lib/src/commands/build_bundle.dart b/packages/flutter_tools/lib/src/commands/build_bundle.dart
+index f838ba88a1..a410dc79a2 100644
+--- a/packages/flutter_tools/lib/src/commands/build_bundle.dart
++++ b/packages/flutter_tools/lib/src/commands/build_bundle.dart
+@@ -13,6 +13,7 @@ import '../project.dart';
+ import '../reporting/reporting.dart';
+ import '../runner/flutter_command.dart';
+ import 'build.dart';
++import '../aspectd.dart';
+ 
+ class BuildBundleCommand extends BuildSubCommand {
+   BuildBundleCommand({bool verboseHelp = false, this.bundleBuilder}) {
+@@ -82,6 +83,9 @@ class BuildBundleCommand extends BuildSubCommand {
+ 
+   @override
+   Future<FlutterCommandResult> runCommand() async {
++
++    await AspectdHook.enableAspectd();
++
+     final String targetPlatform = stringArg('target-platform');
+     final TargetPlatform platform = getTargetPlatformForName(targetPlatform);
+     if (platform == null) {
+diff --git a/packages/flutter_tools/lib/src/compile.dart b/packages/flutter_tools/lib/src/compile.dart
+index b27209d95f..6abf484414 100644
+--- a/packages/flutter_tools/lib/src/compile.dart
++++ b/packages/flutter_tools/lib/src/compile.dart
+@@ -20,6 +20,7 @@ import 'base/logger.dart';
+ import 'base/platform.dart';
+ import 'build_info.dart';
+ import 'convert.dart';
++import 'aspectd.dart';
+ 
+ /// The target model describes the set of core libraries that are available within
+ /// the SDK.
+@@ -662,6 +663,9 @@ class DefaultResidentCompiler implements ResidentCompiler {
+     String scriptUri,
+     String outputPath,
+   ) async {
++
++    await AspectdHook.enableAspectd();
++
+     final String frontendServer = _artifacts.getArtifactPath(
+       Artifact.frontendServerSnapshotForEngineDartSdk
+     );
+diff --git a/packages/flutter_tools/lib/src/web/chrome.dart b/packages/flutter_tools/lib/src/web/chrome.dart
+index 0edcb71d66..5d5504d8d6 100644
+--- a/packages/flutter_tools/lib/src/web/chrome.dart
++++ b/packages/flutter_tools/lib/src/web/chrome.dart
+@@ -208,6 +208,7 @@ class ChromiumLauncher {
+       '--no-default-browser-check',
+       '--disable-default-apps',
+       '--disable-translate',
++      '–disable-web-security',
+       if (headless)
+         ...<String>[
+           '--headless',
+-- 
+2.18.0
+
