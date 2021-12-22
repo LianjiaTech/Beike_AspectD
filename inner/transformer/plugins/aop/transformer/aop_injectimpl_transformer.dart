@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 import 'package:kernel/ast.dart';
-import 'package:front_end/src/fasta/kernel/kernel_ast_api.dart';
 
 import 'aop_iteminfo.dart';
 import 'aop_tranform_utils.dart';
@@ -62,13 +61,12 @@ class AopInjectImplTransformer extends Transformer {
   }
 
   @override
-  PropertyGet visitPropertyGet(PropertyGet node) {
+  InstanceGet visitInstanceGet(InstanceGet node) {
     node.transformChildren(this);
 
     final Reference reference = node.interfaceTargetReference;
 
-    if(reference == null) {
-
+    if (reference == null) {
       return node;
     }
 
@@ -83,13 +81,16 @@ class AopInjectImplTransformer extends Transformer {
             final Class cls =
                 AopUtils.findClassFromThisWithKeypath(_curClass, keypaths);
             final Field field =
-                AopUtils.findFieldForClassWithName(cls, node.name.name);
-            return PropertyGet(node.receiver, field.name);
+                AopUtils.findFieldForClassWithName(cls, node.name.text);
+            return InstanceGet(
+                InstanceAccessKind.Instance, node.receiver, field.name,
+                interfaceTarget: node.interfaceTarget,
+                resultType: node.resultType);
           } else {
             final VariableDeclaration variableDeclaration =
                 _originalVariableDeclaration[firstEle];
 
-            if(variableDeclaration == null) {
+            if (variableDeclaration == null) {
               return node;
             }
             if (variableDeclaration.type is InterfaceType) {
@@ -97,8 +98,11 @@ class AopInjectImplTransformer extends Transformer {
               final Class cls = AopUtils.findClassFromThisWithKeypath(
                   interfaceType.classNode, keypaths);
               final Field field =
-                  AopUtils.findFieldForClassWithName(cls, node.name.name);
-              return PropertyGet(node.receiver, field.name);
+                  AopUtils.findFieldForClassWithName(cls, node.name.text);
+              return InstanceGet(
+                  InstanceAccessKind.Instance, node.receiver, field.name,
+                  interfaceTarget: node.interfaceTarget,
+                  resultType: node.resultType);
             }
           }
         }
@@ -167,9 +171,9 @@ class AopInjectImplTransformer extends Transformer {
                 aopItemInfo.methodName.startsWith(aopItemInfo.clsName + '.')) {
               for (Constructor constructor in cls.constructors) {
                 if (cls.name +
-                            (constructor.name.name == ''
+                            (constructor.name.text == ''
                                 ? ''
-                                : '.' + constructor.name.name) ==
+                                : '.' + constructor.name.text) ==
                         aopItemInfo.methodName &&
                     true == aopItemInfo.isStatic) {
                   _curClass = expectedCls;
@@ -184,7 +188,7 @@ class AopInjectImplTransformer extends Transformer {
             }
             //Check Procedures
             for (Procedure procedure in cls.procedures) {
-              if (procedure.name.name == aopItemInfo.methodName &&
+              if (procedure.name.text == aopItemInfo.methodName &&
                   procedure.isStatic == aopItemInfo.isStatic) {
                 _curClass = expectedCls;
                 transformMethodProcedure(
@@ -202,7 +206,7 @@ class AopInjectImplTransformer extends Transformer {
           for (Class cls in lib.classes) {
             if (cls.name == aopItemInfo.clsName) {
               for (Procedure procedure in cls.procedures) {
-                if (procedure.name.name == aopItemInfo.methodName &&
+                if (procedure.name.text == aopItemInfo.methodName &&
                     procedure.isStatic == aopItemInfo.isStatic) {
                   _curClass = cls;
                   transformMethodProcedure(
@@ -217,7 +221,7 @@ class AopInjectImplTransformer extends Transformer {
         });
       } else {
         for (Procedure procedure in aopAnnoLibrary.procedures) {
-          if (procedure.name.name == aopItemInfo.methodName &&
+          if (procedure.name.text == aopItemInfo.methodName &&
               procedure.isStatic == aopItemInfo.isStatic) {
             transformMethodProcedure(aopAnnoLibrary,
                 _uriToSource[aopAnnoLibrary.fileUri], procedure, aopItemInfo);
@@ -369,34 +373,31 @@ class AopInjectImplTransformer extends Transformer {
   }
 
   void sortTransform() {
-
     _aopItemInfoList.sort((a, b) => a.importUri.compareTo(b.importUri));
     _aopItemInfoList.sort((a, b) => a.lineNum.compareTo(b.lineNum));
   }
 
   void mergeTransform() {
-
     AopItemInfo lastInfo;
 
     final List<AopItemInfo> removeList = [];
 
-    for(AopItemInfo item in _aopItemInfoList) {
-
-      if(lastInfo == null) {
+    for (AopItemInfo item in _aopItemInfoList) {
+      if (lastInfo == null) {
         lastInfo = item;
         continue;
       }
 
-      if(lastInfo.importUri == item.importUri && lastInfo.clsName == item.clsName && lastInfo.lineNum == item.lineNum) {
-
+      if (lastInfo.importUri == item.importUri &&
+          lastInfo.clsName == item.clsName &&
+          lastInfo.lineNum == item.lineNum) {
         final FunctionNode lastNode = lastInfo.aopMember.function;
         final Statement lastStatement = lastNode.body;
 
         final FunctionNode node = item.aopMember.function;
         final Statement statement = node.body;
 
-        if(lastStatement is Block && statement is Block) {
-
+        if (lastStatement is Block && statement is Block) {
           final List<Statement> lastStatements = lastStatement.statements;
           final List<Statement> statements = statement.statements;
           lastStatements.insertAll(0, statements);
@@ -435,7 +436,6 @@ class AopInjectImplTransformer extends Transformer {
 
   Statement insertStatementsToBody(Library library, Source source, Node node,
       AopItemInfo aopItemInfo, List<Statement> aopInsertStatements) {
-
     Statement body;
     if (node is FunctionNode) {
       body = node.body;
@@ -506,24 +506,24 @@ class AopInjectImplTransformer extends Transformer {
         if ((lineNum2Insert >= lineStart && lineNum2Insert < lineEnds) ||
             (lineEnds < lineStart && lineEnds != -1) ||
             lineStart == -1) {
-            if (nodeToVisitRecursively != null) {
-              _curAopStatementsInsertInfo = AopStatementsInsertInfo(
-                  library: library,
-                  source: source,
-                  constructor: null,
-                  procedure: null,
-                  node: nodeToVisitRecursively,
-                  aopItemInfo: aopItemInfo,
-                  aopInsertStatements: aopInsertStatements);
-              visitNode(nodeToVisitRecursively);
+          if (nodeToVisitRecursively != null) {
+            _curAopStatementsInsertInfo = AopStatementsInsertInfo(
+                library: library,
+                source: source,
+                constructor: null,
+                procedure: null,
+                node: nodeToVisitRecursively,
+                aopItemInfo: aopItemInfo,
+                aopInsertStatements: aopInsertStatements);
+            visitNode(nodeToVisitRecursively);
 
-              continue;
-            }
+            continue;
+          }
         }
-        if (lineNum2Insert == lineStart-1 || lineNum2Insert == lineStart) {
+        if (lineNum2Insert == lineStart - 1 || lineNum2Insert == lineStart) {
           statement2InsertPos = i;
-        } else if (lineEnds != -1 && lineNum2Insert == lineEnds+1) {
-          statement2InsertPos = i+1;
+        } else if (lineEnds != -1 && lineNum2Insert == lineEnds + 1) {
+          statement2InsertPos = i + 1;
         } else if (lineNum2Insert >= lineEnds && i == len - 1) {
           statement2InsertPos = len;
         }

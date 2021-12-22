@@ -1,13 +1,11 @@
-// @dart=2.8
+import 'dart:io';
 
 import 'package:beike_aspectd/aspectd.dart';
-import 'package:flutter/material.dart';
 // ignore: unused_import
 import 'package:example/hook_example.dart';
-// import 'custom_annotation.dart';
+import 'package:flutter/material.dart';
+
 import 'receiver_test.dart';
-import 'package:flutter/gestures.dart';
-import 'dart:io';
 
 void main() {
   injectDemo([]);
@@ -45,14 +43,12 @@ void injectDemo(List<Observer> observers) {
 }
 
 class MyApp extends StatelessWidget {
-
   static String localHostname = '111';
   String field = '222';
 
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-
     print(localHostname);
     print(field);
 
@@ -95,27 +91,21 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-
   int i;
+  String s = 'fffff';
 
   final Receiver receiver = Receiver();
   final dynamic receiver2 = Receiver2();
   final dynamic _receiver6 = Receiver2();
-  static const String s = 'fffff';
 
   _MyHomePageState({this.i = 10});
 
   void onPluginDemo(int i, _MyHomePageState p) {
-    print('123123'  + i.toString());
-    print('[KWLM]:onPluginDemo111 Called!');
-
-    // Navigator.of(context).push(MaterialPageRoute(builder: (context){
-    //   return  MyHomePage();
-    // }));
+    print(i.toString());
+    print(s);
   }
 
   void _incrementCounter() {
-
     setState(() {
       // This call to setState tells the Flutter framework that something has
       // changed in this State, which causes it to rerun the build method below
@@ -126,11 +116,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-
-  static void testFunction() {
-
-
-  }
+  static void testFunction() {}
 
   void test() {
     _incrementCounter();
@@ -178,8 +164,10 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             Text(
               '$i',
-              style: Theme.of(context).textTheme.display1,
+              style: Theme.of(context).textTheme.bodyText2,
             ),
+            // Image.network('https://preview.lianjia.com/yunpan/e606fce4-a9bf-4d3d-a413-5e2c2ebe9462!m_simple,f_000009.jpg', width: 50, height: 100),
+//            FadeInImage.memoryNetwork('https://preview.lianjia.com/yunpan/e606fce4-a9bf-4d3d-a413-5e2c2ebe9462!m_simple,f_000009.jpg', width: 50, height: 100),
 
             GestureDetector(
               child: const Text('onPluginDemo', style: TextStyle(fontSize: 30)),
@@ -197,7 +185,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 // dynamic4.addTestRegularFilterSuper(null);
                 // dynamicO.addTest(null, '111', s:'666', i:5);
 
-                PointCut p = PointCut(null,null,null,null,null,null,null,null);
+                PointCut p =
+                    PointCut(null, null, null, null, null, null, null, null);
                 dynamicO.addTest(p, 9);
                 // dynamicO.testFunc('ffff');
                 // dynamicO.addTestRegular(null);
@@ -212,11 +201,11 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed:(){
+        onPressed: () {
           test();
           // Receiver.tap();
           // _incrementCounter();
-        } ,
+        },
         tooltip: 'Increment',
         child: Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.

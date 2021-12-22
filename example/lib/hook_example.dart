@@ -2,24 +2,73 @@ import 'package:beike_aspectd/aspectd.dart';
 
 @Aspect()
 @pragma("vm:entry-point")
+class FieldGetDemo {
+  // @pragma("vm:entry-point")
+  // @FieldGet('dart:io', 'Platform', 'isAndroid', true)
+  // static bool exchange(PointCut pointCut) {
+  //   //origin call
+  //   return true;
+  // }
+
+  // @pragma("vm:entry-point")
+  // @FieldGet('package:example/main.dart', '_MyHomePageState', 's', false)
+  // static String exchange2(PointCut pointCut) {
+  //   //origin call
+  //   return '[beike_aspectd]:Exchanged field';
+  // }
+}
+
+@Aspect()
+@pragma("vm:entry-point")
+class FieldInitializerDemo {
+  //  @FieldInitializer("package:flutter/src/widgets/image.dart", "Image", "+Image.network", "gaplessPlayback")
+//  @pragma("vm:entry-point")
+//  void hookNetworkImage()
+//  {
+//    true;
+//  }
+//
+//  @FieldInitializer("package:flutter/src/widgets/image.dart", "Image", "+Image.network", "image")
+//  @pragma("vm:entry-point")
+//  void hookNetworkImage2()
+//  {
+//    int cacheWidth;
+//    int cacheHeight;
+//
+//    double width;
+//    double height;
+//
+//    String src;
+//    double scale;
+//    Map<String, String> headers;
+//
+//    ResizeImage.resizeIfNeeded(cacheWidth!=null?cacheWidth:width.toInt(), cacheHeight!=null?cacheHeight:height.toInt(), NetworkImage(src, scale: scale, headers: headers));
+////    ResizeImage.resizeIfNeeded(100, 50, NetworkImage(src, scale: scale, headers: headers));
+//
+//  }
+
+}
+
+@Aspect()
+@pragma("vm:entry-point")
 class CallDemo {
   @pragma("vm:entry-point")
   CallDemo();
 
- //实例方法
- // @Call("package:example/main.dart", "_MyHomePageState",
- //     "-_incrementCounter")
- // @pragma("vm:entry-point")
- // void _incrementCounter4(PointCut pointcut) {
- //   print('call instance method2!');
- //   pointcut.proceed();
- // }
+//实例方法
+// @Call("package:example/main.dart", "_MyHomePageState",
+//     "-_incrementCounter")
+// @pragma("vm:entry-point")
+// void _incrementCounter4(PointCut pointcut) {
+//   print('[beike_aspectd]: call instance method2!');
+//   pointcut.proceed();
+// }
 
 // //类静态方法
 // @Call("package:example/main.dart", "_MyHomePageState", "+testFunction")
 // @pragma("vm:entry-point")
 // static void appInit(PointCut pointcut) {
-//   print('call static method!');
+//   print('[beike_aspectd]: call static method!');
 //   pointcut.proceed();
 // }
 
@@ -28,7 +77,7 @@ class CallDemo {
 // @pragma("vm:entry-point")
 // dynamic receiveTapped(PointCut pointcut) {
 //   dynamic obj = pointcut.proceed();
-//   print('call constructor method!');
+//   print('[beike_aspectd]: call constructor method!');
 //   pointcut.proceed();
 //   return obj;
 // }
@@ -37,7 +86,7 @@ class CallDemo {
 // @Call("package:example/main.dart", "", "+injectDemo")
 // @pragma("vm:entry-point")
 // static void injectDemo(PointCut pointcut) {
-//   print('call library static method!');
+//   print('[beike_aspectd]: call library static method!');
 //   pointcut.proceed();
 // }
 }
@@ -53,7 +102,7 @@ class RegexCallDemo {
 //     "-.*", isRegex: true)
 // @pragma("vm:entry-point")
 // dynamic _incrementCounter(PointCut pointcut) {
-//   print('regex call hook instance method!');
+//   print('[beike_aspectd]: regex call hook instance method!');
 //   return pointcut.proceed();
 // }
 
@@ -61,7 +110,7 @@ class RegexCallDemo {
 // @Call("package:example/main.dart", "_MyHomePageState", "+.*", isRegex: true)
 // @pragma("vm:entry-point")
 // static dynamic appInit(PointCut pointcut) {
-//   print('regex call static method!');
+//   print('[beike_aspectd]: regex call static method!');
 //   return pointcut.proceed();
 // }
 
@@ -70,7 +119,7 @@ class RegexCallDemo {
 // @pragma("vm:entry-point")
 // dynamic receiveTapped(PointCut pointcut) {
 //   dynamic obj = pointcut.proceed();
-//   print('regex call constructor method!');
+//   print('[beike_aspectd]: regex call constructor method!');
 //   pointcut.proceed();
 //   return obj;
 // }
@@ -79,7 +128,7 @@ class RegexCallDemo {
 // @Call("package:example/main.dart", "", "+.*", isRegex: true)
 // @pragma("vm:entry-point")
 // static dynamic injectDemo(PointCut pointcut) {
-//   print('regex call library static method!');
+//   print('[beike_aspectd]: regex call library static method!');
 //   return pointcut.proceed();
 // }
 }
@@ -90,20 +139,20 @@ class ExecuteDemo {
   @pragma("vm:entry-point")
   ExecuteDemo();
 
-// //实例方法
-// @Execute("package:example/main.dart", "_MyHomePageState",
-//     "-_incrementCounter")
-// @pragma("vm:entry-point")
-// void _incrementCounter(PointCut pointcut) {
-//   print('Execute instance method!');
-//   pointcut.proceed();
-// }
+//实例方法
+//   @Execute(
+//       "package:example/main.dart", "_MyHomePageState", "-_incrementCounter")
+//   @pragma("vm:entry-point")
+//   void _incrementCounter(PointCut pointcut) {
+//     print('[beike_aspectd]: Execute instance method!');
+//     pointcut.proceed();
+//   }
 
 // //类静态方法
 // @Execute("package:example/receiver_test.dart", "Receiver", "+tap")
 // @pragma("vm:entry-point")
 // static dynamic tap(PointCut pointcut) {
-//   print('Execute static method!');
+//   print('[beike_aspectd]: Execute static method!');
 //   pointcut.proceed();
 // }
 
@@ -112,7 +161,7 @@ class ExecuteDemo {
 // @pragma("vm:entry-point")
 // dynamic receiveTapped(PointCut pointcut) {
 //   dynamic obj = pointcut.proceed();
-//   print('Execute constructor method!');
+//   print('[beike_aspectd]: Execute constructor method!');
 //   pointcut.proceed();
 //   return obj;
 // }
@@ -121,7 +170,7 @@ class ExecuteDemo {
 // @Execute("package:example/main.dart", "", "+injectDemo")
 // @pragma("vm:entry-point")
 // static void injectDemo(PointCut pointcut) {
-//   print('Execute library static method!');
+//   print('[beike_aspectd]: Execute library static method!');
 //   pointcut.proceed();
 // }
 }
@@ -131,20 +180,20 @@ class ExecuteDemo {
 class RegularExecuteDemo {
   RegularExecuteDemo();
 
-// //实例方法
-// @Execute("package:example/main.dart", "_MyHomePageState",
-//     "-.*", isRegex: true)
-// @pragma("vm:entry-point")
-// dynamic _incrementCounter(PointCut pointcut) {
-//   print('regex execute hook instance method!');
-//   return pointcut.proceed();
-// }
+//实例方法
+  @Execute("package:example/main.dart", "_MyHomePageState", "-.*",
+      isRegex: true)
+  @pragma("vm:entry-point")
+  dynamic _incrementCounter(PointCut pointcut) {
+    print('[beike_aspectd]: regex execute hook instance method!');
+    return pointcut.proceed();
+  }
 
 // //类静态方法
 // @Execute("package:example/main.dart", "_MyHomePageState", "+.*", isRegex: true)
 // @pragma("vm:entry-point")
 // dynamic  appInit(PointCut pointcut) {
-//   print('regex execute static method!');
+//   print('[beike_aspectd]: regex execute static method!');
 //   return pointcut.proceed();
 // }
 
@@ -153,7 +202,7 @@ class RegularExecuteDemo {
 // @pragma("vm:entry-point")
 // dynamic receiveTapped(PointCut pointcut) {
 //   dynamic obj = pointcut.proceed();
-//   print('regex execute constructor method!');
+//   print('[beike_aspectd]: regex execute constructor method!');
 //   pointcut.proceed();
 //   return obj;
 // }
@@ -162,7 +211,7 @@ class RegularExecuteDemo {
 // @Execute("package:example/main.dart", "", "+.*", isRegex: true)
 // @pragma("vm:entry-point")
 // static dynamic injectDemo(PointCut pointcut) {
-//   print('regex execute library static method!');
+//   print('[beike_aspectd]: regex execute library static method!');
 //   return pointcut.proceed();
 // }
 }
@@ -172,19 +221,18 @@ class RegularExecuteDemo {
 class InjectDemo {
   InjectDemo();
 
-// //实例方法
-// @Inject(
-//     "package:example/main.dart", "_MyHomePageState", "-onPluginDemo",
-//     lineNum: 93)
-// @pragma("vm:entry-point")
-// void onPluginDemo(PointCut pointcut) {
-//   Object p; //Aspectd Ignore
+//实例方法
+  @Inject("package:example/main.dart", "_MyHomePageState", "-onPluginDemo",
+      lineNum: 108)
+  @pragma("vm:entry-point")
+  void onPluginDemo(PointCut pointcut) {
+    Object p; //Aspectd Ignore
 
-//   print('Inject instance method!');
-//   // Object bo; //Aspectd Ignore
-//   print(p);
-//   // print(bo);
-// }
+    print('[beike_aspectd]:Inject instance method!');
+    // Object bo; //Aspectd Ignore
+    print(p);
+    // print(bo);
+  }
 
 // //类静态方法
 // @Inject("package:example/receiver_test.dart", "Receiver", "+tap",
@@ -275,18 +323,12 @@ class InjectSameLineDemo {
 class AddDemo {
   @pragma("vm:entry-point")
   AddDemo();
-  //
-  // @Add("package:.+\\.dart", ".*", isRegex: true)
-  // @pragma("vm:entry-point")
-  // dynamic getBasicInfo(PointCut pointCut) {
-  //   return pointCut?.sourceInfos ?? {};
-  // }
 
-// @Add("package:example/receiver_test.dart", "Receiver")
-// @pragma("vm:entry-point")
-// dynamic addTest(PointCut pointCut, String stirng, {String s, int i}) {
-//   print('Add method');
-// }
+  @Add("package:example/receiver_test.dart", "Receiver")
+  @pragma("vm:entry-point")
+  dynamic addTest(PointCut pointCut, int j, {String s, int i}) {
+    print('[beike_aspectd]: Add method');
+  }
 
 // @Add("package:example\\/.+\\.dart", ".*", isRegex: true)
 // @pragma("vm:entry-point")
@@ -305,25 +347,6 @@ class RegexFilterSuperAddDemo {
 // @Add("package:example\\/.+\\.dart", ".*", isRegex: true, superCls: 'Widget')
 // @pragma("vm:entry-point")
 // void addTestRegularFilterSuper(PointCut pointCut) {
-//   print('Regular add method filter super');
+//   print('[beike_aspectd]: Regular add method filter super');
 // }
-}
-
-@Aspect()
-@pragma("vm:entry-point")
-class FieldGetDemo {
-
-
-  // @pragma("vm:entry-point")
-  // @FieldGet('dart:io', 'Platform', 'isAndroid', true)
-  // static bool exchange(PointCut pointCut) {
-  //   //origin call
-  //   return true;
-  // }
-
-  // @pragma("vm:entry-point")
-  // @FieldGet('package:example/main.dart', 'MyApp', 'field', false)
-  // static String exchange2(PointCut pointCut) {
-  //   return 'Property exchanged';
-  // }
 }

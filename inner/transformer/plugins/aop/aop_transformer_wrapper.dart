@@ -55,27 +55,32 @@ class AopWrapperTransformer extends FlutterProgramTransformer {
           mapGetProcedure != null) {
         continue;
       }
+
+      if (library.name == 'dart.core') {
+        AopUtils.coreLib = library;
+      }
+
       final Uri importUri = library.importUri;
       for (Class cls in library.classes) {
         final String clsName = cls.name;
         if (clsName == AopUtils.kAopAnnotationClassPointCut &&
             importUri.toString() == AopUtils.kImportUriPointCut) {
           for (Procedure procedure in cls.procedures) {
-            if (procedure.name.name == AopUtils.kAopPointcutProcessName) {
+            if (procedure.name.text == AopUtils.kAopPointcutProcessName) {
               pointCutProceedProcedure = procedure;
             }
           }
         }
         if (clsName == 'List' && importUri.toString() == 'dart:core') {
           for (Procedure procedure in cls.procedures) {
-            if (procedure.name.name == '[]') {
+            if (procedure.name.text == '[]') {
               listGetProcedure = procedure;
             }
           }
         }
         if (clsName == 'Map' && importUri.toString() == 'dart:core') {
           for (Procedure procedure in cls.procedures) {
-            if (procedure.name.name == '[]') {
+            if (procedure.name.text == '[]') {
               mapGetProcedure = procedure;
             }
           }
@@ -86,6 +91,7 @@ class AopWrapperTransformer extends FlutterProgramTransformer {
     final List<AopItemInfo> executeInfoList = <AopItemInfo>[];
     final List<AopItemInfo> injectInfoList = <AopItemInfo>[];
     final List<AopItemInfo> addInfoList = <AopItemInfo>[];
+    final List<AopItemInfo> initializerInfoList = <AopItemInfo>[];
     final List<AopItemInfo> fieldGetInfoList = <AopItemInfo>[];
 
     for (AopItemInfo aopItemInfo in aopItemInfoList) {
@@ -97,7 +103,9 @@ class AopWrapperTransformer extends FlutterProgramTransformer {
         injectInfoList.add(aopItemInfo);
       } else if (aopItemInfo.mode == AopMode.Add) {
         addInfoList.add(aopItemInfo);
-      }  else if (aopItemInfo.mode == AopMode.FieldGet) {
+      } else if (aopItemInfo.mode == AopMode.FieldInitializer) {
+        initializerInfoList.add(aopItemInfo);
+      } else if (aopItemInfo.mode == AopMode.FieldGet) {
         fieldGetInfoList.add(aopItemInfo);
       }
     }
@@ -146,7 +154,9 @@ class AopWrapperTransformer extends FlutterProgramTransformer {
     if (fieldGetInfoList.isNotEmpty) {
       final AopFieldGetImplTransformer aopFieldGetImplTransformer =
           AopFieldGetImplTransformer(
-        fieldGetInfoList
+        fieldGetInfoList,
+        libraryMap,
+        concatUriToSource,
       );
 
       for (int i = 0; i < libraries.length; i++) {
@@ -309,7 +319,6 @@ class AopWrapperTransformer extends FlutterProgramTransformer {
         bool isRegex = false;
         int lineNum;
         String superCls;
-        String fieldName;
 
         for (NamedExpression namedExpression
             in constructorInvocation.arguments.named) {
@@ -325,34 +334,44 @@ class AopWrapperTransformer extends FlutterProgramTransformer {
             final BoolLiteral boolLiteral = namedExpression.value;
             isRegex = boolLiteral.value;
           }
-
-          if (namedExpression.name == AopUtils.kAopAnnotationfieldName) {
-            final StringLiteral stringLiteral = namedExpression.value;
-            fieldName = stringLiteral.value;
-          }
         }
 
         bool isStatic = false;
-
-        if (aopMode != AopMode.FieldGet) {
-          if (methodName != null) {
-            if (methodName
-                .startsWith(AopUtils.kAopAnnotationInstanceMethodPrefix)) {
-              methodName = methodName
-                  .substring(
-                  AopUtils.kAopAnnotationInstanceMethodPrefix.length);
-            } else if (methodName
-                .startsWith(AopUtils.kAopAnnotationStaticMethodPrefix)) {
-              methodName = methodName
-                  .substring(AopUtils.kAopAnnotationStaticMethodPrefix.length);
-              isStatic = true;
-            }
-          }
-        } else {
-          fieldName = methodName;
+        if (methodName
+            .startsWith(AopUtils.kAopAnnotationInstanceMethodPrefix)) {
+          methodName = methodName
+              .substring(AopUtils.kAopAnnotationInstanceMethodPrefix.length);
+        } else if (methodName
+            .startsWith(AopUtils.kAopAnnotationStaticMethodPrefix)) {
+          methodName = methodName
+              .substring(AopUtils.kAopAnnotationStaticMethodPrefix.length);
+          isStatic = true;
         }
 
-          return AopItemInfo(
+        String fieldName = '';
+        if (aopMode == AopMode.FieldInitializer) {
+          final StringLiteral stringLiteral3 =
+              constructorInvocation.arguments.positional.length > 3
+                  ? constructorInvocation.arguments.positional[3]
+                  : StringLiteral('');
+          fieldName = stringLiteral3.value;
+        }
+
+        if (aopMode == AopMode.FieldGet) {
+          final StringLiteral stringLiteral3 =
+              constructorInvocation.arguments.positional.length > 2
+                  ? constructorInvocation.arguments.positional[2]
+                  : StringLiteral('');
+          fieldName = stringLiteral3.value;
+
+          final BoolLiteral isStaticLiteral =
+              constructorInvocation.arguments.positional.length > 3
+                  ? constructorInvocation.arguments.positional[3]
+                  : BoolLiteral(false);
+          isStatic = isStaticLiteral.value;
+        }
+
+        return AopItemInfo(
             importUri: importUri,
             clsName: clsName,
             methodName: methodName,

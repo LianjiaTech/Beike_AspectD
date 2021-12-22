@@ -17,16 +17,16 @@ dependency_overrides:
   package_config: 1.9.3
 
   meta:
-    path: ../../sdk/dart-sdk/pkg/meta
+    path: ../../sdk/pkg/meta
 
   frontend_server:
-    path: ../../sdk/dart-sdk/pkg/frontend_server
+    path: ../../../SDK/sdk/pkg/frontend_server
 
   _fe_analyzer_shared:
-    path: ../../sdk/dart-sdk/pkg/_fe_analyzer_shared
+    path: ../../../SDK/sdk/pkg/_fe_analyzer_shared
 
   vm:
-    path: ../../sdk/dart-sdk/pkg/vm
+    path: ../../../SDK/sdk/pkg/vm
 
   kernel:
-    path: ../../sdk/dart-sdk/pkg/kernel
+    path: ../../../SDK/sdk/pkg/kernel

@@ -3,20 +3,34 @@
 // found in the LICENSE file.
 
 import 'package:kernel/ast.dart';
-import 'package:front_end/src/fasta/kernel/kernel_ast_api.dart';
 
 import '../transformer/aop_iteminfo.dart';
 import '../transformer/aop_tranform_utils.dart';
 
 class AopFieldGetImplTransformer extends Transformer {
-  AopFieldGetImplTransformer(this._aopItemInfoList);
+  AopFieldGetImplTransformer(
+      this._aopItemInfoList, this._libraryMap, this._uriToSource);
 
   final List<AopItemInfo> _aopItemInfoList;
+  final Map<String, Library> _libraryMap;
   Library _curLibrary;
+  Class _curClass;
+
+  final Map<Uri, Source> _uriToSource;
+  final Map<InvocationExpression, InvocationExpression>
+      _invocationExpressionMapping =
+      <InvocationExpression, InvocationExpression>{};
 
   @override
   Library visitLibrary(Library node) {
     _curLibrary = node;
+    node.transformChildren(this);
+    return node;
+  }
+
+  @override
+  Class visitClass(Class node) {
+    _curClass = node;
     node.transformChildren(this);
     return node;
   }
@@ -48,32 +62,28 @@ class AopFieldGetImplTransformer extends Transformer {
   }
 
   @override
-  Expression visitPropertyGet(PropertyGet node) {
+  Expression visitInstanceGet(InstanceGet node) {
     String importUri, clsName, fieldName;
 
     importUri = _curLibrary.importUri.toString();
-
-    if(node?.interfaceTargetReference?.node?.parent is Class) {
-      clsName = (node?.interfaceTargetReference?.node?.parent as Class).name;
-    }
-
-    fieldName = node?.name?.name;
+    clsName = _curClass.name;
+    fieldName = node.name.text;
 
     final AopItemInfo aopItemInfo = _filterAopItemInfo(
         _aopItemInfoList, importUri, clsName, fieldName, false);
 
     if (aopItemInfo != null) {
-      final Class currentClass = AopUtils.findClassOfNode(node);
       final Arguments redirectArguments = Arguments.empty();
 
       redirectArguments.positional.add(NullLiteral());
 
       final StaticInvocation staticInvocationNew =
           StaticInvocation(aopItemInfo.aopMember, redirectArguments);
+
       return staticInvocationNew;
     }
 
-    return super.visitPropertyGet(node);
+    return super.visitInstanceGet(node);
   }
 
   //Filter AopInfoMap for specific callsite.
@@ -121,6 +131,6 @@ class AopFieldGetImplTransformer extends Transformer {
         bodyStatements,
         shouldReturn);
     pointCutClass.procedures.add(procedure);
-    AopUtils.insertProceedBranch(procedure, shouldReturn);
+    AopUtils.insertProceedBranch(pointCutClass, procedure, shouldReturn);
   }
 }

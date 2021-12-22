@@ -1,9 +1,5 @@
 import 'package:kernel/ast.dart';
 import 'package:kernel/visitor.dart';
-import 'package:front_end/src/fasta/kernel/kernel_ast_api.dart';
-import 'package:vm/metadata/procedure_attributes.dart';
-import 'package:vm/transformations/type_flow/table_selector_assigner.dart';
-
 import '../transformer/aop_iteminfo.dart';
 import '../transformer/aop_tranform_utils.dart';
 
@@ -38,11 +34,12 @@ class AopAddImplTransformer extends RecursiveVisitor<void> {
     }
   }
 
+  // ignore: flutter_style_todos
   void insertMethod4Class(AopItemInfo aopItemInfo, Class pointCutClass) {
     final Procedure originProcedure = aopItemInfo.aopMember.function.parent;
 
     for (Member member in pointCutClass.members) {
-      if (member.name.name == originProcedure.name.name) {
+      if (member.name.text == originProcedure.name.text) {
         return;
       }
     }
@@ -60,13 +57,14 @@ class AopAddImplTransformer extends RecursiveVisitor<void> {
         AopUtils.argumentsFromFunctionNode(originFunctionNode);
 
     final Arguments pointCutConstructorArguments = Arguments.empty();
-    final List<MapEntry> sourceInfos = <MapEntry>[];
+    final List<MapLiteralEntry> sourceInfos = <MapLiteralEntry>[];
     sourceInfo?.forEach((String key, String value) {
-      sourceInfos.add(MapEntry(StringLiteral(key), StringLiteral(value)));
+      sourceInfos.add(MapLiteralEntry(StringLiteral(key), StringLiteral(value)));
     });
     pointCutConstructorArguments.positional.add(MapLiteral(sourceInfos));
     pointCutConstructorArguments.positional.add(NullLiteral());
     pointCutConstructorArguments.positional.add(NullLiteral());
+
     pointCutConstructorArguments.positional.add(NullLiteral());
     pointCutConstructorArguments.positional.add(NullLiteral());
     pointCutConstructorArguments.positional.add(NullLiteral());
@@ -80,16 +78,43 @@ class AopAddImplTransformer extends RecursiveVisitor<void> {
             pointCutConstructorArguments);
 
     redirectArguments.positional.add(pointCutConstructorInvocation);
+
+    if (originArguments.positional.length > 1) {
+      for (int i = 1; i < originArguments.positional.length; i++) {
+        final Expression expression = originArguments.positional[i];
+        redirectArguments.positional.add(expression);
+      }
+    }
+
+    // TODO(p): 暂时只传sourceInfos，传其他值会导致编译失败，后续处理
+    // AopUtils.concatArgumentsForAopMethod(
+    //     sourceInfo,
+    //     redirectArguments,
+    //     '-1',
+    //     StringLiteral(_curLibrary.importUri.toString()),
+    //     aopItemInfo.aopMember,
+    //     originArguments,
+    //     pointCutClass);
+    //
+    // for (int i = 0; i < originArguments.positional.length; i++) {
+    //   if (i == 0) {
+    //     continue;
+    //   }
+    //   final Expression positional = originArguments.positional[i];
+    //   redirectArguments.positional.add(positional);
+    // }
+
     redirectArguments.named.addAll(originArguments.named);
 
+    // pointCutConstructorInvocation.arguments.positional
     final Class cls = aopItemInfo.aopMember.parent;
     final ConstructorInvocation redirectConstructorInvocation =
         ConstructorInvocation.byReference(
             cls.constructors.first.reference, Arguments(<Expression>[]));
-    final MethodInvocation methodInvocationNew = MethodInvocation(
+    final InstanceInvocation methodInvocationNew = InstanceInvocation(InstanceAccessKind.Instance,
         redirectConstructorInvocation,
         aopItemInfo.aopMember.name,
-        redirectArguments);
+        redirectArguments, interfaceTarget: aopItemInfo.aopMember, functionType: aopItemInfo.aopMember.getterType);
 
     final bool shouldReturn =
         !(originProcedure.function.returnType is VoidType);
@@ -116,7 +141,7 @@ class AopAddImplTransformer extends RecursiveVisitor<void> {
         asyncMarker: originProcedure.function.asyncMarker,
         dartAsyncMarker: originProcedure.function.dartAsyncMarker);
 
-    final Name name = Name(originProcedure.name.name, _curLibrary);
+    final Name name = Name(originProcedure.name.text, _curLibrary);
 
     final Procedure procedure = Procedure(
       name,

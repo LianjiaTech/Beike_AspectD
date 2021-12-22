@@ -12,6 +12,7 @@ class AopUtils {
   static String kAopAnnotationClassExecute = 'Execute';
   static String kAopAnnotationClassInject = 'Inject';
   static String kAopAnnotationClassAdd = 'Add';
+  static String kAopAnnotationClassFieldInitializer = 'FieldInitializer';
   static String kAopAnnotationFieldGetInitializer = 'FieldGet';
 
   static String kImportUriAopAspect =
@@ -24,6 +25,8 @@ class AopUtils {
       'package:beike_aspectd/src/plugins/aop/annotation/inject.dart';
   static String kImportUriAopAdd =
       'package:beike_aspectd/src/plugins/aop/beike_annotation/add.dart';
+  static String kImportUriAopFieldInitializer =
+      'package:beike_aspectd/src/plugins/aop/beike_annotation/field_initializer.dart';
   static String kImportUriAopFieldGet =
       'package:beike_aspectd/src/plugins/aop/beike_annotation/field_get.dart';
 
@@ -53,6 +56,8 @@ class AopUtils {
   static Procedure mapGetProcedure;
   static Component platformStrongComponent;
 
+  static Library coreLib;
+
   static AopMode getAopModeByNameAndImportUri(String name, String importUri) {
     if (name == kAopAnnotationClassCall && importUri == kImportUriAopCall) {
       return AopMode.Call;
@@ -66,6 +71,11 @@ class AopUtils {
     }
     if (name == kAopAnnotationClassAdd && importUri == kImportUriAopAdd) {
       return AopMode.Add;
+    }
+
+    if (name == kAopAnnotationClassFieldInitializer &&
+        importUri == kImportUriAopFieldInitializer) {
+      return AopMode.FieldInitializer;
     }
 
     if (name == kAopAnnotationFieldGetInitializer &&
@@ -143,7 +153,9 @@ class AopUtils {
       }
       final String sourceString = const Utf8Decoder().convert(source.source);
       final String sourceLine = sourceString.substring(charFrom, charTo);
-      if (sourceLine.endsWith(AopUtils.kAopPointcutIgnoreVariableDeclaration) || sourceLine.endsWith(AopUtils.kAopPointcutIgnoreVariableDeclaration+'\n')) {
+      if (sourceLine.endsWith(AopUtils.kAopPointcutIgnoreVariableDeclaration) ||
+          sourceLine.endsWith(
+              AopUtils.kAopPointcutIgnoreVariableDeclaration + '\n')) {
         return variableDeclaration;
       }
     }
@@ -175,7 +187,7 @@ class AopUtils {
         continue;
       }
       for (Field field in cls.fields) {
-        if (field.name.name == part) {
+        if (field.name.text == part) {
           final InterfaceType interfaceType = field.type;
           cls = interfaceType.className.node;
           break;
@@ -196,7 +208,7 @@ class AopUtils {
 
   static Field findFieldForClassWithName(Class cls, String fieldName) {
     for (Field field in cls.fields) {
-      if (field.name.name == fieldName) {
+      if (field.name.text == fieldName) {
         return field;
       }
     }
@@ -239,13 +251,16 @@ class AopUtils {
         '${AopUtils.kAopStubMethodPrefix}${AopUtils.kPrimaryKeyAopMethod}';
     //重定向到AOP的函数体中去
     final Arguments pointCutConstructorArguments = Arguments.empty();
-    final List<MapEntry> sourceInfos = <MapEntry>[];
+    final List<MapLiteralEntry> sourceInfos = <MapLiteralEntry>[];
+
     sourceInfo?.forEach((String key, String value) {
-      sourceInfos.add(MapEntry(StringLiteral(key), StringLiteral(value)));
+      sourceInfos
+          .add(MapLiteralEntry(StringLiteral(key), StringLiteral(value)));
     });
+
     pointCutConstructorArguments.positional.add(MapLiteral(sourceInfos));
     pointCutConstructorArguments.positional.add(targetExpression);
-    String memberName = member?.name?.name;
+    String memberName = member?.name?.text;
     if (member is Constructor) {
       memberName = AopUtils.nameForConstructor(member);
     }
@@ -254,10 +269,10 @@ class AopUtils {
         .add(StringLiteral(stubKey ?? stubKeyDefault));
     pointCutConstructorArguments.positional
         .add(ListLiteral(invocationArguments.positional));
-    final List<MapEntry> entries = <MapEntry>[];
+    final List<MapLiteralEntry> entries = <MapLiteralEntry>[];
     for (NamedExpression namedExpression in invocationArguments.named) {
-      entries.add(
-          MapEntry(StringLiteral(namedExpression.name), namedExpression.value));
+      entries.add(MapLiteralEntry(
+          StringLiteral(namedExpression.name), namedExpression.value));
     }
     pointCutConstructorArguments.positional.add(MapLiteral(entries));
 
@@ -271,7 +286,7 @@ class AopUtils {
     //Get annotations and members in call/execute mode
     if (clz != null && clz is Class) {
       final ThisExpression thisE = ThisExpression();
-      final List<MapEntry> filedsMap = <MapEntry>[];
+      final List<MapLiteralEntry> filedsMap = <MapLiteralEntry>[];
 
       final List<Field> fields = clz.fields;
 
@@ -285,8 +300,7 @@ class AopUtils {
 
             if (f.initializer is DoubleLiteral) {
               c = DoubleConstant((f.initializer as DoubleLiteral).value);
-            }
-            else if (f.initializer is StringLiteral) {
+            } else if (f.initializer is StringLiteral) {
               c = StringConstant((f.initializer as StringLiteral).value);
             } else if (f.initializer is IntLiteral) {
               c = IntConstant((f.initializer as IntLiteral).value);
@@ -299,17 +313,19 @@ class AopUtils {
             // filedsMap.add(
             //     MapEntry(StringLiteral(f.name.name), ConstantExpression(c)));
           } else {
-            filedsMap.add(MapEntry(StringLiteral(f.name.name), f.initializer));
+            filedsMap.add(
+                MapLiteralEntry(StringLiteral(f.name.text), f.initializer));
           }
         } else if (f.isStatic) {
           final StaticGet staticGet = StaticGet(f);
-          ne = NamedExpression(f.name.name, staticGet);
-          filedsMap.add(MapEntry(StringLiteral(f.name.name), ne.value));
+          ne = NamedExpression(f.name.text, staticGet);
+          filedsMap.add(MapLiteralEntry(StringLiteral(f.name.text), ne.value));
         } else {
-          final PropertyGet property =
-              PropertyGet(thisE, Name(f.name.name, clz.parent));
-          final NamedExpression ne = NamedExpression(f.name.name, property);
-          filedsMap.add(MapEntry(StringLiteral(f.name.name), ne.value));
+          final InstanceGet property = InstanceGet(
+              InstanceAccessKind.Instance, thisE, Name(f.name.text, clz.parent),
+              interfaceTarget: f, resultType: f.type);
+          final NamedExpression ne = NamedExpression(f.name.text, property);
+          filedsMap.add(MapLiteralEntry(StringLiteral(f.name.text), ne.value));
         }
       }
 
@@ -317,7 +333,7 @@ class AopUtils {
 
       //Get annotations of caller
       final List<Expression> annotations = clz?.annotations;
-      final List<MapEntry> annotationMap = <MapEntry>[];
+      final List<MapLiteralEntry> annotationMap = <MapLiteralEntry>[];
 
       if (annotations != null) {
         for (Expression annotation in annotations) {
@@ -330,17 +346,19 @@ class AopUtils {
               final Map<Reference, Constant> vals =
                   instanceConstant.fieldValues;
 
-              final List<MapEntry> annotationParams = <MapEntry>[];
+              final List<MapLiteralEntry> annotationParams =
+                  <MapLiteralEntry>[];
 
               vals.forEach((Reference ref, Constant val) {
                 final ConstantExpression exp = ConstantExpression(val);
-                annotationParams
-                    .add(MapEntry(StringLiteral(ref.canonicalName.name), exp));
+                annotationParams.add(MapLiteralEntry(
+                    StringLiteral(ref.canonicalName.name), exp));
               });
 
               final CanonicalName canonicalName =
                   instanceConstant.classReference.canonicalName;
-              annotationMap.add(MapEntry(StringLiteral(canonicalName.name),
+              annotationMap.add(MapLiteralEntry(
+                  StringLiteral(canonicalName.name),
                   MapLiteral(annotationParams)));
             }
           } else if (annotation is ConstructorInvocation) {
@@ -374,9 +392,10 @@ class AopUtils {
         '${AopUtils.kAopStubMethodPrefix}${AopUtils.kPrimaryKeyAopMethod}';
     //重定向到AOP的函数体中去
     final Arguments pointCutConstructorArguments = Arguments.empty();
-    final List<MapEntry> sourceInfos = <MapEntry>[];
+    final List<MapLiteralEntry> sourceInfos = <MapLiteralEntry>[];
     sourceInfo?.forEach((String key, String value) {
-      sourceInfos.add(MapEntry(StringLiteral(key), StringLiteral(value)));
+      sourceInfos
+          .add(MapLiteralEntry(StringLiteral(key), StringLiteral(value)));
     });
     pointCutConstructorArguments.positional.add(MapLiteral(sourceInfos));
     pointCutConstructorArguments.positional.add(targetExpression);
@@ -387,10 +406,10 @@ class AopUtils {
         .add(StringLiteral(stubKey ?? stubKeyDefault));
     pointCutConstructorArguments.positional
         .add(ListLiteral(invocationArguments.positional));
-    final List<MapEntry> entries = <MapEntry>[];
+    final List<MapLiteralEntry> entries = <MapLiteralEntry>[];
     for (NamedExpression namedExpression in invocationArguments.named) {
-      entries.add(
-          MapEntry(StringLiteral(namedExpression.name), namedExpression.value));
+      entries.add(MapLiteralEntry(
+          StringLiteral(namedExpression.name), namedExpression.value));
     }
     pointCutConstructorArguments.positional.add(MapLiteral(entries));
 
@@ -404,7 +423,7 @@ class AopUtils {
     //Get annotations and members in call/execute mode
     if (clz != null && clz is Class) {
       final ThisExpression thisE = ThisExpression();
-      final List<MapEntry> filedsMap = <MapEntry>[];
+      final List<MapLiteralEntry> filedsMap = <MapLiteralEntry>[];
 
       final List<Field> fields = clz.fields;
 
@@ -413,17 +432,18 @@ class AopUtils {
 
         if (f.isConst) {
           final ConstantExpression constantExpression = f.initializer;
-          filedsMap
-              .add(MapEntry(StringLiteral(f.name.name), constantExpression));
+          filedsMap.add(
+              MapLiteralEntry(StringLiteral(f.name.text), constantExpression));
         } else if (f.isStatic) {
           final StaticGet staticGet = StaticGet(f);
-          ne = NamedExpression(f.name.name, staticGet);
-          filedsMap.add(MapEntry(StringLiteral(f.name.name), ne.value));
+          ne = NamedExpression(f.name.text, staticGet);
+          filedsMap.add(MapLiteralEntry(StringLiteral(f.name.text), ne.value));
         } else {
-          final PropertyGet property =
-              PropertyGet(thisE, Name(f.name.name, clz.parent));
-          final NamedExpression ne = NamedExpression(f.name.name, property);
-          filedsMap.add(MapEntry(StringLiteral(f.name.name), ne.value));
+          final InstanceGet property = InstanceGet(
+              InstanceAccessKind.Instance, thisE, Name(f.name.text, clz.parent),
+              interfaceTarget: f, resultType: f.type);
+          final NamedExpression ne = NamedExpression(f.name.text, property);
+          filedsMap.add(MapLiteralEntry(StringLiteral(f.name.text), ne.value));
         }
       }
 
@@ -431,7 +451,7 @@ class AopUtils {
 
       //Get annotations of caller
       final List<Expression> annotations = clz?.annotations;
-      final List<MapEntry> annotationMap = <MapEntry>[];
+      final List<MapLiteralEntry> annotationMap = <MapLiteralEntry>[];
 
       if (annotations != null) {
         for (Expression annotation in annotations) {
@@ -444,17 +464,19 @@ class AopUtils {
               final Map<Reference, Constant> vals =
                   instanceConstant.fieldValues;
 
-              final List<MapEntry> annotationParams = <MapEntry>[];
+              final List<MapLiteralEntry> annotationParams =
+                  <MapLiteralEntry>[];
 
               vals.forEach((Reference ref, Constant val) {
                 final ConstantExpression exp = ConstantExpression(val);
-                annotationParams
-                    .add(MapEntry(StringLiteral(ref.canonicalName.name), exp));
+                annotationParams.add(MapLiteralEntry(
+                    StringLiteral(ref.canonicalName.name), exp));
               });
 
               final CanonicalName canonicalName =
                   instanceConstant.classReference.canonicalName;
-              annotationMap.add(MapEntry(StringLiteral(canonicalName.name),
+              annotationMap.add(MapLiteralEntry(
+                  StringLiteral(canonicalName.name),
                   MapLiteral(annotationParams)));
             }
           } else if (annotation is ConstructorInvocation) {
@@ -476,18 +498,51 @@ class AopUtils {
     redirectArguments.positional.add(pointCutConstructorInvocation);
   }
 
-  static Arguments concatArguments4PointcutStubCall(Member member) {
+  static Arguments concatArguments4PointcutStubCall(
+      Member member, AopItemInfo aopItemInfo) {
     final Arguments arguments = Arguments.empty();
     int i = 0;
+
+    final Class pointCutClass = AopUtils.pointCutProceedProcedure.parent;
+
+    Field positionalParamsField;
+    Field namedParams;
+
+    for (Field field in pointCutClass.fields) {
+      if (field.name.text == 'positionalParams') {
+        positionalParamsField = field;
+      }
+
+      if (field.name.text == 'namedParams') {
+        namedParams = field;
+      }
+    }
 
     for (VariableDeclaration variableDeclaration
         in member.function.positionalParameters) {
       final Arguments getArguments = Arguments.empty();
       getArguments.positional.add(IntLiteral(i));
-      final MethodInvocation methodInvocation = MethodInvocation(
-          PropertyGet(ThisExpression(), Name('positionalParams')),
-          listGetProcedure.name,
-          getArguments);
+
+      final DynamicInvocation methodInvocation = DynamicInvocation(
+        DynamicAccessKind.Dynamic,
+        InstanceGet(InstanceAccessKind.Instance, ThisExpression(),
+            Name('positionalParams'),
+            resultType: positionalParamsField.getterType,
+            interfaceTarget: positionalParamsField),
+        listGetProcedure.name,
+        getArguments,
+      );
+
+      // final InstanceInvocation methodInvocation = InstanceInvocation(
+      //     InstanceAccessKind.Instance,
+      //     InstanceGet(InstanceAccessKind.Instance, ThisExpression(),
+      //         Name('positionalParams'),
+      //         resultType: positionalParamsField.getterType,
+      //         interfaceTarget: positionalParamsField),
+      //     listGetProcedure.name,
+      //     getArguments,
+      //     interfaceTarget: listGetProcedure,
+      //     functionType: listGetProcedure.getterType);
       final AsExpression asExpression = AsExpression(methodInvocation,
           deepCopyASTNode(variableDeclaration.type, ignoreGenerics: true));
       arguments.positional.add(asExpression);
@@ -499,10 +554,25 @@ class AopUtils {
         in member.function.namedParameters) {
       final Arguments getArguments = Arguments.empty();
       getArguments.positional.add(StringLiteral(variableDeclaration.name));
-      final MethodInvocation methodInvocation = MethodInvocation(
-          PropertyGet(ThisExpression(), Name('namedParams')),
-          mapGetProcedure.name,
-          getArguments);
+      // final InstanceInvocation methodInvocation = InstanceInvocation(
+      //     InstanceAccessKind.Instance,
+      //     InstanceGet(InstanceAccessKind.Instance, ThisExpression(),
+      //         Name('namedParams'),
+      //         interfaceTarget: namedParams, resultType: namedParams.getterType),
+      //     mapGetProcedure.name,
+      //     getArguments,
+      //     interfaceTarget: listGetProcedure,
+      //     functionType: listGetProcedure.getterType);
+
+      final DynamicInvocation methodInvocation = DynamicInvocation(
+        DynamicAccessKind.Dynamic,
+        InstanceGet(
+            InstanceAccessKind.Instance, ThisExpression(), Name('namedParams'),
+            resultType: positionalParamsField.getterType,
+            interfaceTarget: positionalParamsField),
+        listGetProcedure.name,
+        getArguments,
+      );
       final AsExpression asExpression = AsExpression(methodInvocation,
           deepCopyASTNode(variableDeclaration.type, ignoreGenerics: true));
       namedEntries.add(NamedExpression(variableDeclaration.name, asExpression));
@@ -514,77 +584,41 @@ class AopUtils {
     return arguments;
   }
 
-//   static Arguments concatArguments4PointcutStubCall2(Member member, ConstructorInvocation constructorInvocation) {
-
-//     final Arguments arguments = Arguments.empty();
-//     int i = 0;
-//     for (VariableDeclaration variableDeclaration
-//         in member.function.positionalParameters) {
-
-//       final Arguments getArguments = Arguments.empty();
-//       getArguments.positional.add(IntLiteral(i));
-//       final MethodInvocation methodInvocation = MethodInvocation(
-//           PropertyGet(ThisExpression(), Name('positionalParams')),
-//           listGetProcedure.name,
-//           getArguments);
-//       final AsExpression asExpression = AsExpression(methodInvocation,
-//           deepCopyASTNode(variableDeclaration.type, ignoreGenerics: true));
-
-//       arguments.positional.add(asExpression);
-//       i++;
-//     }
-//     final List<NamedExpression> namedEntries = <NamedExpression>[];
-
-//     for (VariableDeclaration variableDeclaration
-//         in member.function.namedParameters) {
-
-// bool inserted = false;
-//         for(NamedExpression e in constructorInvocation.arguments.named) {
-
-//             if(variableDeclaration.name == e.name) {
-//  namedEntries
-//             .add(NamedExpression(variableDeclaration.name, e.value));
-//             inserted = true;
-//             break;
-
-//             }
-//         }
-
-//     if(inserted == false) {
-// final Arguments getArguments = Arguments.empty();
-//         getArguments.positional.add(StringLiteral(variableDeclaration.name));
-//         final MethodInvocation methodInvocation = MethodInvocation(
-//             PropertyGet(ThisExpression(), Name('namedParams')),
-//             mapGetProcedure.name,
-//             getArguments);
-
-//         final AsExpression asExpression = AsExpression(methodInvocation,
-//             deepCopyASTNode(variableDeclaration.type, ignoreGenerics: true));
-
-//         namedEntries
-//             .add(NamedExpression(variableDeclaration.name, asExpression));
-//     }
-
-//       }
-//     if (namedEntries.isNotEmpty) {
-//       arguments.named.addAll(namedEntries);
-//     }
-
-//     return arguments;
-//   }
-
-  static void insertProceedBranch(Procedure procedure, bool shouldReturn) {
+  static void insertProceedBranch(
+      Class pointCutClass, Procedure procedure, bool shouldReturn) {
     final Block block = pointCutProceedProcedure.function.body;
-    final String methodName = procedure.name.name;
-    final MethodInvocation methodInvocation =
-        MethodInvocation(ThisExpression(), Name(methodName), Arguments.empty());
+    final String methodName = procedure.name.text;
+    final InstanceInvocation methodInvocation = InstanceInvocation(
+        InstanceAccessKind.Instance,
+        ThisExpression(),
+        Name(methodName),
+        Arguments.empty(),
+        interfaceTarget: procedure,
+        functionType: procedure.getterType);
+
+    Field stubKeyField;
+
+    for (Field field in pointCutClass.fields) {
+      if (field.name.text == 'stubKey') {
+        stubKeyField = field;
+      }
+    }
+
+    final InstanceGet stubInstance = InstanceGet(
+        InstanceAccessKind.Instance, ThisExpression(), Name('stubKey'),
+        interfaceTarget: stubKeyField, resultType: stubKeyField.getterType);
+
+    final Library core = coreLib;
+    final Class objClass = classOfLib(core, 'Object');
+    final Procedure eqlProcedure = procedureOfClass(objClass, '==');
 
     final List<Statement> statements = block.statements;
     statements.insert(
         statements.length - 1,
         IfStatement(
-            MethodInvocation(PropertyGet(ThisExpression(), Name('stubKey')),
-                Name('=='), Arguments(<Expression>[StringLiteral(methodName)])),
+            EqualsCall(stubInstance, StringLiteral(methodName),
+                functionType: eqlProcedure.getterType,
+                interfaceTarget: eqlProcedure),
             Block(<Statement>[
               if (shouldReturn) ReturnStatement(methodInvocation),
               if (!shouldReturn) ExpressionStatement(methodInvocation),
@@ -708,18 +742,19 @@ class AopUtils {
         asyncMarker: referProcedure.function.asyncMarker,
         dartAsyncMarker: referProcedure.function.dartAsyncMarker);
     final Procedure procedure = Procedure(
-      Name(methodName.name, methodName.library),
+      Name(methodName.text, methodName.library),
       ProcedureKind.Method,
       functionNode,
       isStatic: referProcedure.isStatic,
       fileUri: referProcedure.fileUri,
-      stubKind : referProcedure.stubKind,
+      stubKind: referProcedure.stubKind,
       stubTarget: referProcedure.stubTarget,
     );
 
     procedure.fileOffset = referProcedure.fileOffset;
     procedure.fileEndOffset = referProcedure.fileEndOffset;
     procedure.startFileOffset = referProcedure.startFileOffset;
+
     return procedure;
   }
 
@@ -742,7 +777,7 @@ class AopUtils {
         asyncMarker: referConstructor.function.asyncMarker,
         dartAsyncMarker: referConstructor.function.dartAsyncMarker);
     final Constructor constructor = Constructor(functionNode,
-        name: Name(methodName.name, methodName.library),
+        name: Name(methodName.text, methodName.library),
         isConst: referConstructor.isConst,
         isExternal: referConstructor.isExternal,
         isSynthetic: referConstructor.isSynthetic,
@@ -771,8 +806,9 @@ class AopUtils {
         flags: node.flags,
         isFinal: node.isFinal,
         isConst: node.isConst,
-        isFieldFormal: node.isFieldFormal,
-        isCovariant: node.isCovariant,
+        isLate: node.isLate,
+        isRequired: node.isRequired,
+        isLowered: node.isLowered,
       );
     }
     if (node is TypeParameterType) {
@@ -831,8 +867,8 @@ class AopUtils {
   static String nameForConstructor(Constructor constructor) {
     final Class constructorCls = constructor.parent;
     String constructorName = '${constructorCls.name}';
-    if (constructor.name.name.isNotEmpty) {
-      constructorName += '.${constructor.name.name}';
+    if (constructor.name.text.isNotEmpty) {
+      constructorName += '.${constructor.name.text}';
     }
     return constructorName;
   }
@@ -863,10 +899,28 @@ class AopUtils {
         final NamedNode cls = namedNodes[i - 1];
         if (cls is Class) {
           namedNodes.add(cls.fields
-              .firstWhere((Field element) => element.name.name == name.name));
+              .firstWhere((Field element) => element.name.text == name.name));
         }
       }
     }
     return namedNodes?.last;
+  }
+
+  static Class classOfLib(Library lib, String className) {
+    for (Class clazz in lib.classes) {
+      if (clazz.name == className) {
+        return clazz;
+      }
+    }
+    return null;
+  }
+
+  static Procedure procedureOfClass(Class clazz, String procedureName) {
+    for (Procedure procedure in clazz.procedures) {
+      if (procedure.name.text == procedureName) {
+        return procedure;
+      }
+    }
+    return null;
   }
 }

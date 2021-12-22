@@ -1,1 +1,1 @@
-enum AopMode { Call, Execute, Inject, Add, FieldGet}
+enum AopMode { Call, Execute, Inject, Add, FieldInitializer, FieldGet}
