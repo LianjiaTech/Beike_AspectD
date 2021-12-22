@@ -32,7 +32,7 @@ dependencies:
    beike_aspectd:
      git:
          url: https://github.com/LianjiaTech/Beike_AspectD.git
-         ref: 2.2.3
+         ref: 2.2.2
 ```
 
 ## 3. Add aop_config.yaml to your flutter project.
