@@ -1,3 +1,5 @@
+Language: English | [中文简体](README-CN.md)
+
 # Beike_AspectD
 This is a fork of [AspectD](https://github.com/XianyuTech/aspectd).
 
@@ -7,8 +9,8 @@ Beike_AspectD is an aop framework for dart. AspectD has provide developers call/
 - ✅  Support field get grammer to exchange the field get call.
 - ✅  Support flutter web.
 
-# What can we use Beike_AspectD for?  
-Beike has used Beike_AspectD in many packages. 
+# What can we use Beike_AspectD for?
+Beike has used Beike_AspectD in many packages.
 - Event tracking.
 - Json to model.
 - Performance monitoring.
@@ -27,8 +29,10 @@ Next time when you build your project, flutter tools will build automatically.
 ## 2. Add Beike_AspectD to your yaml.
 ```dart
 dependencies:
-  beike_aspectd:
-    path: ../
+   beike_aspectd:
+     git:
+         url: https://github.com/LianjiaTech/Beike_AspectD.git
+         ref: 2.5.3
 ```
 
 ## 3. Add aop_config.yaml to your flutter project.
@@ -105,7 +109,7 @@ Every callsites of the a field will be manipulated.
 Suppose MyApp class has a property called field, by using the the above code, when calling the property field, it will always return string 'Beike_Aspectd'.
 
 # Compatibility
-Currently Beike_Aspectd support flutter 1.22.4 and 2.2.2 .
+Currently Beike_Aspectd support flutter 1.22.4 ， 2.2.2 and 2.5.3.
 
 ## Q&A
 - How to know if my code is hooked successfully?

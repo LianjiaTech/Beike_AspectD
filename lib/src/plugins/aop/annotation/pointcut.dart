@@ -32,7 +32,7 @@ class PointCut {
   /// Named parameters for a call.
   final Map<dynamic, dynamic> namedParams;
 
-/// Class's members. In Call mode, it's caller class's members. In execute mode,  it's execution class's members.
+  /// Class's members. In Call mode, it's caller class's members. In execute mode,  it's execution class's members.
   final Map<dynamic, dynamic> members;
 
   /// Class's annotations. In Call mode, it's caller class's annotations. In execute mode,  it's execution class's annotations.

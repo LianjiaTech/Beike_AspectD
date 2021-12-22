@@ -185,8 +185,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 // dynamic4.addTestRegularFilterSuper(null);
                 // dynamicO.addTest(null, '111', s:'666', i:5);
 
-                PointCut p =
-                    PointCut(null, null, null, null, null, null, null, null);
+                PointCut p = PointCut.pointCut();
                 dynamicO.addTest(p, 9);
                 // dynamicO.testFunc('ffff');
                 // dynamicO.addTestRegular(null);
