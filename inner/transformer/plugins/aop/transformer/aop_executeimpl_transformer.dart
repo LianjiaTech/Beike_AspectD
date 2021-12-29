@@ -180,6 +180,11 @@ class AopExecuteImplTransformer extends Transformer {
       final Set<Library> filteredLibraries =
           _filterLibraryWithAopItemInfo(_libraryMap, aopItemInfo);
       for (Library filteredLibrary in filteredLibraries) {
+        //排除hook dart文件
+        if (aopItemInfo.isRegex &&
+            filteredLibrary == aopItemInfo.aopMember.parent.parent) {
+          continue;
+        }
         final String clsName = aopItemInfo.clsName;
         //库静态方法
         final bool isLibraryMethodNotRegex =
@@ -419,7 +424,8 @@ class AopExecuteImplTransformer extends Transformer {
         AopUtils.concatArguments4PointcutStubCall(
             originalProcedure, aopItemInfo),
         interfaceTarget: originalStubProcedure,
-        functionType: originalStubProcedure.getterType);
+        functionType: (originalStubProcedure.getterType as FunctionType)
+            .withoutTypeParameters);
 
     final Procedure stubProcedureNew = AopUtils.createStubProcedure(
         Name(stubKey, AopUtils.pointCutProceedProcedure.name.library),

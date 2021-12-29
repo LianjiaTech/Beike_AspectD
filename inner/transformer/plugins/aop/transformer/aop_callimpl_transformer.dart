@@ -187,6 +187,11 @@ class AopCallImplTransformer extends Transformer {
       }
 
       if (aopItemInfo.isRegex) {
+        //排除hook dart文件
+        if (_curLibrary == aopItemInfo.aopMember.parent.parent) {
+          continue;
+        }
+
         if (RegExp(aopItemInfo.importUri).hasMatch(importUri) &&
             RegExp(aopItemInfo.clsName).hasMatch(clsName) &&
             RegExp(aopItemInfo.methodName).hasMatch(methodName) &&
@@ -433,6 +438,7 @@ class AopCallImplTransformer extends Transformer {
         _curLibrary, aopItemInfo.aopMember.parent.parent);
 
     insertInstanceMethod4Pointcut(
+        instanceInvocation,
         aopItemInfo,
         stubKey,
         AopUtils.pointCutProceedProcedure.parent,
@@ -492,8 +498,13 @@ class AopCallImplTransformer extends Transformer {
     return true;
   }
 
-  bool insertInstanceMethod4Pointcut(AopItemInfo aopItemInfo, String stubKey,
-      Class pointCutClass, Class procedureImpl, Procedure originalProcedure) {
+  bool insertInstanceMethod4Pointcut(
+      InstanceInvocation originalInvocation,
+      AopItemInfo aopItemInfo,
+      String stubKey,
+      Class pointCutClass,
+      Class procedureImpl,
+      Procedure originalProcedure) {
     Field targetFiled;
     for (Field field in pointCutClass.fields) {
       if (field.name.text == 'target') {
@@ -514,7 +525,7 @@ class AopCallImplTransformer extends Transformer {
         AopUtils.concatArguments4PointcutStubCall(
             originalProcedure, aopItemInfo),
         interfaceTarget: originalProcedure,
-        functionType: originalProcedure.getterType);
+        functionType: originalInvocation.functionType);
     final bool shouldReturn =
         !(originalProcedure.function.returnType is VoidType);
     createPointcutStubProcedure(
