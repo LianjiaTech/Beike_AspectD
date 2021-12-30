@@ -7,6 +7,7 @@ Beike_AspectD is an aop framework for dart. AspectD has provide developers call/
 
 - ✅  Support add grammer to add function to classes.
 - ✅  Support field get grammer to exchange the field get call.
+- ✅  Support null-safety(null-safety/2.5.3 branch).
 - ✅  Support flutter web.
 
 # What can we use Beike_AspectD for?
