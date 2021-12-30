@@ -1,6 +1,6 @@
 #!/bin/sh
 # This is a generated file; do not edit or check into version control.
-export "FLUTTER_ROOT=/Users/solo/SDK/flutter/stable/flutter"
+export "FLUTTER_ROOT=/Users/solo/SDK/flutter/stable/2.5.4"
 export "FLUTTER_APPLICATION_PATH=/Users/solo/Project/beike_aspectd_opensource/example"
 export "COCOAPODS_PARALLEL_CODE_SIGN=true"
 export "FLUTTER_TARGET=/Users/solo/Project/beike_aspectd_opensource/example/lib/main.dart"

@@ -20,13 +20,13 @@ dependency_overrides:
     path: ../../sdk/pkg/meta
 
   frontend_server:
-    path: ../../../SDK/sdk/pkg/frontend_server
+    path: ../../../SDK/dart-sdk/2.5.3/pkg/frontend_server
 
   _fe_analyzer_shared:
-    path: ../../../SDK/sdk/pkg/_fe_analyzer_shared
+    path: ../../../SDK/dart-sdk/2.5.3/pkg/_fe_analyzer_shared
 
   vm:
-    path: ../../../SDK/sdk/pkg/vm
+    path: ../../../SDK/dart-sdk/2.5.3/pkg/vm
 
   kernel:
-    path: ../../../SDK/sdk/pkg/kernel
+    path: ../../../SDK/dart-sdk/2.5.3/pkg/kernel

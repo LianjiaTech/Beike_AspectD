@@ -1,5 +1,5 @@
 // This is a generated file; do not edit or check into version control.
-FLUTTER_ROOT=/Users/solo/SDK/flutter/stable/flutter
+FLUTTER_ROOT=/Users/solo/SDK/flutter/stable/2.5.4
 FLUTTER_APPLICATION_PATH=/Users/solo/Project/beike_aspectd_opensource/example
 COCOAPODS_PARALLEL_CODE_SIGN=true
 FLUTTER_TARGET=/Users/solo/Project/beike_aspectd_opensource/example/lib/main.dart

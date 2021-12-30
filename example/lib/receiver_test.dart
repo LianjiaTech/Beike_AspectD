@@ -1,29 +1,17 @@
-// @dart=2.10
-
 class Receiver {
-
   final int j;
 
   Receiver({this.j = 25});
 
-  static void tap() {
-    
-  }
+  static void tap() {}
 
-   void receiveTapped(int i, {int j}) {
+  void receiveTapped(int i, {int? j}) {
     print('[KWLM]:onPluginDemo111 Called!');
   }
 }
 
+class Receiver2 extends Receiver {}
 
-class Receiver2 extends Receiver {
+class Receiver3 extends Receiver2 {}
 
-}
-
-class Receiver3 extends Receiver2 {
-
-}
-
-class Receiver4 {
-
-}
+class Receiver4 {}
