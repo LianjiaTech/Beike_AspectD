@@ -7,6 +7,7 @@ Beike_AspectD是一个dart面向切面库。闲鱼的AspectD为开发者提供�
 
 - ✅  Add语法支持为class添加方法；
 - ✅  FieldGet语法支持更换变量获取；
+- ✅  支持空安全。
 - ✅  支持Flutter for Web；
 - ✅  其他的一些问题修复.
 
