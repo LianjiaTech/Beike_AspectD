@@ -267,14 +267,21 @@ class AopUtils {
     pointCutConstructorArguments.positional.add(StringLiteral(memberName));
     pointCutConstructorArguments.positional
         .add(StringLiteral(stubKey ?? stubKeyDefault));
-    pointCutConstructorArguments.positional
-        .add(ListLiteral(invocationArguments.positional));
+
+    final ListLiteral positionalLiteral =
+        ListLiteral(invocationArguments.positional);
+
+    pointCutConstructorArguments.positional.add(positionalLiteral);
+
     final List<MapLiteralEntry> entries = <MapLiteralEntry>[];
     for (NamedExpression namedExpression in invocationArguments.named) {
       entries.add(MapLiteralEntry(
           StringLiteral(namedExpression.name), namedExpression.value));
     }
-    pointCutConstructorArguments.positional.add(MapLiteral(entries));
+
+    final MapLiteral namedLiteral = MapLiteral(entries);
+
+    pointCutConstructorArguments.positional.add(namedLiteral);
 
     Class clz;
     if (currrentClass == null && member.parent is Class) {
@@ -377,7 +384,11 @@ class AopUtils {
     final ConstructorInvocation pointCutConstructorInvocation =
         ConstructorInvocation(pointCutProceedProcedureCls.constructors.first,
             pointCutConstructorArguments);
+    positionalLiteral.parent = pointCutConstructorInvocation;
+    namedLiteral.parent = pointCutConstructorInvocation;
+
     redirectArguments.positional.add(pointCutConstructorInvocation);
+    pointCutConstructorInvocation.parent = redirectArguments;
   }
 
   static void concatArgumentsForAopField(
@@ -533,16 +544,6 @@ class AopUtils {
         getArguments,
       );
 
-      // final InstanceInvocation methodInvocation = InstanceInvocation(
-      //     InstanceAccessKind.Instance,
-      //     InstanceGet(InstanceAccessKind.Instance, ThisExpression(),
-      //         Name('positionalParams'),
-      //         resultType: positionalParamsField.getterType,
-      //         interfaceTarget: positionalParamsField),
-      //     listGetProcedure.name,
-      //     getArguments,
-      //     interfaceTarget: listGetProcedure,
-      //     functionType: listGetProcedure.getterType);
       final AsExpression asExpression = AsExpression(methodInvocation,
           deepCopyASTNode(variableDeclaration.type, ignoreGenerics: true));
       arguments.positional.add(asExpression);
@@ -554,22 +555,12 @@ class AopUtils {
         in member.function.namedParameters) {
       final Arguments getArguments = Arguments.empty();
       getArguments.positional.add(StringLiteral(variableDeclaration.name));
-      // final InstanceInvocation methodInvocation = InstanceInvocation(
-      //     InstanceAccessKind.Instance,
-      //     InstanceGet(InstanceAccessKind.Instance, ThisExpression(),
-      //         Name('namedParams'),
-      //         interfaceTarget: namedParams, resultType: namedParams.getterType),
-      //     mapGetProcedure.name,
-      //     getArguments,
-      //     interfaceTarget: listGetProcedure,
-      //     functionType: listGetProcedure.getterType);
 
       final DynamicInvocation methodInvocation = DynamicInvocation(
         DynamicAccessKind.Dynamic,
         InstanceGet(
             InstanceAccessKind.Instance, ThisExpression(), Name('namedParams'),
-            resultType: positionalParamsField.getterType,
-            interfaceTarget: positionalParamsField),
+            resultType: namedParams.getterType, interfaceTarget: namedParams),
         listGetProcedure.name,
         getArguments,
       );
