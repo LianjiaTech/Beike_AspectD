@@ -1,0 +1,10 @@
+// @dart = 2.9
+library test;
+
+class C<T> {
+  C(this.t);
+  T t;
+}
+
+main() {}
+test() {}

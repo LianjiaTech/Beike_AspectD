@@ -1,0 +1,8 @@
+// @dart = 2.9
+library test;
+
+T f<T>() => null;
+var x = f() || f();
+var y = f() && f();
+void test() {}
+main() {}

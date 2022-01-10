@@ -1,0 +1,5 @@
+// @dart = 2.9
+import 'issue39938_lib.dart';
+
+main() {}
+expect(expected, actual) {}

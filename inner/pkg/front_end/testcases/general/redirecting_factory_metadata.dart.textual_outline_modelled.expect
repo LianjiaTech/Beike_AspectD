@@ -1,0 +1,11 @@
+// @dart = 2.9
+class Foo {
+  Foo.named(p);
+  @forFactoryItself
+  factory Foo(@forParameter @anotherForParameter p) = Foo.named;
+}
+
+const anotherForParameter = 3;
+const forFactoryItself = 2;
+const forParameter = 1;
+main() {}

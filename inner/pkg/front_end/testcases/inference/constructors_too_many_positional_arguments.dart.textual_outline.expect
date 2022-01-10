@@ -1,0 +1,7 @@
+// @dart = 2.9
+library test;
+
+class A<T> {}
+
+test() {}
+main() {}

@@ -1,0 +1,7 @@
+// @dart = 2.9
+class B<U> {
+  fun() {}
+}
+
+main() {}
+typedef A<T>(T p);

@@ -1,0 +1,10 @@
+// @dart = 2.9
+class Bar<X, Y> {}
+
+class Foo {
+  bar<X>(X i) {}
+  static foo<X>(X i) {}
+}
+
+main() {}
+void foo<X>(X i) {}

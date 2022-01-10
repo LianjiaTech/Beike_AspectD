@@ -1,0 +1,8 @@
+// @dart = 2.9
+class A<T> {}
+
+class B<U> {
+  fun() {}
+}
+
+main() {}

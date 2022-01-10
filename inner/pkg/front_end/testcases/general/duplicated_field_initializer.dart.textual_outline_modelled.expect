@@ -1,0 +1,8 @@
+// @dart = 2.9
+class A {
+  A(this.a);
+  int a;
+  int a;
+}
+
+void main() {}

@@ -1,0 +1,8 @@
+// @dart = 2.9
+class NoUnnamedConstuctor {
+  NoUnnamedConstuctor._();
+}
+
+class MixMeIn {}
+
+class Foo extends NoUnnamedConstuctor with MixMeIn {}

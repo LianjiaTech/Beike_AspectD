@@ -1,0 +1,11 @@
+// @dart = 2.9
+library test;
+
+class C {
+  C(x());
+}
+
+var v = new C(() {
+  return 1;
+});
+main() {}

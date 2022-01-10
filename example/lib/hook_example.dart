@@ -56,13 +56,20 @@ class CallDemo {
   CallDemo();
 
 //实例方法
-// @Call("package:example/main.dart", "_MyHomePageState",
-//     "-_incrementCounter")
-// @pragma("vm:entry-point")
-// void _incrementCounter4(PointCut pointcut) {
-//   print('[beike_aspectd]: call instance method2!');
-//   pointcut.proceed();
-// }
+  @Call("package:example/main.dart", "_MyHomePageState", "-_incrementCounter")
+  @pragma("vm:entry-point")
+  void _incrementCounter4(PointCut pointcut) {
+    print('[beike_aspectd]: call instance method2!');
+    pointcut.proceed();
+  }
+
+  // @Call('package:example/main.dart', 'TextRightImageModel', '-.*',
+  //     isRegex: true)
+  // @pragma("vm:entry-point")
+  // dynamic _aop_Two(PointCut pointcut) {
+  //   print('_aop_Two');
+  //   return pointcut.proceed();
+  // }
 
 // //类静态方法
 // @Call("package:example/main.dart", "_MyHomePageState", "+testFunction")
@@ -180,14 +187,14 @@ class ExecuteDemo {
 class RegularExecuteDemo {
   RegularExecuteDemo();
 
-//实例方法
-  @Execute("package:example/main.dart", "_MyHomePageState", "-.*",
-      isRegex: true)
-  @pragma("vm:entry-point")
-  dynamic _incrementCounter(PointCut pointcut) {
-    print('[beike_aspectd]: regex execute hook instance method!');
-    return pointcut.proceed();
-  }
+// //实例方法
+//   @Execute("package:example/main.dart", "_MyHomePageState", "-.*",
+//       isRegex: true)
+//   @pragma("vm:entry-point")
+//   dynamic _incrementCounter(PointCut pointcut) {
+//     print('[beike_aspectd]: regex execute hook instance method!');
+//     return pointcut.proceed();
+//   }
 
 // //类静态方法
 // @Execute("package:example/main.dart", "_MyHomePageState", "+.*", isRegex: true)
@@ -221,18 +228,18 @@ class RegularExecuteDemo {
 class InjectDemo {
   InjectDemo();
 
-//实例方法
-  @Inject("package:example/main.dart", "_MyHomePageState", "-onPluginDemo",
-      lineNum: 108)
-  @pragma("vm:entry-point")
-  void onPluginDemo(PointCut pointcut) {
-    Object p; //Aspectd Ignore
-
-    print('[beike_aspectd]:Inject instance method!');
-    // Object bo; //Aspectd Ignore
-    print(p);
-    // print(bo);
-  }
+// //实例方法
+//   @Inject("package:example/main.dart", "_MyHomePageState", "-onPluginDemo",
+//       lineNum: 108)
+//   @pragma("vm:entry-point")
+//   void onPluginDemo(PointCut pointcut) {
+//     Object p; //Aspectd Ignore
+//
+//     print('[beike_aspectd]:Inject instance method!');
+//     // Object bo; //Aspectd Ignore
+//     print(p);
+//     // print(bo);
+//   }
 
 // //类静态方法
 // @Inject("package:example/receiver_test.dart", "Receiver", "+tap",

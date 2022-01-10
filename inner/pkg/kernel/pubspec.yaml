@@ -1,0 +1,17 @@
+# Currently, kernel API is not stable and users should
+# not depend on semver semantics when depending on this package.
+name: kernel
+
+# This package is not intended for consumption on pub.dev. DO NOT publish.
+publish_to: none
+
+environment:
+  sdk: '>=2.12.0 <3.0.0'
+dependencies:
+dev_dependencies:
+  args: '>=0.13.4 <2.0.0'
+  expect:
+    path: ../expect
+  front_end:
+    path: ../front_end
+  test: any

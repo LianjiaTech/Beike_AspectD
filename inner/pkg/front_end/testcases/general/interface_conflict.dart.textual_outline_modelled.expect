@@ -1,0 +1,14 @@
+// @dart = 2.9
+abstract class C implements A, B {}
+
+abstract class D implements C {}
+
+class A {
+  int get n => 1;
+}
+
+class B {
+  double get n => 2.0;
+}
+
+main() {}

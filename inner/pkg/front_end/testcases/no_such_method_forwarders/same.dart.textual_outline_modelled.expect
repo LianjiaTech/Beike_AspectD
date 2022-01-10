@@ -1,0 +1,7 @@
+// @dart = 2.9
+class A {
+  dynamic noSuchMethod(Invocation i) {}
+  void foo();
+}
+
+main() {}

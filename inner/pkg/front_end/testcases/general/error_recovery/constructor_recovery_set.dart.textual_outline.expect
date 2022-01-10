@@ -1,0 +1,7 @@
+// @dart = 2.9
+class Foo {
+  set Foo() {}
+  set Foo() : initializer = true {}
+  set Foo.x() {}
+  set Foo.x() : initializer = true {}
+}

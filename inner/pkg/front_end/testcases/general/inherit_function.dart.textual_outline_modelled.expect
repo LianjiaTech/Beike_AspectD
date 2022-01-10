@@ -1,0 +1,9 @@
+// @dart = 2.9
+class A implements Function {}
+
+class B extends Function {}
+
+class C extends Object with Function {}
+
+class D = Object with Function;
+main() {}

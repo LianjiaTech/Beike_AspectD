@@ -1,0 +1,6 @@
+// @dart = 2.9
+library test;
+
+T f<T>() => null;
+main() {}
+void test() {}

@@ -1,0 +1,8 @@
+// @dart = 2.9
+library private_module;
+
+abstract class Fisk {
+  void _hest();
+}
+
+main() {}

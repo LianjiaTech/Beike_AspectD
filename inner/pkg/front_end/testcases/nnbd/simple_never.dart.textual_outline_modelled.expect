@@ -1,0 +1,3 @@
+Never? bar() => null;
+Never foo() {}
+main() {}

@@ -1,0 +1,8 @@
+// @dart = 2.9
+main() {}
+
+class C {
+  final d;
+  C() {}
+  C(this.d) {}
+}

@@ -1,0 +1,13 @@
+// @dart = 2.9
+library test;
+
+abstract class D<T> {
+  void f<U>(G<U> g);
+}
+
+class C<T> extends D<T> {
+  f<U>(g) => null;
+}
+
+main() {}
+typedef List<V> G<V>();

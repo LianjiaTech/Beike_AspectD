@@ -1,0 +1,6 @@
+// @dart = 2.9
+library test;
+
+void block_test() {}
+void arrow_test() {}
+main() {}

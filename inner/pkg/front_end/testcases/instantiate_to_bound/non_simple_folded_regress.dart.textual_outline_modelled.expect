@@ -1,0 +1,6 @@
+// @dart = 2.9
+class Fisk<TypeY extends Hest<Hest<Object>>> {}
+
+class Hest<TypeX> {}
+
+main() {}

@@ -1,0 +1,79 @@
+library;
+//
+// Problems in library:
+//
+// pkg/front_end/testcases/rasta/super.dart:27:7: Error: 'n' is already declared in this scope.
+//   set n(_) {}
+//       ^
+// pkg/front_end/testcases/rasta/super.dart:26:8: Context: Previous declaration of 'n'.
+//   void n() {}
+//        ^
+//
+import self as self;
+import "dart:core" as core;
+
+class A extends core::Object {
+  field dynamic a;
+  field dynamic b;
+  field dynamic c;
+  field dynamic d;
+  final field dynamic f;
+  synthetic constructor •() → self::A*
+    ;
+  get e() → dynamic
+    ;
+  set g(dynamic _) → void
+    ;
+  get h() → dynamic
+    ;
+  set h(dynamic _) → void
+    ;
+  get i() → dynamic
+    ;
+  operator [](dynamic _) → dynamic
+    ;
+  operator []=(dynamic a, dynamic b) → void
+    ;
+  operator ~() → dynamic
+    ;
+  operator unary-() → dynamic
+    ;
+  operator ==(dynamic other) → core::bool*
+    ;
+  method m() → void
+    ;
+  method n() → void
+    ;
+  set n(dynamic _) → void
+    ;
+  abstract member-signature get _identityHashCode() → core::int*; -> core::Object::_identityHashCode
+  abstract member-signature method _instanceOf(dynamic instantiatorTypeArguments, dynamic functionTypeArguments, dynamic type) → core::bool*; -> core::Object::_instanceOf
+  abstract member-signature method _simpleInstanceOf(dynamic type) → core::bool*; -> core::Object::_simpleInstanceOf
+  abstract member-signature method _simpleInstanceOfTrue(dynamic type) → core::bool*; -> core::Object::_simpleInstanceOfTrue
+  abstract member-signature method _simpleInstanceOfFalse(dynamic type) → core::bool*; -> core::Object::_simpleInstanceOfFalse
+  abstract member-signature get hashCode() → core::int*; -> core::Object::hashCode
+  abstract member-signature method toString() → core::String*; -> core::Object::toString
+  abstract member-signature method noSuchMethod(core::Invocation* invocation) → dynamic; -> core::Object::noSuchMethod
+  abstract member-signature get runtimeType() → core::Type*; -> core::Object::runtimeType
+}
+class B extends self::A {
+  final field dynamic d;
+  synthetic constructor •() → self::B*
+    ;
+  get b() → dynamic
+    ;
+  set c(dynamic x) → void
+    ;
+  set i(dynamic x) → void
+    ;
+}
+class C extends self::B {
+  synthetic constructor •() → self::C*
+    ;
+  method test() → dynamic
+    ;
+}
+static method use(dynamic x) → dynamic
+  ;
+static method main() → dynamic
+  ;

@@ -1,0 +1,15 @@
+// @dart = 2.9
+library test;
+
+var topLevel;
+void set topLevelSetter(x) {}
+
+class C {
+  static var staticField;
+  static void set staticSetter(x) {}
+  var instanceField;
+  void set instanceSetter(x) {}
+  void test() {}
+}
+
+main() {}

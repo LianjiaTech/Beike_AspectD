@@ -1,0 +1,12 @@
+// @dart = 2.9
+library test;
+
+class C {
+  dynamic f;
+  C(this.f);
+}
+
+void g(C c) {}
+void h(int i) {}
+void test() {}
+main() {}

@@ -1,0 +1,8 @@
+// @dart = 2.9
+class C {
+  static set C(v) {}
+}
+class D {
+  set D(v) {}
+}
+main() {}

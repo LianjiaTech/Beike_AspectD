@@ -1,0 +1,20 @@
+// @dart = 2.9
+import "package:expect/expect.dart";
+
+class A {
+  A() {}
+  factory A.foo() = C.bar;
+  int m() {}
+}
+
+class C extends A {
+  C() {}
+  factory C.bar() = D;
+  int m() {}
+}
+
+class D extends C {
+  int m() {}
+}
+
+main() {}

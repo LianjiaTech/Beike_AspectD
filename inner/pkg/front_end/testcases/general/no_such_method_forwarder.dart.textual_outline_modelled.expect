@@ -1,0 +1,11 @@
+// @dart = 2.9
+class X {
+  void _foo() async {}
+  void foo() => _foo();
+}
+
+class Y implements X {
+  void noSuchMethod(Invocation _) {}
+}
+
+main() {}

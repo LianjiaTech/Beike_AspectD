@@ -1,0 +1,15 @@
+// @dart = 2.9
+library test;
+
+T f<T>() => null;
+
+class C implements B {
+  final x;
+  C() : x = f();
+}
+
+abstract class B {
+  int get x;
+}
+
+main() {}

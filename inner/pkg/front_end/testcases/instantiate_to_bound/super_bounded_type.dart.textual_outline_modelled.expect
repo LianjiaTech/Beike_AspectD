@@ -1,0 +1,6 @@
+// @dart = 2.9
+A a;
+
+class A<T extends A<T>> {}
+
+main() {}

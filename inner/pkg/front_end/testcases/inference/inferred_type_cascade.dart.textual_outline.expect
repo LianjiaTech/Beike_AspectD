@@ -1,0 +1,14 @@
+// @dart = 2.9
+library test;
+
+class A {
+  int a;
+  List<int> b;
+  void m() {}
+}
+
+var v = new A()
+  ..a = 1
+  ..b.add(2)
+  ..m();
+main() {}

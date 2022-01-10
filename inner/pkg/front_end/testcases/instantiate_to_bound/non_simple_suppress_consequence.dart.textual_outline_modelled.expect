@@ -1,0 +1,8 @@
+// @dart = 2.9
+class Fisk<TypeY extends Hest> {}
+
+class Hest<TypeX extends Hest<TypeX>> {}
+
+class Naebdyr<TypeZ extends Fisk> {}
+
+main() {}

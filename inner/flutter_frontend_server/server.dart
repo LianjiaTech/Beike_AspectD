@@ -48,7 +48,6 @@ class _FlutterFrontendCompiler implements frontend.CompilerInterface {
     final bool initializeFromDill =
         options.arguments.contains('--initialize-from-dill');
 
-    //增量编译不进行自定义tranform
     if (!incremental && !initializeFromDill) {
       List<FlutterProgramTransformer> transformers =
           FlutterTarget.flutterProgramTransformers;
@@ -62,7 +61,7 @@ class _FlutterFrontendCompiler implements frontend.CompilerInterface {
 
   @override
   Future<Null> recompileDelta({String entryPoint}) async {
-    List<FlutterProgramTransformer> transformers =
+    final List<FlutterProgramTransformer> transformers =
         FlutterTarget.flutterProgramTransformers;
     transformers.clear();
 

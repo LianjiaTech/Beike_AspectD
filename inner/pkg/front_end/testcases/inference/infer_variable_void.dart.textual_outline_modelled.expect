@@ -1,0 +1,6 @@
+// @dart = 2.9
+library test;
+
+main() {}
+var x = f();
+void f() {}

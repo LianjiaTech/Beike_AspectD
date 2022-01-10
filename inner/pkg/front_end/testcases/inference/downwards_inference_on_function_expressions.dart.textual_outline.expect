@@ -1,0 +1,6 @@
+// @dart = 2.9
+library test;
+
+typedef T Function2<S, T>(S x);
+void test() {}
+main() {}

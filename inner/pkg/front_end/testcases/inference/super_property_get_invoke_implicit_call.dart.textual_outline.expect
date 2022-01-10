@@ -1,0 +1,16 @@
+// @dart = 2.9
+library test;
+
+class CallableClass {
+  int call() => 0;
+}
+
+class C {
+  var f = new CallableClass();
+}
+
+class D extends C {
+  void g() {}
+}
+
+main() {}

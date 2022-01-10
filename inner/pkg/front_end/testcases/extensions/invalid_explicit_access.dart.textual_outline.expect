@@ -1,0 +1,14 @@
+// @dart = 2.9
+class Class {}
+
+extension Extension on Class {
+  method(a) {}
+}
+
+class GenericClass<T> {}
+
+extension GenericExtension<T> on GenericClass<T> {
+  method() {}
+}
+
+main() {}

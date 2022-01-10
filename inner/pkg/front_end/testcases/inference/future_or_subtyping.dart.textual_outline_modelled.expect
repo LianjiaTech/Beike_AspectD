@@ -1,0 +1,9 @@
+// @dart = 2.9
+library test;
+
+import 'dart:async';
+
+add2(int y) {}
+main() {}
+test() {}
+void add(int x) {}

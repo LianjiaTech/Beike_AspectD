@@ -1,0 +1,5256 @@
+# Copyright (c) 2017, the Dart project authors.  Please see the AUTHORS file
+# for details. All rights reserved. Use of this source code is governed by a
+# BSD-style license that can be found in the LICENSE file.
+
+# Each entry in this map corresponds to a diagnostic message. Ideally, each
+# entry contains three parts:
+#
+# 1. A message template (template).
+#
+# 2. A suggestion for how to correct the problem (tip).
+#
+# 3. Examples that produce the message (one of expression, statement,
+#    declaration, member, script, bytes or external). Note that 'external'
+#    should be the path to an external test. The external test will not be run,
+#    but the existence of the file will be verified.
+#
+#    Multiple scripts can start with a `// @dart=` annotation to enforce the
+#    language version used for the example code.
+#
+# Note that it can be hard or impossible to write an example that only gives the
+# specific error. To allow for this, one can specify
+# "exampleAllowMoreCodes: true" which filters out every message with a
+# different code, and just verifies we got exactly one message of the code in
+# question (in addition too different codes).
+#
+# A message shouldn't indicate which kind of diagnostic it is, for example,
+# warning or error. Tools are expected to prepend "Warning: ", or "Error: ",
+# and should be allowed to change the kind of diagnostic without affecting the
+# message. For example, an error might be turned into a warning by the tool.
+#
+# See the file [lib/src/fasta/diagnostics.md] for more details on how to write
+# good diagnostic messages.
+#
+# A message used for internal errors should have key that starts with
+# "InternalProblem". This way, UX review can prioritize it accordingly.
+#
+# Eventually, we'd like to have all diagnostics in one shared
+# location. However, for now, the analyzer needs to translate error codes to
+# its own format. To support this, an entry can contain an analyzer error code
+# (analyzerCode).
+#
+# Long term, the analyzer and front-end need to share the same error codes. So
+# eventually all error codes should have an `analyzerCode` field.
+# Any error code with an `index` field and an `analyzerCode` field
+# will be auto generated as an Analyzer error code.
+# `index` field values should be unique, consecutive whole numbers starting with 1.
+# If `index` is defined, then `analyzerCode` should be the fully formed
+# name of the corresponding public Analyzer error const
+# (e.g. ParserErrorCode.EQUALITY_CANNOT_BE_EQUALITY_OPERAND)
+# which will be used when generating code in Analyzer for translating
+# fasta error codes to Analyzer error codes.
+#
+# In some cases a message is internal to the frontend, and no meaningful
+# analyzer code can be provided. In such cases set `frontendInternal: true`.
+#
+# ## Parameter Substitution in Template and Tip
+#
+# The fields `template` and `tip` are subject to parameter substitution. When
+# the compiler reports a problem, it may also specify a map with the following
+# keys to be substituted into the message:
+#
+# `#character` a Unicode character.
+#
+# `#unicode` a Unicode short identifier (U+xxxx). We use this to represent code
+#  units or code points.
+#
+# `#name`, `#name2`, `#name3`, `#name4`: names (as strings). Note that asserts
+#    check if these are empty. If they can be empty use an available `OKEmpty`
+#    version (or add the missing needed one(s)) to avoid triggering an assert.
+#
+# `#nameOKEmpty`: name (as string). Will use an "(unnamed)" default message if
+#    the string is null or empty. Otherwise see the describtion above.
+#
+# `#names`: A list of names (strings).
+#
+# `#lexeme` a token. The token's `lexeme` property is used.
+#
+# `#string`, `#string2`, `#string3`: strings (that aren't names).
+#    Note: as a rule of thumb, avoid using the `#string` keys. In particular,
+#    do not use them for composing error messages, see [diagnostics.md](
+#    lib/src/fasta/diagnostics.md#avoid-composing-messages-programmatically).
+#    Note that asserts check if these are empty. If they can be empty use an
+#    available `OKEmpty` version (or add the missing needed one(s)) to avoid
+#    triggering an assert.
+#
+# `#stringOKEmpty`: string (that isn't a name). Will use an "(empty)" default
+#    message if the string is null or empty.
+#    Otherwise see the describtion above.
+#
+# `#type`, #type2`, `#type3`: Kernel types.
+#
+# `#uri`, `#uri2`, `#uri3`: URIs.
+#
+# `#count`, `#count2`: counts (as integers)
+#
+# `#constant` a Kernel constant.
+#
+# `#num1%N.M`, `#num2%N.M`, `#num3%N.M`: numbers (doubles) formatted to minimum
+# width N and with M fraction digits.
+
+AsciiControlCharacter:
+  template: "The control character #unicode can only be used in strings and comments."
+  analyzerCode: ILLEGAL_CHARACTER
+  expression: "\x1b 1"
+
+ConstEvalStartingPoint:
+  template: "Constant evaluation error:"
+
+ConstEvalContext:
+  template: "While analyzing:"
+
+ConstEvalDuplicateElement:
+  template: "The element '#constant' conflicts with another existing element in the set."
+  analyzerCode: EQUAL_ELEMENTS_IN_CONST_SET
+
+ConstEvalDuplicateKey:
+  template: "The key '#constant' conflicts with another existing key in the map."
+  analyzerCode: EQUAL_KEYS_IN_CONST_MAP
+
+ConstEvalElementImplementsEqual:
+  template: "The element '#constant' does not have a primitive operator '=='."
+  analyzerCode: CONST_SET_ELEMENT_TYPE_IMPLEMENTS_EQUALS
+
+ConstEvalKeyImplementsEqual:
+  template: "The key '#constant' does not have a primitive operator '=='."
+  analyzerCode: CONST_MAP_KEY_EXPRESSION_TYPE_IMPLEMENTS_EQUALS
+
+ConstEvalCaseImplementsEqual:
+  template: "Case expression '#constant' does not have a primitive operator '=='."
+
+ConstEvalInvalidType:
+  template: "Expected constant '#constant' to be of type '#type', but was of type '#type2'."
+
+ConstEvalInvalidBinaryOperandType:
+  template: "Binary operator '#stringOKEmpty' on '#constant' requires operand of type '#type', but was of type '#type2'."
+
+ConstEvalInvalidEqualsOperandType:
+  template: "Binary operator '==' requires receiver constant '#constant' of type 'Null', 'bool', 'int', 'double', or 'String', but was of type '#type'."
+
+ConstEvalZeroDivisor:
+  template: "Binary operator '#string' on '#string2' requires non-zero divisor, but divisor was '0'."
+  analyzerCode: CONST_EVAL_THROWS_IDBZE
+
+ConstEvalNegativeShift:
+  template: "Binary operator '#string' on '#string2' requires non-negative operand, but was '#string3'."
+
+ConstEvalTruncateError:
+  template: "Binary operator '#string ~/ #string2' results is Infinity or NaN."
+
+ConstEvalNonNull:
+  template: "Constant expression must be non-null."
+
+ConstEvalGetterNotFound:
+  template: "Variable get not found: '#nameOKEmpty'"
+
+ConstEvalInvalidMethodInvocation:
+  template: "The method '#stringOKEmpty' can't be invoked on '#constant' in a constant expression."
+  analyzerCode: UNDEFINED_OPERATOR
+
+ConstEvalInvalidPropertyGet:
+  template: "The property '#stringOKEmpty' can't be accessed on '#constant' in a constant expression."
+  analyzerCode: CONST_EVAL_THROWS_EXCEPTION
+
+ConstEvalInvalidStringInterpolationOperand:
+  template: |
+    The constant value '#constant' can't be used as part of a string interpolation in a constant expression.
+    Only values of type 'null', 'bool', 'int', 'double', or 'String' can be used.
+  analyzerCode: CONST_EVAL_TYPE_BOOL_NUM_STRING
+
+ConstEvalInvalidStaticInvocation:
+  template: "The invocation of '#nameOKEmpty' is not allowed in a constant expression."
+  analyzerCode: CONST_INITIALIZED_WITH_NON_CONSTANT_VALUE
+
+ConstEvalInvalidSymbolName:
+  template: "The symbol name must be a valid public Dart member name, public constructor name, or library name, optionally qualified, but was '#constant'."
+  analyzerCode: CONST_EVAL_THROWS_EXCEPTION
+
+ConstEvalFailedAssertion:
+  template: "This assertion failed."
+  analyzerCode: CONST_EVAL_THROWS_EXCEPTION
+
+ConstEvalFailedAssertionWithMessage:
+  template: "This assertion failed with message: #stringOKEmpty"
+  analyzerCode: CONST_EVAL_THROWS_EXCEPTION
+
+ConstEvalNonConstantVariableGet:
+  template: "The variable '#nameOKEmpty' is not a constant, only constant expressions are allowed."
+  analyzerCode: NON_CONSTANT_VALUE_IN_INITIALIZER
+
+ConstEvalDeferredLibrary:
+  template: >
+    '#nameOKEmpty' can't be used in a constant expression because it's marked as
+    'deferred' which means it isn't available until loaded.
+  tip: >
+    Try moving the constant from the deferred library, or removing 'deferred'
+    from the import.
+  analyzerCode: INVALID_ANNOTATION_CONSTANT_VALUE_FROM_DEFERRED_LIBRARY
+
+ConstEvalFreeTypeParameter:
+  template: "The type '#type' is not a constant because it depends on a type parameter, only instantiated types are allowed."
+
+ConstEvalCircularity:
+  template: "Constant expression depends on itself."
+  analyzerCode: RECURSIVE_COMPILE_TIME_CONSTANT
+
+ConstEvalNullValue:
+  template: "Null value during constant evaluation."
+  analyzerCode: CONST_EVAL_THROWS_EXCEPTION
+
+ConstEvalNotListOrSetInSpread:
+  template: "Only lists and sets can be used in spreads in constant lists and sets."
+  analyzerCode: CONST_SPREAD_EXPECTED_LIST_OR_SET
+
+ConstEvalNotMapInSpread:
+  template: "Only maps can be used in spreads in constant maps."
+  analyzerCode: CONST_SPREAD_EXPECTED_MAP
+
+ConstEvalExtension:
+  template: "Extension operations can't be used in constant expressions."
+  analyzerCode: NOT_CONSTANT_EXPRESSION
+
+ConstEvalExternalConstructor:
+  template: "External constructors can't be evaluated in constant expressions."
+
+ConstEvalExternalFactory:
+  template: "External factory constructors can't be evaluated in constant expressions."
+
+ConstEvalUnevaluated:
+  template: "Couldn't evaluate constant expression."
+
+ConstEvalUnhandledCoreException:
+  template: "Unhandled core exception: #stringOKEmpty"
+
+ConstEvalUnhandledException:
+  template: "Unhandled exception: #constant"
+
+NotConstantExpression:
+  template: "#string is not a constant expression."
+  analyzerCode: NOT_CONSTANT_EXPRESSION
+
+NotAConstantExpression:
+  template: "Not a constant expression."
+  analyzerCode: NOT_CONSTANT_EXPRESSION
+
+MissingExplicitConst:
+  template: "Constant expression expected."
+  tip: "Try inserting 'const'."
+  analyzerCode: NOT_CONSTANT_EXPRESSION
+  script: >
+    class A {
+      final x;
+      const A(): x = [];
+    }
+
+NonAsciiIdentifier:
+  template: "The non-ASCII character '#character' (#unicode) can't be used in identifiers, only in strings and comments."
+  tip: "Try using an US-ASCII letter, a digit, '_' (an underscore), or '$' (a dollar sign)."
+  analyzerCode: ILLEGAL_CHARACTER
+  expression: "å"
+
+NonAsciiWhitespace:
+  template: "The non-ASCII space character #unicode can only be used in strings and comments."
+  analyzerCode: ILLEGAL_CHARACTER
+  expression: "\u2028 1"
+
+Encoding:
+  template: "Unable to decode bytes as UTF-8."
+  bytes: [255]
+
+ExperimentNotEnabled:
+  index: 48
+  template: "This requires the '#string' language feature to be enabled."
+  tip: "Try updating your pubspec.yaml to set the minimum SDK constraint to #string2 or higher, and running 'pub get'."
+  analyzerCode: ParserErrorCode.EXPERIMENT_NOT_ENABLED
+
+ExperimentNotEnabledNoFlag:
+  template: "This requires the null safety language feature, which is experimental."
+  tip: "You can enable the experiment using the '--enable-experiment=non-nullable' command line option."
+  analyzerCode: ParserErrorCode.EXPERIMENT_NOT_ENABLED
+
+ExperimentNotEnabledNoFlagInvalidLanguageVersion:
+  template: "This requires the null safety language feature, which is experimental and requires language version of #string2 or higher."
+  tip: "You can enable the experiment using the '--enable-experiment=non-nullable' command line option."
+  analyzerCode: ParserErrorCode.EXPERIMENT_NOT_ENABLED
+
+ExperimentDisabled:
+  template: "This requires the '#string' language feature to be enabled."
+  tip: "The feature is on by default but is currently disabled, maybe because the '--enable-experiment=no-#string' command line option is passed."
+  analyzerCode: ParserErrorCode.EXPERIMENT_NOT_ENABLED
+
+ExperimentDisabledInvalidLanguageVersion:
+  template: "This requires the null safety language feature, which requires language version of #string2 or higher."
+  analyzerCode: ParserErrorCode.EXPERIMENT_NOT_ENABLED
+
+EmptyNamedParameterList:
+  template: "Named parameter lists cannot be empty."
+  tip: "Try adding a named parameter to the list."
+  analyzerCode: "MISSING_IDENTIFIER"
+  script: >
+    foo({}) {}
+
+    main() {
+      foo();
+    }
+
+EmptyOptionalParameterList:
+  template: "Optional parameter lists cannot be empty."
+  tip: "Try adding an optional parameter to the list."
+  analyzerCode: "MISSING_IDENTIFIER"
+  script: >
+    foo([]) {}
+
+    main() {
+      foo();
+    }
+
+ExpectedElseOrComma:
+  index: 46
+  template: "Expected 'else' or comma."
+  analyzerCode: ParserErrorCode.EXPECTED_ELSE_OR_COMMA
+
+ExpectedBlock:
+  template: "Expected a block."
+  tip: "Try adding {}."
+  analyzerCode: EXPECTED_TOKEN
+  script: "try finally {}"
+
+ExpectedBlockToSkip:
+  template: "Expected a function body or '=>'."
+  # TODO(ahe): In some scenarios, we can suggest removing the 'static' keyword.
+  tip: "Try adding {}."
+  analyzerCode: MISSING_FUNCTION_BODY
+  script: "main();"
+
+ExpectedBody:
+  template: "Expected a function body or '=>'."
+  # TODO(ahe): In some scenarios, we can suggest removing the 'static' keyword.
+  tip: "Try adding {}."
+  analyzerCode: MISSING_FUNCTION_BODY
+  script: "main();"
+
+ExpectedStatement:
+  index: 29
+  template: "Expected a statement."
+  analyzerCode: ParserErrorCode.MISSING_STATEMENT
+  statement: "void;"
+
+ExpectedButGot:
+  # Also see ExpectedAfterButGot and ExpectedInstead
+  template: "Expected '#string' before this."
+  # Consider the second example below: the parser expects a ')' before 'y', but
+  # a ',' would also have worked. We don't have enough information to give a
+  # good suggestion.
+  analyzerCode: EXPECTED_TOKEN
+  script:
+    - "main() => true ? 1;"
+    - "main() => foo(x: 1 y: 2);"
+
+ExpectedAfterButGot:
+  # Also see ExpectedButGot and ExpectedInstead
+  template: "Expected '#string' after this."
+  # This is an alternative to ExpectedButGot when it's better for the error to be
+  # associated with the last consumed token rather than the token being parsed.
+  # Doing so can make it cognitively easier for the user to understand and fix.
+  #
+  # For example, this is ok...
+  #
+  #    x = 7
+  #    class Foo {
+  #    ^^^^^
+  #        Expected ';' before this
+  #
+  # but this is easier for the user...
+  #
+  #    x = 7
+  #        ^
+  #        Expected ';' after this
+  #    class Foo {
+  #
+  analyzerCode: EXPECTED_TOKEN
+  script:
+    - "main() { return true }"
+
+ExpectedInstead:
+  # Also see ExpectedButGot and ExpectedAfterButGot
+  index: 41
+  template: "Expected '#string' instead of this."
+  # This is an alternative to ExpectedButGot when the last consumed token
+  # should be replaced with a different token.
+  #
+  # For example, this is ok...
+  #
+  #    mixin Foo extends Bar {
+  #              ^^^^^^^
+  #              Expected 'on' before this
+  #
+  # but this is easier for the user...
+  #
+  #    mixin Foo extends Bar {
+  #              ^^^^^^^
+  #              Expected 'on' instead of this
+  #
+  analyzerCode: ParserErrorCode.EXPECTED_INSTEAD
+  script:
+    - "class B {} mixin A extends B { }"
+
+MultipleLibraryDirectives:
+  index: 27
+  template: "Only one library directive may be declared in a file."
+  tip: "Try removing all but one of the library directives."
+  analyzerCode: ParserErrorCode.MULTIPLE_LIBRARY_DIRECTIVES
+
+MultipleExtends:
+  index: 28
+  template: "Each class definition can have at most one extends clause."
+  tip: "Try choosing one superclass and define your class to implement (or mix in) the others."
+  analyzerCode: ParserErrorCode.MULTIPLE_EXTENDS_CLAUSES
+  script:
+    - "class B{} class C{} class A extends B extends C {}"
+    - "class B{} class C{} class A extends B, C {}"
+
+MultipleWith:
+  index: 24
+  template: "Each class definition can have at most one with clause."
+  tip: "Try combining all of the with clauses into a single clause."
+  analyzerCode: ParserErrorCode.MULTIPLE_WITH_CLAUSES
+  script: "class A extends B with C, D with E {}"
+
+WithBeforeExtends:
+  index: 11
+  template: "The extends clause must be before the with clause."
+  tip: "Try moving the extends clause before the with clause."
+  analyzerCode: ParserErrorCode.WITH_BEFORE_EXTENDS
+  script: "class B {} class C {} class A with B extends C {}"
+
+ImplementsBeforeExtends:
+  index: 44
+  template: "The extends clause must be before the implements clause."
+  tip: "Try moving the extends clause before the implements clause."
+  analyzerCode: ParserErrorCode.IMPLEMENTS_BEFORE_EXTENDS
+  script: "class A implements B extends C {}"
+
+ImplementsBeforeOn:
+  index: 43
+  template: "The on clause must be before the implements clause."
+  tip: "Try moving the on clause before the implements clause."
+  analyzerCode: ParserErrorCode.IMPLEMENTS_BEFORE_ON
+  script: "mixin A implements B on C {}"
+
+ImplementsBeforeWith:
+  index: 42
+  template: "The with clause must be before the implements clause."
+  tip: "Try moving the with clause before the implements clause."
+  analyzerCode: ParserErrorCode.IMPLEMENTS_BEFORE_WITH
+  script: "class A extends B implements C with D {}"
+
+ImplementsRepeated:
+  template: "'#name' can only be implemented once."
+  analyzerCode: IMPLEMENTS_REPEATED
+  tip: "Try removing #count of the occurrences."
+  script:
+    - >-
+      abstract class I {}
+      abstract class J {}
+      class K implements I, J, I {}
+
+ImplementsSuperClass:
+  template: "'#name' can't be used in both 'extends' and 'implements' clauses."
+  analyzerCode: IMPLEMENTS_SUPER_CLASS
+  tip: "Try removing one of the occurrences."
+  script:
+    - >-
+      abstract class A {}
+      class C extends A implements A {}
+
+MultipleImplements:
+  template: "Each class definition can have at most one implements clause."
+  tip: "Try combining all of the implements clauses into a single clause."
+  analyzerCode: MULTIPLE_IMPLEMENTS_CLAUSES
+  script: "class A implements B implements C, D {}"
+
+MultipleOnClauses:
+  index: 26
+  template: "Each mixin definition can have at most one on clause."
+  tip: "Try combining all of the on clauses into a single clause."
+  analyzerCode: ParserErrorCode.MULTIPLE_ON_CLAUSES
+  script: "mixin A on B on C, D {}"
+
+ExtendsFutureOr:
+  template: "The type 'FutureOr' can't be used in an 'extends' clause."
+
+ImplementsFutureOr:
+  template: "The type 'FutureOr' can't be used in an 'implements' clause."
+
+ExtendsNever:
+  template: "The type 'Never' can't be used in an 'extends' clause."
+
+ImplementsNever:
+  template: "The type 'Never' can't be used in an 'implements' clause."
+
+ExtendsVoid:
+  template: "The type 'void' can't be used in an 'extends' clause."
+
+ImplementsVoid:
+  template: "The type 'void' can't be used in an 'implements' clause."
+
+ExpectedClassOrMixinBody:
+  index: 8
+  template: "A #string must have a body, even if it is empty."
+  tip: "Try adding an empty body."
+  analyzerCode: ParserErrorCode.EXPECTED_BODY
+
+ExpectedDeclaration:
+  template: "Expected a declaration, but got '#lexeme'."
+  analyzerCode: EXPECTED_EXECUTABLE
+
+ExpectedClassMember:
+  template: "Expected a class member, but got '#lexeme'."
+  analyzerCode: EXPECTED_CLASS_MEMBER
+
+ExpectedFunctionBody:
+  template: "Expected a function body, but got '#lexeme'."
+  analyzerCode: MISSING_FUNCTION_BODY
+
+ExpectedHexDigit:
+  template: "A hex digit (0-9 or A-F) must follow '0x'."
+  # No tip, seems obvious from the error message.
+  analyzerCode: MISSING_HEX_DIGIT
+  script: >
+    main() {
+      var i = 0x;
+    }
+
+ExpectedIdentifier:
+  template: "Expected an identifier, but got '#lexeme'."
+  tip: "Try inserting an identifier before '#lexeme'."
+  analyzerCode: MISSING_IDENTIFIER
+  script: "var = 42;"
+
+ExpectedIdentifierButGotKeyword:
+  template: "'#lexeme' can't be used as an identifier because it's a keyword."
+  tip: "Try renaming this to be an identifier that isn't a keyword."
+  index: 113
+  analyzerCode: ParserErrorCode.EXPECTED_IDENTIFIER_BUT_GOT_KEYWORD
+  script: "var default = 42;"
+
+EqualityCannotBeEqualityOperand:
+  index: 1
+  template: "A comparison expression can't be an operand of another comparison expression."
+  tip: "Try putting parentheses around one of the comparisons."
+  analyzerCode: ParserErrorCode.EQUALITY_CANNOT_BE_EQUALITY_OPERAND
+  script:
+    - "main() { var b = a < b < c; }"
+    - "main() { var b = a == b != c; }"
+
+ExpectedOpenParens:
+  template: "Expected '('."
+
+ExpectedString:
+  template: "Expected a String, but got '#lexeme'."
+  analyzerCode: EXPECTED_STRING_LITERAL
+
+ExpectedToken:
+  template: "Expected to find '#string'."
+  analyzerCode: EXPECTED_TOKEN
+
+ExpectedType:
+  template: "Expected a type, but got '#lexeme'."
+  analyzerCode: EXPECTED_TYPE_NAME
+
+VarAsTypeName:
+  index: 61
+  template: "The keyword 'var' can't be used as a type name."
+  analyzerCode: ParserErrorCode.VAR_AS_TYPE_NAME
+  script:
+    - "class A { Map<String, var> m; }"
+
+MissingExpressionInThrow:
+  index: 32
+  template: "Missing expression after 'throw'."
+  tip: "Add an expression after 'throw' or use 'rethrow' to throw a caught exception"
+  analyzerCode: ParserErrorCode.MISSING_EXPRESSION_IN_THROW
+  statement:
+    - "throw;"
+
+MissingConstFinalVarOrType:
+  index: 33
+  template: "Variables must be declared using the keywords 'const', 'final', 'var' or a type name."
+  tip: "Try adding the name of the type of the variable or the keyword 'var'."
+  analyzerCode: ParserErrorCode.MISSING_CONST_FINAL_VAR_OR_TYPE
+  script:
+    - "class C { static f; }"
+
+FunctionTypedParameterVar:
+  template: "Function-typed parameters can't specify 'const', 'final' or 'var' in place of a return type."
+  tip: "Try replacing the keyword with a return type."
+  analyzerCode: FUNCTION_TYPED_PARAMETER_VAR
+  script:
+    - "void f(const x()) {}"
+    - "void f(final x()) {}"
+    - "void f(var x()) {}"
+
+AbstractClassMember:
+  index: 51
+  template: "Members of classes can't be declared to be 'abstract'."
+  tip: "Try removing the 'abstract' keyword. You can add the 'abstract' keyword before the class declaration."
+  analyzerCode: ParserErrorCode.ABSTRACT_CLASS_MEMBER
+  script:
+    - |
+      abstract class C {abstract C.c();}
+    - |
+      abstract class C {abstract m();}
+    - |
+      abstract class C {abstract get m;}
+    - |
+      abstract class C {abstract set m(int x);}
+    - |
+      // @dart=2.9
+      abstract class C {abstract var f;}
+    - |
+      // @dart=2.9
+      abstract class C {abstract static var f;}
+
+AbstractExternalField:
+  index: 110
+  template: "Fields can't be declared both 'abstract' and 'external'."
+  analyzerCode: ParserErrorCode.ABSTRACT_EXTERNAL_FIELD
+  tip: "Try removing the 'abstract' or 'external' keyword."
+  configuration: nnbd-strong
+  script:
+    - "abstract class C {abstract external var f;}"
+    - "abstract class C {external abstract var f;}"
+
+AbstractStaticField:
+  index: 107
+  template: "Static fields can't be declared 'abstract'."
+  analyzerCode: ParserErrorCode.ABSTRACT_STATIC_FIELD
+  tip: "Try removing the 'abstract' or 'static' keyword."
+  configuration: nnbd-strong
+  script:
+    - "abstract class C {abstract static var f;}"
+
+AbstractExtensionField:
+  template: "Extension fields can't be declared 'abstract'."
+  tip: "Try removing the 'abstract' keyword."
+# Separate class and extension field handling to to support this.
+#  configuration: nnbd-strong
+#  script:
+#    - "extension C on int {abstract static var f;}"
+
+AbstractFieldInitializer:
+  template: "Abstract fields cannot have initializers."
+  tip: "Try removing the initializer or the 'abstract' keyword."
+  configuration: nnbd-strong
+  script:
+    - "abstract class C {abstract var f = 0;}"
+
+AbstractFieldConstructorInitializer:
+  template: "Abstract fields cannot have initializers."
+  tip: "Try removing the field initializer or the 'abstract' keyword from the field declaration."
+  configuration: nnbd-strong
+  script:
+    - "abstract class C {abstract var f; C(this.f);}"
+    - "abstract class C {abstract var f; C() : this.f = 0;}"
+
+AbstractLateField:
+  index: 108
+  template: "Abstract fields cannot be late."
+  analyzerCode: ParserErrorCode.ABSTRACT_LATE_FIELD
+  tip: "Try removing the 'abstract' or 'late' keyword."
+  configuration: nnbd-strong
+  script:
+    - "abstract class C {abstract late var f;}"
+
+ClassInClass:
+  index: 53
+  template: "Classes can't be declared inside other classes."
+  tip: "Try moving the class to the top-level."
+  analyzerCode: ParserErrorCode.CLASS_IN_CLASS
+  script:
+    - "class C { class B {} }"
+
+EnumInClass:
+  index: 74
+  template: "Enums can't be declared inside classes."
+  tip: "Try moving the enum to the top-level."
+  analyzerCode: ParserErrorCode.ENUM_IN_CLASS
+  script:
+    - "class Foo { enum Bar { Bar1, Bar2, Bar3 } }"
+
+TypedefInClass:
+  index: 7
+  template: "Typedefs can't be declared inside classes."
+  tip: "Try moving the typedef to the top-level."
+  analyzerCode: ParserErrorCode.TYPEDEF_IN_CLASS
+  script:
+    - "abstract class C { typedef int F(int x); }"
+
+CovariantMember:
+  index: 67
+  template: "Getters, setters and methods can't be declared to be 'covariant'."
+  tip: "Try removing the 'covariant' keyword."
+  analyzerCode: ParserErrorCode.COVARIANT_MEMBER
+  script:
+    - "static covariant get x => 0;"
+    - "covariant int m() => 0;"
+
+VarReturnType:
+  index: 12
+  template: "The return type can't be 'var'."
+  tip: "Try removing the keyword 'var', or replacing it with the name of the return type."
+  analyzerCode: ParserErrorCode.VAR_RETURN_TYPE
+  script:
+    - "class C { var m() {} }"
+    - "class C { var C() {} }"
+
+ConstClass:
+  index: 60
+  template: "Classes can't be declared to be 'const'."
+  tip: "Try removing the 'const' keyword. If you're trying to indicate that instances of the class can be constants, place the 'const' keyword on  the class' constructor(s)."
+  analyzerCode: ParserErrorCode.CONST_CLASS
+  script: "const class C {}"
+
+ConstAndFinal:
+  index: 58
+  template: "Members can't be declared to be both 'const' and 'final'."
+  tip: "Try removing either the 'const' or 'final' keyword."
+  analyzerCode: ParserErrorCode.CONST_AND_FINAL
+  declaration:
+    - "class C { static const final int x = 5; }"
+    - "class C { static final const int x = 5; }"
+    - "const final int x = 5;"
+    - "final const int x = 5;"
+
+ConflictingModifiers:
+  index: 59
+  template: "Members can't be declared to be both '#string' and '#string2'."
+  tip: "Try removing one of the keywords."
+  analyzerCode: ParserErrorCode.CONFLICTING_MODIFIERS
+  script:
+    - "class C { const var x; }"
+    - "class C { var const x; }"
+
+ConstFactory:
+  index: 62
+  template: "Only redirecting factory constructors can be declared to be 'const'."
+  tip: "Try removing the 'const' keyword, or replacing the body with '=' followed by a valid target."
+  analyzerCode: ParserErrorCode.CONST_FACTORY
+  script: |
+    class C {
+      const factory C() => const C.internal();
+      const C.internal();
+    }
+
+ConstFactoryRedirectionToNonConst:
+  template: "Constant factory constructor can't delegate to a non-constant constructor."
+  tip: "Try redirecting to a different constructor or marking the target constructor 'const'."
+  analyzerCode: REDIRECT_TO_NON_CONST_CONSTRUCTOR
+  script:
+    - >-
+      class A {
+        const factory A.foo() = A.bar;
+        A.bar() {}
+      }
+
+NonConstFactory:
+  template: "Cannot invoke a non-'const' factory where a const expression is expected."
+  tip: "Try using a constructor or factory that is 'const'."
+  analyzerCode: NOT_CONSTANT_EXPRESSION
+
+NonConstConstructor:
+  template: "Cannot invoke a non-'const' constructor where a const expression is expected."
+  tip: "Try using a constructor or factory that is 'const'."
+  analyzerCode: NOT_CONSTANT_EXPRESSION
+
+ModifierOutOfOrder:
+  index: 56
+  template: "The modifier '#string' should be before the modifier '#string2'."
+  tip: "Try re-ordering the modifiers."
+  analyzerCode: ParserErrorCode.MODIFIER_OUT_OF_ORDER
+  script:
+    - "class C { factory const C() = prefix.B.foo; }"
+    - "class C { factory external C(); }"
+    - "class C { const external C(); }"
+    - "class C { static external f(); }"
+    - "class C { final static int f = 5; }"
+    - "class C { var static f; }"
+
+TypeBeforeFactory:
+  index: 57
+  template: "Factory constructors cannot have a return type."
+  tip: "Try removing the type appearing before 'factory'."
+  analyzerCode: ParserErrorCode.TYPE_BEFORE_FACTORY
+  script: |
+    class C {
+      T factory C() { return new C.constructor(); }
+      C.constructor();
+    }
+
+ConstConstructorWithBody:
+  template: "A const constructor can't have a body."
+  tip: "Try removing either the 'const' keyword or the body."
+  analyzerCode: CONST_CONSTRUCTOR_WITH_BODY
+  script:
+    - "class C { const C() {} }"
+
+ConstMethod:
+  index: 63
+  template: "Getters, setters and methods can't be declared to be 'const'."
+  tip: "Try removing the 'const' keyword."
+  analyzerCode: ParserErrorCode.CONST_METHOD
+  script:
+    - "class C { const m() {} }"
+
+CovariantAndStatic:
+  index: 66
+  template: "Members can't be declared to be both 'covariant' and 'static'."
+  tip: "Try removing either the 'covariant' or 'static' keyword."
+  analyzerCode: ParserErrorCode.COVARIANT_AND_STATIC
+  script:
+    - "class C { covariant static A f; }"
+    - "class C { static covariant A f; }"
+
+DuplicatedModifier:
+  index: 70
+  template: "The modifier '#lexeme' was already specified."
+  tip: "Try removing all but one occurrence of the modifier."
+  analyzerCode: ParserErrorCode.DUPLICATED_MODIFIER
+  script:
+    - "class C { const const m; }"
+    - "class C { external external f(); }"
+    - "class C { final final m = 5; }"
+    - "class C { static static var m; }"
+    - "class C { var var m; }"
+
+ExternalConstructorWithBody:
+  index: 87
+  template: "External constructors can't have a body."
+  tip: "Try removing the body of the constructor, or removing the keyword 'external'."
+  analyzerCode: ParserErrorCode.EXTERNAL_CONSTRUCTOR_WITH_BODY
+  script:
+    - "class C { external C() {} }"
+
+ExternalConstructorWithFieldInitializers:
+  template: "An external constructor can't initialize fields."
+  tip: "Try removing the field initializers, or removing the keyword 'external'."
+  analyzerCode: EXTERNAL_CONSTRUCTOR_WITH_FIELD_INITIALIZERS
+
+ExternalFactoryWithBody:
+  index: 86
+  template: "External factories can't have a body."
+  tip: "Try removing the body of the factory, or removing the keyword 'external'."
+  analyzerCode: ParserErrorCode.EXTERNAL_FACTORY_WITH_BODY
+  script:
+    - "class C { external factory C() {} }"
+
+ExternalField:
+  index: 50
+  template: "Fields can't be declared to be 'external'."
+  tip: "Try removing the keyword 'external', or replacing the field by an external getter and/or setter."
+  analyzerCode: ParserErrorCode.EXTERNAL_FIELD
+  script:
+    - |
+      // @dart=2.9
+      class C { external var f; }
+
+
+ExternalFieldInitializer:
+  template: "External fields cannot have initializers."
+  tip: "Try removing the initializer or the 'external' keyword."
+  configuration: nnbd-strong
+  script:
+    - "external var f = 0;"
+    - "abstract class C {external var f = 0;}"
+
+ExternalFieldConstructorInitializer:
+  template: "External fields cannot have initializers."
+  tip: "Try removing the field initializer or the 'external' keyword from the field declaration."
+  configuration: nnbd-strong
+  script:
+    - "abstract class C {external var f; C(this.f);}"
+    - "abstract class C {external var f; C() : this.f = 0;}"
+
+ExternalLateField:
+  index: 109
+  template: "External fields cannot be late."
+  analyzerCode: ParserErrorCode.EXTERNAL_LATE_FIELD
+  tip: "Try removing the 'external' or 'late' keyword."
+  configuration: nnbd-strong
+  script:
+    - "external late var f;"
+    - "abstract class C {external late var f;}"
+
+InitializerForStaticField:
+  template: "'#name' isn't an instance field of this class."
+  analyzerCode: INITIALIZER_FOR_STATIC_FIELD
+
+MoreThanOneSuperInitializer:
+  template: "Can't have more than one 'super' initializer."
+  analyzerCode: MULTIPLE_SUPER_INITIALIZERS
+  script:
+    - "class C { C.bad() : super(), super(); }"
+
+RedirectingConstructorWithSuperInitializer:
+  template: "A redirecting constructor can't have a 'super' initializer."
+  analyzerCode: SUPER_IN_REDIRECTING_CONSTRUCTOR
+  script:
+    - "class C { C(); C.bad() : super(), this(); }"
+    - "class C { C(); C.bad() : this(), super(); }"
+
+RedirectingConstructorWithMultipleRedirectInitializers:
+  template: "A redirecting constructor can't have more than one redirection."
+  analyzerCode: MULTIPLE_REDIRECTING_CONSTRUCTOR_INVOCATIONS
+  script:
+    - "class C { C(); C.bad() : this(), this(); }"
+
+RedirectingConstructorWithAnotherInitializer:
+  template: "A redirecting constructor can't have other initializers."
+  # also ASSERT_IN_REDIRECTING_CONSTRUCTOR
+  analyzerCode: FIELD_INITIALIZER_REDIRECTING_CONSTRUCTOR
+  script:
+    - "class C { int? x; C(); C.bad() : x = 5, this(); }"
+    - "class C { int? x; C(); C.bad() : this(), x = 5; }"
+    - "class C { int? x; C(); C.bad() : assert(true), this(); }"
+    - "class C { int? x; C(); C.bad() : this(), assert(true); }"
+
+SuperInitializerNotLast:
+  template: "Can't have initializers after 'super'."
+  analyzerCode: INVALID_SUPER_INVOCATION
+  script:
+    - "class C { int x; C.bad() : super(), x = 5; }"
+
+ExtraneousModifier:
+  index: 77
+  template: "Can't have modifier '#lexeme' here."
+  tip: "Try removing '#lexeme'."
+  analyzerCode: ParserErrorCode.EXTRANEOUS_MODIFIER
+  script:
+    - "var String foo; main(){}"
+    - "var set foo; main(){}"
+    - "var final foo; main(){}"
+    - "var var foo; main(){}"
+    - "var const foo; main(){}"
+    - "var abstract foo; main(){}"
+    - "var static foo; main(){}"
+    - "var external foo; main(){}"
+    - "get var foo; main(){}"
+    - "set var foo; main(){}"
+    - "final var foo; main(){}"
+    - "var var foo; main(){}"
+    - "const var foo; main(){}"
+    - "abstract var foo; main(){}"
+    - "static var foo; main(){}"
+    - "external var foo; main(){}"
+    - "set foo; main(){}"
+    - "abstract foo; main(){}"
+    - "static foo; main(){}"
+    - "external foo; main(){}"
+    - "final class C {}"
+    - "abstract enum foo {bar}"
+    - "abstract void foo() {}"
+    - "static void foo() {}"
+    - "abstract typedef foo();"
+    - "static typedef foo();"
+
+ExtraneousModifierInExtension:
+  index: 98
+  template: "Can't have modifier '#lexeme' in an extension."
+  tip: "Try removing '#lexeme'."
+  analyzerCode: ParserErrorCode.INVALID_USE_OF_COVARIANT_IN_EXTENSION
+  hasPublishedDocs: true
+  script:
+    - "extension on String { foo(covariant String child) {} }"
+
+FinalAndCovariant:
+  index: 80
+  template: "Members can't be declared to be both 'final' and 'covariant'."
+  tip: "Try removing either the 'final' or 'covariant' keyword."
+  analyzerCode: ParserErrorCode.FINAL_AND_COVARIANT
+  script:
+    - "class C { covariant final f = 5; }"
+    - "class C { final covariant f = 5; }"
+
+FinalAndCovariantLateWithInitializer:
+  index: 101
+  template: "Members marked 'late' with an initializer can't be declared to be both 'final' and 'covariant'."
+  tip: "Try removing either the 'final' or 'covariant' keyword, or removing the initializer."
+  analyzerCode: ParserErrorCode.FINAL_AND_COVARIANT_LATE_WITH_INITIALIZER
+  # Weak and strong doesn't matter in this instance.
+  configuration: nnbd-strong
+  script:
+    - "class C { covariant late final f = 5; }"
+
+FinalAndVar:
+  index: 81
+  template: "Members can't be declared to be both 'final' and 'var'."
+  tip: "Try removing the keyword 'var'."
+  analyzerCode: ParserErrorCode.FINAL_AND_VAR
+  script:
+    - "class C { final var x = 5; }"
+    - "class C { var final x = 5; }"
+
+StaticConstructor:
+  index: 4
+  template: "Constructors can't be static."
+  tip: "Try removing the keyword 'static'."
+  analyzerCode: ParserErrorCode.STATIC_CONSTRUCTOR
+  script:
+    - "class C { static C() {} }"
+    - "class C { static C.m() {} }"
+
+GetterConstructor:
+  index: 103
+  template: "Constructors can't be a getter."
+  tip: "Try removing 'get'."
+  analyzerCode: ParserErrorCode.GETTER_CONSTRUCTOR
+  script:
+    - "class C { get C.m() {} }"
+
+SetterConstructor:
+  index: 104
+  template: "Constructors can't be a setter."
+  tip: "Try removing 'set'."
+  analyzerCode: ParserErrorCode.SETTER_CONSTRUCTOR
+  script:
+    - "class C { set C.m(x) {} }"
+
+StaticOperator:
+  index: 17
+  template: "Operators can't be static."
+  tip: "Try removing the keyword 'static'."
+  analyzerCode: ParserErrorCode.STATIC_OPERATOR
+  script:
+    - "class C { static operator +(int x) => x + 1; }"
+
+BreakOutsideOfLoop:
+  index: 52
+  template: "A break statement can't be used outside of a loop or switch statement."
+  tip: "Try removing the break statement."
+  analyzerCode: ParserErrorCode.BREAK_OUTSIDE_OF_LOOP
+  script:
+    - "main() { break; }"
+
+InvalidBreakTarget:
+  template: "Can't break to '#name'."
+
+BreakTargetOutsideFunction:
+  template: "Can't break to '#name' in a different function."
+  analyzerCode: LABEL_IN_OUTER_SCOPE
+  statement: |
+    label: while (true) {
+      void f() {
+        while (true) {
+          break label;
+        }
+      }
+    }
+
+AnonymousBreakTargetOutsideFunction:
+  template: "Can't break to a target in a different function."
+  analyzerCode: LABEL_IN_OUTER_SCOPE
+  statement: |
+    while (true) {
+      void f() {
+        break;
+      }
+    }
+
+ContinueOutsideOfLoop:
+  index: 2
+  template: "A continue statement can't be used outside of a loop or switch statement."
+  tip: "Try removing the continue statement."
+  analyzerCode: ParserErrorCode.CONTINUE_OUTSIDE_OF_LOOP
+  script:
+    - "main() { continue; }"
+
+InvalidContinueTarget:
+  template: "Can't continue at '#name'."
+
+ContinueTargetOutsideFunction:
+  template: "Can't continue at '#name' in a different function."
+  analyzerCode: LABEL_IN_OUTER_SCOPE
+  statement: |
+    label: while (true) {
+      void f() {
+        while (true) {
+          continue label;
+        }
+      }
+    }
+
+AnonymousContinueTargetOutsideFunction:
+  template: "Can't continue at a target in a different function."
+  analyzerCode: LABEL_IN_OUTER_SCOPE
+  statement: |
+    while (true) {
+      void f() {
+        continue;
+      }
+    }
+
+ContinueLabelNotTarget:
+  template: "Target of continue must be a label."
+  analyzerCode: LABEL_UNDEFINED
+
+ContinueWithoutLabelInCase:
+  index: 64
+  template: "A continue statement in a switch statement must have a label as a target."
+  tip: "Try adding a label associated with one of the case clauses to the continue statement."
+  analyzerCode: ParserErrorCode.CONTINUE_WITHOUT_LABEL_IN_CASE
+  script:
+    - "main() { switch (x) {case 1: continue;} }"
+
+DuplicateLabelInSwitchStatement:
+  index: 72
+  template: "The label '#name' was already used in this switch statement."
+  tip: "Try choosing a different name for this label."
+  analyzerCode: ParserErrorCode.DUPLICATE_LABEL_IN_SWITCH_STATEMENT
+  statement:
+    - "switch (0) {l1: case 0: break; l1: case 1: break;}"
+
+LabelNotFound:
+  template: "Can't find label '#name'."
+  tip: "Try defining the label, or correcting the name to match an existing label."
+  analyzerCode: LABEL_UNDEFINED
+  statement:
+    - "switch (0) {case 0: continue L;}"
+
+InitializedVariableInForEach:
+  index: 82
+  template: "The loop variable in a for-each loop can't be initialized."
+  tip: "Try removing the initializer, or using a different kind of loop."
+  analyzerCode: ParserErrorCode.INITIALIZED_VARIABLE_IN_FOR_EACH
+  statement:
+    - "for (int a = 0 in <int>[10]) {}"
+
+InvalidAwaitFor:
+  index: 9
+  template: "The keyword 'await' isn't allowed for a normal 'for' statement."
+  tip: "Try removing the keyword, or use a for-each statement."
+  analyzerCode: ParserErrorCode.INVALID_AWAIT_IN_FOR
+  script:
+    - "f() async {await for (int i = 0; i < 5; i++) {}}"
+
+InvalidSyncModifier:
+  template: "Invalid modifier 'sync'."
+  tip: "Try replacing 'sync' with 'sync*'."
+  analyzerCode: MISSING_STAR_AFTER_SYNC
+  script: "main() sync {}"
+
+InvalidVoid:
+  template: "Type 'void' can't be used here."
+  tip: "Try removing 'void' keyword or replace it with 'var', 'final', or a type."
+  analyzerCode: EXPECTED_TYPE_NAME
+  script:
+    - "void x; main() {}"
+    - "foo(void x) {} main() { foo(null); }"
+
+VoidWithTypeArguments:
+  template: "Type 'void' can't have type arguments."
+  tip: "Try removing the type arguments."
+  index: 100
+  analyzerCode: ParserErrorCode.VOID_WITH_TYPE_ARGUMENTS
+  script:
+    - "void<int> f() {}"
+
+# TODO(danrubel): Review where this error is generated and consider generating
+# FieldInitializedOutsideDeclaringClass instead of this in some situations.
+InvalidInitializer:
+  index: 90
+  template: "Not a valid initializer."
+  tip: "To initialize a field, use the syntax 'name = value'."
+  analyzerCode: ParserErrorCode.INVALID_INITIALIZER
+
+FieldInitializedOutsideDeclaringClass:
+  index: 88
+  template: "A field can only be initialized in its declaring class"
+  tip: "Try passing a value into the superclass constructor, or moving the initialization into the constructor body."
+  analyzerCode: ParserErrorCode.FIELD_INITIALIZED_OUTSIDE_DECLARING_CLASS
+  script:
+    - "class A { int a; } class C extends A { C() : super.a = 42; }"
+
+FinalFieldNotInitialized:
+  template: "Final field '#name' is not initialized."
+  tip: "Try to initialize the field in the declaration or in every constructor."
+  analyzerCode: FINAL_NOT_INITIALIZED
+  script: >
+    class C {
+      final int x;
+    }
+
+FinalFieldNotInitializedByConstructor:
+  template: "Final field '#name' is not initialized by this constructor."
+  tip: "Try to initialize the field using an initializing formal or a field initializer."
+  analyzerCode: FINAL_NOT_INITIALIZED_CONSTRUCTOR_1
+  script: >
+    class C {
+      final int x;
+      C(this.x) {}
+      C.missing() {}
+    }
+
+MissingExponent:
+  template: "Numbers in exponential notation should always contain an exponent (an integer number with an optional sign)."
+  tip: "Make sure there is an exponent, and remove any whitespace before it."
+  analyzerCode: MISSING_DIGIT
+  script: >
+    main() {
+      var i = 1e;
+    }
+
+PositionalParameterWithEquals:
+  template: "Positional optional parameters can't use ':' to specify a default value."
+  tip: "Try replacing ':' with '='."
+  analyzerCode: WRONG_SEPARATOR_FOR_POSITIONAL_PARAMETER
+  script: >
+    main() {
+      foo([a: 1]) => print(a);
+      foo(2);
+    }
+
+RequiredParameterWithDefault:
+  template: "Non-optional parameters can't have a default value."
+  tip: "Try removing the default value or making the parameter optional."
+  analyzerCode: NAMED_PARAMETER_OUTSIDE_GROUP
+  script:
+    - >
+      main() {
+        foo(a: 1) => print(a);
+        foo(2);
+      }
+    - >
+      main() {
+        foo(a = 1) => print(a);
+        foo(2);
+      }
+
+StackOverflow:
+  index: 19
+  template: "The file has too many nested expressions or statements."
+  tip: "Try simplifying the code."
+  analyzerCode: ParserErrorCode.STACK_OVERFLOW
+
+InvalidCodePoint:
+  template: "The escape sequence starting with '\\u' isn't a valid code point."
+  analyzerCode: INVALID_CODE_POINT
+  expression:
+    - "'\\u{110000}'"
+
+InvalidHexEscape:
+  index: 40
+  template: "An escape sequence starting with '\\x' must be followed by 2 hexadecimal digits."
+  analyzerCode: ParserErrorCode.INVALID_HEX_ESCAPE
+  expression:
+    - "'\\x0'"
+    - "'\\x0y'"
+
+InvalidUnicodeEscape:
+  index: 38
+  template: "An escape sequence starting with '\\u' must be followed by 4 hexadecimal digits or from 1 to 6 digits between '{' and '}'."
+  analyzerCode: ParserErrorCode.INVALID_UNICODE_ESCAPE
+  expression:
+    - "'\\u'"
+    - "'\\u0F'"
+    - "'\\u{'"
+    - "'\\u{03'"
+    - "'\\u{0Z}'"
+
+UnexpectedDollarInString:
+  template: "A '$' has special meaning inside a string, and must be followed by an identifier or an expression in curly braces ({})."
+  tip: "Try adding a backslash (\\) to escape the '$'."
+  analyzerCode: UNEXPECTED_DOLLAR_IN_STRING
+  expression:
+    - "'$'"
+    - '"$"'
+    - "'''$'''"
+    - '"""$"""'
+
+UnexpectedToken:
+  template: "Unexpected token '#lexeme'."
+  analyzerCode: UNEXPECTED_TOKEN
+  script:
+    - "import 'b.dart' d as b;"
+
+LiteralWithClassAndNew:
+  template: "A #string literal can't be prefixed by 'new #lexeme'."
+  tip: "Try removing 'new' and '#lexeme'"
+  analyzerCode: ParserErrorCode.LITERAL_WITH_CLASS_AND_NEW
+  index: 115
+  script:
+    - "var x = new Map{};"
+    - "var x = new Set{};"
+    - "var x = new List[];"
+    - "var x = new Map{1: 2};"
+    - "var x = new Set{1};"
+    - "var x = new List[1];"
+
+LiteralWithClass:
+  template: "A #string literal can't be prefixed by '#lexeme'."
+  tip: "Try removing '#lexeme'"
+  analyzerCode: ParserErrorCode.LITERAL_WITH_CLASS
+  index: 116
+  script:
+    - "var x = Map{};"
+    - "var x = Set{};"
+    - "var x = List<String>[];"
+    - "var x = Map{1: 2};"
+    - "var x = Set{1};"
+    - "var x = List<int>[1];"
+    - "var x = const Map{};"
+    - "var x = const Set{};"
+    - "var x = const List[];"
+    - "var x = const Map{1: 2};"
+    - "var x = const Set{1};"
+    - "var x = const List[1];"
+
+LiteralWithNew:
+  template: "A literal can't be prefixed by 'new'."
+  tip: "Try removing 'new'"
+  analyzerCode: ParserErrorCode.LITERAL_WITH_NEW
+  index: 117
+  script:
+    - "var x = new <String, String>{};"
+    - "var x = new <String>{};"
+    - "var x = new {};"
+    - "var x = new [];"
+    - "var x = new <String, String>{'a': 'b'};"
+    - "var x = new <String>{'a'};"
+    - "var x = new {'a': 'b'};"
+    - "var x = new {'a'};"
+    - "var x = new ['a'];"
+
+UnmatchedToken:
+  template: "Can't find '#string' to match '#lexeme'."
+  analyzerCode: EXPECTED_TOKEN
+  script:
+    - "main("
+    - "main(){"
+    - "main(){[}"
+
+UnsupportedOperator:
+  template: "The '#lexeme' operator is not supported."
+  analyzerCode: UNSUPPORTED_OPERATOR
+  script:
+    - "class C { void operator ===(x) {} }"
+    - "class C { void operator !==(x) {} }"
+
+UnsupportedPrefixPlus:
+  template: "'+' is not a prefix operator."
+  tip: "Try removing '+'."
+  analyzerCode: MISSING_IDENTIFIER
+  expression: "+2" # No longer a valid way to write '2'
+
+UnterminatedComment:
+  template: "Comment starting with '/*' must end with '*/'."
+  analyzerCode: UNTERMINATED_MULTI_LINE_COMMENT
+  script:
+    main() {
+    }
+    /*
+
+UnterminatedString:
+  template: "String starting with #string must end with #string2."
+  analyzerCode: UNTERMINATED_STRING_LITERAL
+  script:
+    - >
+      main() {
+        return '
+      ;
+      }
+    - >
+      main() {
+        return \"
+      ;
+      }
+    - >
+      main() {
+        return r'
+      ;
+      }
+    - >
+      main() {
+        return r\"
+      ;
+      }
+    - >
+      main() => '''
+    - >
+      main() => \"\"\"
+    - >
+      main() => r'''
+    - >
+      main() => r\"\"\"
+
+UnterminatedToken:
+  # This is a fall-back message that shouldn't happen.
+  template: "Incomplete token."
+
+# Note: avoid using this template, it should only be used for debugging and
+# prototyping, see [diagnostics.md](
+# lib/src/fasta/diagnostics.md#avoid-composing-messages-programmatically).
+Unspecified:
+  template: "#string"
+
+StrongModeNNBDButOptOut:
+  template: "A library can't opt out of null safety by default, when using sound null safety."
+
+StrongModeNNBDPackageOptOut:
+  template:  |
+    Cannot run with sound null safety, because the following dependencies
+    don't support null safety:
+
+    #names
+
+    For solutions, see https://dart.dev/go/unsound-null-safety
+
+WeakWithStrongDillLibrary:
+  template: "Loaded library is compiled with sound null safety and cannot be used in compilation for unsound null safety."
+
+StrongWithWeakDillLibrary:
+  template: "Loaded library is compiled with unsound null safety and cannot be used in compilation for sound null safety."
+
+AgnosticWithStrongDillLibrary:
+  template: "Loaded library is compiled with sound null safety and cannot be used in compilation for agnostic null safety."
+
+AgnosticWithWeakDillLibrary:
+  template: "Loaded library is compiled with unsound null safety and cannot be used in compilation for agnostic null safety."
+
+InvalidNnbdDillLibrary:
+  template: "Trying to use library with invalid null safety."
+
+AbstractNotSync:
+  template: "Abstract methods can't use 'async', 'async*', or 'sync*'."
+  analyzerCode: NON_SYNC_ABSTRACT_METHOD
+
+AwaitAsIdentifier:
+  template: "'await' can't be used as an identifier in 'async', 'async*', or 'sync*' methods."
+  analyzerCode: ASYNC_KEYWORD_USED_AS_IDENTIFIER
+
+AwaitNotAsync:
+  template: "'await' can only be used in 'async' or 'async*' methods."
+  analyzerCode: AWAIT_IN_WRONG_CONTEXT
+
+BuiltInIdentifierAsType:
+  template: "The built-in identifier '#lexeme' can't be used as a type."
+  analyzerCode: BUILT_IN_IDENTIFIER_AS_TYPE
+
+BuiltInIdentifierInDeclaration:
+  template: "Can't use '#lexeme' as a name here."
+  analyzerCode: BUILT_IN_IDENTIFIER_IN_DECLARATION
+
+AwaitForNotAsync:
+  template: "The asynchronous for-in can only be used in functions marked with 'async' or 'async*'."
+  tip: "Try marking the function body with either 'async' or 'async*', or removing the 'await' before the for loop."
+  analyzerCode: ASYNC_FOR_IN_WRONG_CONTEXT
+  script: >
+    main(o) sync* {
+      await for (var e in o) {}
+    }
+
+ConstructorNotSync:
+  template: "Constructor bodies can't use 'async', 'async*', or 'sync*'."
+  analyzerCode: NON_SYNC_CONSTRUCTOR
+
+FactoryNotSync:
+  template: "Factory bodies can't use 'async', 'async*', or 'sync*'."
+  analyzerCode: NON_SYNC_FACTORY
+
+GeneratorReturnsValue:
+  template: "'sync*' and 'async*' can't return a value."
+  analyzerCode: RETURN_IN_GENERATOR
+
+InvalidInlineFunctionType:
+  template: "Inline function types cannot be used for parameters in a generic function type."
+  tip: "Try changing the inline function type (as in 'int f()') to a prefixed function type using the `Function` keyword (as in 'int Function() f')."
+  analyzerCode: INVALID_INLINE_FUNCTION_TYPE
+  declaration: "typedef F = Function(int f(String x));"
+
+SetterNotSync:
+  template: "Setters can't use 'async', 'async*', or 'sync*'."
+  analyzerCode: INVALID_MODIFIER_ON_SETTER
+
+YieldAsIdentifier:
+  template: "'yield' can't be used as an identifier in 'async', 'async*', or 'sync*' methods."
+  analyzerCode: ASYNC_KEYWORD_USED_AS_IDENTIFIER
+
+YieldNotGenerator:
+  template: "'yield' can only be used in 'sync*' or 'async*' methods."
+  analyzerCode: YIELD_IN_NON_GENERATOR
+
+OnlyTry:
+  index: 20
+  template: "A try block must be followed by an 'on', 'catch', or 'finally' clause."
+  tip: "Try adding either a catch or finally clause, or remove the try statement."
+  analyzerCode: ParserErrorCode.MISSING_CATCH_OR_FINALLY
+  statement: "try {}"
+
+TypeAfterVar:
+  index: 89
+  template: "Variables can't be declared using both 'var' and a type name."
+  tip: "Try removing 'var.'"
+  analyzerCode: ParserErrorCode.VAR_AND_TYPE
+
+AssertExtraneousArgument:
+  template: "`assert` can't have more than two arguments."
+
+PositionalAfterNamedArgument:
+  template: "Place positional arguments before named arguments."
+  tip: "Try moving the positional argument before the named arguments, or add a name to the argument."
+  analyzerCode: POSITIONAL_AFTER_NAMED_ARGUMENT
+
+ExpectedNamedArgument:
+  template: "Expected named argument."
+  analyzerCode: EXTRA_POSITIONAL_ARGUMENTS
+
+AssertAsExpression:
+  template: "`assert` can't be used as an expression."
+
+FunctionTypeDefaultValue:
+  template: "Can't have a default value in a function type."
+  analyzerCode: DEFAULT_VALUE_IN_FUNCTION_TYPE
+
+PrivateNamedParameter:
+  template: "An optional named parameter can't start with '_'."
+  analyzerCode: PRIVATE_OPTIONAL_PARAMETER
+
+NoFormals:
+  template: "A function should have formal parameters."
+  tip: "Try adding '()' after '#lexeme', or add 'get' before '#lexeme' to declare a getter."
+  analyzerCode: MISSING_FUNCTION_PARAMETERS
+
+GetterWithFormals:
+  template: "A getter can't have formal parameters."
+  tip: "Try removing '(...)'."
+  analyzerCode: GETTER_WITH_PARAMETERS
+
+SetterWithWrongNumberOfFormals:
+  template: "A setter should have exactly one formal parameter."
+  analyzerCode: WRONG_NUMBER_OF_PARAMETERS_FOR_SETTER
+
+CatchSyntax:
+  index: 84
+  template: "'catch' must be followed by '(identifier)' or '(identifier, identifier)'."
+  tip: "No types are needed, the first is given by 'on', the second is always 'StackTrace'."
+  analyzerCode: ParserErrorCode.CATCH_SYNTAX
+  statement:
+    - "try {} catch {}"
+    - "try {} catch () {}"
+    - "try {} catch (e,) {}"
+
+CatchSyntaxExtraParameters:
+  index: 83
+  template: "'catch' must be followed by '(identifier)' or '(identifier, identifier)'."
+  tip: "No types are needed, the first is given by 'on', the second is always 'StackTrace'."
+  analyzerCode: ParserErrorCode.CATCH_SYNTAX_EXTRA_PARAMETERS
+  statement:
+    - "try {} catch (e, s, x) {}"
+
+SuperNullAware:
+  index: 18
+  template: "The operator '?.' cannot be used with 'super' because 'super' cannot be null."
+  tip: "Try replacing '?.' with '.'"
+  analyzerCode: ParserErrorCode.INVALID_OPERATOR_QUESTIONMARK_PERIOD_FOR_SUPER
+
+NullAwareCascadeOutOfOrder:
+  index: 96
+  template: "The '?..' cascade operator must be first in the cascade sequence."
+  tip: "Try moving the '?..' operator to be the first cascade operator in the sequence."
+  analyzerCode: ParserErrorCode.NULL_AWARE_CASCADE_OUT_OF_ORDER
+
+ConstFieldWithoutInitializer:
+  template: "The const variable '#name' must be initialized."
+  tip: "Try adding an initializer ('= expression') to the declaration."
+  analyzerCode: CONST_NOT_INITIALIZED
+
+FinalFieldWithoutInitializer:
+  template: "The final variable '#name' must be initialized."
+  tip: "Try adding an initializer ('= expression') to the declaration."
+  analyzerCode: FINAL_NOT_INITIALIZED
+
+MetadataTypeArguments:
+  index: 91
+  template: "An annotation can't use type arguments."
+  analyzerCode: ParserErrorCode.ANNOTATION_WITH_TYPE_ARGUMENTS
+
+MetadataTypeArgumentsUninstantiated:
+  index: 114
+  template: "An annotation with type arguments must be followed by an argument list."
+  analyzerCode: ParserErrorCode.ANNOTATION_WITH_TYPE_ARGUMENTS_UNINSTANTIATED
+  script:
+    - "@deprecated<int> class C {}"
+
+ConstructorNotFound:
+  template: "Couldn't find constructor '#name'."
+  analyzerCode: CONSTRUCTOR_NOT_FOUND
+
+ConstructorWithReturnType:
+  index: 55
+  template: "Constructors can't have a return type."
+  tip: "Try removing the return type."
+  analyzerCode: ParserErrorCode.CONSTRUCTOR_WITH_RETURN_TYPE
+  script:
+    - "class C { int C() {} }"
+    - "class C { void C.m() {} }"
+
+ConstructorWithTypeParameters:
+  index: 99
+  template: "Constructors can't have type parameters."
+  analyzerCode: ParserErrorCode.TYPE_PARAMETER_ON_CONSTRUCTOR
+  tip: "Try removing the type parameters."
+  script:
+    - >-
+      class C { C<T>() {} }
+    - >-
+      class C { C.foo<T>() {} }
+    - >-
+      class C {
+        factory C<T>() => new C.internal();
+        C.internal();
+      }
+    - >-
+      class C {
+        factory C.foo<T>() => new C.internal();
+        C.internal();
+      }
+
+ConstructorWithTypeArguments:
+  template: "A constructor invocation can't have type arguments on the constructor name."
+  tip: "Try to place the type arguments on the class name."
+  analyzerCode: WRONG_NUMBER_OF_TYPE_ARGUMENTS_CONSTRUCTOR
+  script:
+    - "class C<X> { C.foo(); } bar() { new C.foo<int>(); }"
+    - "class C<X> { C.foo(); } bar() { C.foo<int>(); }"
+
+ConstructorWithWrongName:
+  template: "The name of a constructor must match the name of the enclosing class."
+  analyzerCode: ParserErrorCode.INVALID_CONSTRUCTOR_NAME
+  index: 102
+  script:
+    - >-
+      class A { B.foo() {} }
+    - >-
+      class A {
+        factory B() => new A.internal();
+        A.internal();
+      }
+    - >-
+      class A {
+        factory B.foo() => new A.internal();
+        A.internal();
+      }
+
+ConstructorWithWrongNameContext:
+  template: "The name of the enclosing class is '#name'."
+  severity: CONTEXT
+
+ConstructorCyclic:
+  template: "Redirecting constructors can't be cyclic."
+  tip: "Try to have all constructors eventually redirect to a non-redirecting constructor."
+  analyzerCode: RECURSIVE_CONSTRUCTOR_REDIRECT
+  script:
+    - "class C { C.foo() : this.bar(); C.bar() : this.foo(); }"
+
+FieldInitializerOutsideConstructor:
+  index: 79
+  template: "Field formal parameters can only be used in a constructor."
+  tip: "Try removing 'this.'."
+  analyzerCode: ParserErrorCode.FIELD_INITIALIZER_OUTSIDE_CONSTRUCTOR
+  script:
+    - "class C { void m(this.x); }"
+
+RedirectionTargetNotFound:
+  template: "Redirection constructor target not found: '#name'"
+  analyzerCode: REDIRECT_TO_MISSING_CONSTRUCTOR
+
+CyclicTypedef:
+  template: "The typedef '#name' has a reference to itself."
+  analyzerCode: TYPE_ALIAS_CANNOT_REFERENCE_ITSELF
+
+TypeNotFound:
+  template: "Type '#name' not found."
+  analyzerCode: UNDEFINED_CLASS
+
+NonInstanceTypeVariableUse:
+  template: "Can only use type variables in instance methods."
+  analyzerCode: TYPE_PARAMETER_REFERENCED_BY_STATIC
+
+GetterNotFound:
+  template: "Getter not found: '#name'."
+  analyzerCode: UNDEFINED_GETTER
+
+SetterNotFound:
+  template: "Setter not found: '#name'."
+  analyzerCode: UNDEFINED_SETTER
+
+MethodNotFound:
+  template: "Method not found: '#name'."
+  analyzerCode: UNDEFINED_METHOD
+
+CandidateFound:
+  template: "Found this candidate, but the arguments don't match."
+  severity: CONTEXT
+
+CandidateFoundIsDefaultConstructor:
+  template: "The class '#name' has a constructor that takes no arguments."
+  severity: CONTEXT
+
+MissingArgumentList:
+  template: "Constructor invocations must have an argument list."
+
+TooFewArguments:
+  template: "Too few positional arguments: #count required, #count2 given."
+  analyzerCode: NOT_ENOUGH_REQUIRED_ARGUMENTS
+
+TooManyArguments:
+  template: "Too many positional arguments: #count allowed, but #count2 found."
+  tip: "Try removing the extra positional arguments."
+  analyzerCode: EXTRA_POSITIONAL_ARGUMENTS
+
+NoSuchNamedParameter:
+  template: "No named parameter with the name '#name'."
+  analyzerCode: UNDEFINED_NAMED_PARAMETER
+
+AbstractClassInstantiation:
+  template: "The class '#name' is abstract and can't be instantiated."
+  analyzerCode: NEW_WITH_ABSTRACT_CLASS
+
+EnumInstantiation:
+  template: "Enums can't be instantiated."
+  analyzerCode: INSTANTIATE_ENUM
+
+AbstractRedirectedClassInstantiation:
+  template: "Factory redirects to class '#name', which is abstract and can't be instantiated."
+  analyzerCode: FACTORY_REDIRECTS_TO_ABSTRACT_CLASS
+
+MissingImplementationNotAbstract:
+  template: |
+    The non-abstract class '#name' is missing implementations for these members:
+    #names
+  tip: |
+    Try to either
+     - provide an implementation,
+     - inherit an implementation from a superclass or mixin,
+     - mark the class as abstract, or
+     - provide a 'noSuchMethod' implementation.
+  analyzerCode: CONCRETE_CLASS_WITH_ABSTRACT_MEMBER
+  script:
+    - "class C {foo();}"
+
+MissingImplementationCause:
+  template: "'#name' is defined here."
+  severity: CONTEXT
+
+InterfaceCheck:
+  template: "The implementation of '#name' in the non-abstract class '#name2' does not conform to its interface."
+
+NamedMixinOverride:
+  template: "The mixin application class '#name' introduces an erroneous override of '#name2'."
+
+ImplicitMixinOverride:
+  template: "Applying the mixin '#name' to '#name2' introduces an erroneous override of '#name3'."
+
+ListLiteralTooManyTypeArguments:
+  template: "List literal requires exactly one type argument."
+  analyzerCode: EXPECTED_ONE_LIST_TYPE_ARGUMENTS
+
+SetLiteralTooManyTypeArguments:
+  template: "A set literal requires exactly one type argument."
+
+MapLiteralTypeArgumentMismatch:
+  template: "A map literal requires exactly two type arguments."
+  analyzerCode: EXPECTED_TWO_MAP_TYPE_ARGUMENTS
+
+SetOrMapLiteralTooManyTypeArguments:
+  template: "A set or map literal requires exactly one or two type arguments, respectively."
+
+LoadLibraryTakesNoArguments:
+  template: "'loadLibrary' takes no arguments."
+  analyzerCode: LOAD_LIBRARY_TAKES_NO_ARGUMENTS
+
+TypeArgumentMismatch:
+  template: "Expected #count type arguments."
+  analyzerCode: WRONG_NUMBER_OF_TYPE_ARGUMENTS
+
+NotAType:
+  template: "'#name' isn't a type."
+  analyzerCode: NOT_A_TYPE
+
+NotATypeContext:
+  template: "This isn't a type."
+  severity: CONTEXT
+
+NotAPrefixInTypeAnnotation:
+  template: "'#name.#name2' can't be used as a type because '#name' doesn't refer to an import prefix."
+  analyzerCode: NOT_A_TYPE
+  declaration:
+    - |
+        class C<T> {
+          T.String method() {}
+        }
+    - |
+        class C<T> {
+          T.String field;
+        }
+
+FunctionUsedAsDec:
+  template: "'Function' is a built-in identifier, could not used as a #name name."
+  script:
+    - class Function {}
+    - extension Function on int {}
+    - mixin Function {}
+
+FunctionAsTypeParameter:
+  template: "'Function' is a built-in identifier, could not used as a type identifier."
+  script:
+    - class C<Function> {}
+    - mixin A<Function> {}
+    - extension A<Function> on List<Function> {}
+
+UnresolvedPrefixInTypeAnnotation:
+  template: "'#name.#name2' can't be used as a type because '#name' isn't defined."
+  analyzerCode: NOT_A_TYPE
+  statement: "T.String x;"
+
+FastaUsageShort:
+  template: |
+    Frequently used options:
+
+      -o <file> Generate the output into <file>.
+      -h        Display this message (add -v for information about all options).
+
+FastaUsageLong:
+  # TODO(ahe): Consider if the reference to platform.dill needs to change below?
+  template: |
+    Supported options:
+
+      -o <file>, --output=<file>
+        Generate the output into <file>.
+
+      -h, /h, /?, --help
+        Display this message (add -v for information about all options).
+
+      -v, --verbose
+        Display verbose information.
+
+      -Dname
+      -Dname=value
+        Define an environment variable in the compile-time environment.
+
+      --no-defines
+        Ignore all -D options and leave environment constants unevaluated.
+
+      --
+        Stop option parsing, the rest of the command line is assumed to be
+        file names or arguments to the Dart program.
+
+      --packages=<file>
+        Use package resolution configuration <file>, which should contain a mapping
+        of package names to paths.
+
+      --platform=<file>
+        Read the SDK platform from <file>, which should be in Dill/Kernel IR format
+        and contain the Dart SDK.
+
+      --target=dart2js|dart2js_server|dart_runner|dartdevc|flutter|flutter_runner|none|vm
+        Specify the target configuration.
+
+      --enable-asserts
+        Check asserts in initializers during constant evaluation.
+
+      --verify
+        Check that the generated output is free of various problems. This is mostly
+        useful for developers of this compiler or Kernel transformations.
+
+      --dump-ir
+        Print compiled libraries in Kernel source notation.
+
+      --omit-platform
+        Exclude the platform from the serialized dill file.
+
+      --exclude-source
+        Do not include source code in the dill file.
+
+      --compile-sdk=<sdk>
+        Compile the SDK from scratch instead of reading it from a .dill file
+        (see --platform).
+
+      --sdk=<sdk>
+        Location of the SDK sources for use when compiling additional platform
+        libraries.
+
+      --single-root-scheme=String
+      --single-root-base=<dir>
+        Specify a custom URI scheme and a location on disk where such URIs are
+        mapped to.
+
+        When specified, the compiler can be invoked with inputs using the custom
+        URI scheme. The compiler can ignore the exact location of files on disk
+        and as a result to produce output that is independent of the absolute
+        location of files on disk. This is mostly useful for integrating with
+        build systems.
+
+      --fatal=errors
+      --fatal=warnings
+        Makes messages of the given kinds fatal, that is, immediately stop the
+        compiler with a non-zero exit-code. In --verbose mode, also display an
+        internal stack trace from the compiler. Multiple kinds can be separated by
+        commas, for example, --fatal=errors,warnings.
+
+      --fatal-skip=<number>
+      --fatal-skip=trace
+        Skip this many messages that would otherwise be fatal before aborting the
+        compilation. Default is 0, which stops at the first message. Specify
+        'trace' to print a stack trace for every message without stopping.
+
+      --enable-experiment=<flag>
+        Enable or disable an experimental flag, used to guard features currently
+        in development. Prefix an experiment name with 'no-' to disable it.
+        Multiple experiments can be separated by commas.
+
+FastaCLIArgumentRequired:
+  template: "Expected value after '#name'."
+
+NamedFunctionExpression:
+  template: "A function expression can't have a name."
+  analyzerCode: NAMED_FUNCTION_EXPRESSION
+
+NativeClauseShouldBeAnnotation:
+  index: 23
+  template: "Native clause in this form is deprecated."
+  tip: "Try removing this native clause and adding @native() or @native('native-name') before the declaration."
+  analyzerCode: ParserErrorCode.NATIVE_CLAUSE_SHOULD_BE_ANNOTATION
+
+ReturnTypeFunctionExpression:
+  template: "A function expression can't have a return type."
+
+InternalProblemUnhandled:
+  template: "Unhandled #string in #string2."
+  severity: INTERNAL_PROBLEM
+
+InternalProblemUnimplemented:
+  template: "Unimplemented #string."
+  severity: INTERNAL_PROBLEM
+
+InternalProblemUnexpected:
+  template: "Expected '#string', but got '#string2'."
+  severity: INTERNAL_PROBLEM
+
+InternalProblemUnsupported:
+  template: "Unsupported operation: '#name'."
+  severity: INTERNAL_PROBLEM
+
+InternalProblemNotFound:
+  template: "Couldn't find '#name'."
+  severity: INTERNAL_PROBLEM
+
+InternalProblemNotFoundIn:
+  template: "Couldn't find '#name' in '#name2'."
+  severity: INTERNAL_PROBLEM
+
+InternalProblemPrivateConstructorAccess:
+  template: "Can't access private constructor '#name'."
+  severity: INTERNAL_PROBLEM
+
+InternalProblemConstructorNotFound:
+  template: "No constructor named '#name' in '#uri'."
+  severity: INTERNAL_PROBLEM
+
+InternalProblemExtendingUnmodifiableScope:
+  template: "Can't extend an unmodifiable scope."
+  severity: INTERNAL_PROBLEM
+
+InternalProblemPreviousTokenNotFound:
+  template: "Couldn't find previous token."
+  severity: INTERNAL_PROBLEM
+
+InternalProblemStackNotEmpty:
+  template: "#name.stack isn't empty:\n  #string"
+  severity: INTERNAL_PROBLEM
+
+InternalProblemAlreadyInitialized:
+  template: "Attempt to set initializer on field without initializer."
+  severity: INTERNAL_PROBLEM
+
+InternalProblemBodyOnAbstractMethod:
+  template: "Attempting to set body on abstract method."
+  severity: INTERNAL_PROBLEM
+
+InternalProblemMissingContext:
+  template: "Compiler cannot run without a compiler context."
+  tip: "Are calls to the compiler wrapped in CompilerContext.runInContext?"
+  severity: INTERNAL_PROBLEM
+
+InternalProblemProvidedBothCompileSdkAndSdkSummary:
+  template: "The compileSdk and sdkSummary options are mutually exclusive"
+  severity: INTERNAL_PROBLEM
+
+InternalProblemUriMissingScheme:
+  template: "The URI '#uri' has no scheme."
+  severity: INTERNAL_PROBLEM
+
+InternalProblemContextSeverity:
+  template: "Non-context message has context severity: #string"
+  severity: INTERNAL_PROBLEM
+
+InternalProblemVerificationError:
+  template: |
+    Verification of the generated program failed:
+    #string
+  severity: INTERNAL_PROBLEM
+
+VerificationErrorOriginContext:
+  template: "The node most likely is taken from here by a transformer."
+  severity: CONTEXT
+
+InternalProblemDebugAbort:
+  template: "Compilation aborted due to fatal '#name' at:\n#string"
+  severity: INTERNAL_PROBLEM
+
+InternalProblemLabelUsageInVariablesDeclaration:
+  template: "Unexpected usage of label inside declaration of variables."
+  severity: INTERNAL_PROBLEM
+
+InternalProblemUnfinishedTypeVariable:
+  template: "Unfinished type variable '#name' found in non-source library '#uri'."
+  severity: INTERNAL_PROBLEM
+
+InternalProblemUnsupportedNullability:
+  template: "Unsupported nullability value '#string' on type '#type'."
+  severity: INTERNAL_PROBLEM
+
+IncrementalCompilerIllegalParameter:
+  template: "Illegal parameter name '#string' found during expression compilation."
+
+IncrementalCompilerIllegalTypeParameter:
+  template: "Illegal type parameter name '#string' found during expression compilation."
+
+DebugTrace:
+  template: "Fatal '#name' at:\n#string"
+  severity: IGNORED
+
+MissingPrefixInDeferredImport:
+  index: 30
+  template: "Deferred imports should have a prefix."
+  tip: "Try adding a prefix to the import by adding an 'as' clause."
+  analyzerCode: ParserErrorCode.MISSING_PREFIX_IN_DEFERRED_IMPORT
+
+DeferredAfterPrefix:
+  index: 68
+  template: "The deferred keyword should come immediately before the prefix ('as' clause)."
+  tip: "Try moving the deferred keyword before the prefix."
+  analyzerCode: ParserErrorCode.DEFERRED_AFTER_PREFIX
+
+DuplicateDeferred:
+  index: 71
+  template: "An import directive can only have one 'deferred' keyword."
+  tip: "Try removing all but one 'deferred' keyword."
+  analyzerCode: ParserErrorCode.DUPLICATE_DEFERRED
+
+DeferredTypeAnnotation:
+  template: "The type '#type' is deferred loaded via prefix '#name' and can't be used as a type annotation."
+  tip: "Try removing 'deferred' from the import of '#name' or use a supertype of '#type' that isn't deferred."
+  analyzerCode: TYPE_ANNOTATION_DEFERRED_CLASS
+
+DuplicatePrefix:
+  index: 73
+  template: "An import directive can only have one prefix ('as' clause)."
+  tip: "Try removing all but one prefix."
+  analyzerCode: ParserErrorCode.DUPLICATE_PREFIX
+
+PrefixAfterCombinator:
+  index: 6
+  template: "The prefix ('as' clause) should come before any show/hide combinators."
+  tip: "Try moving the prefix before the combinators."
+  analyzerCode: ParserErrorCode.PREFIX_AFTER_COMBINATOR
+
+DuplicatedExport:
+  template: "'#name' is exported from both '#uri' and '#uri2'."
+  analyzerCode: AMBIGUOUS_EXPORT
+  script:
+    lib1.dart: "class A {}"
+    lib2.dart: "class A {}"
+    main.dart: "export 'lib1.dart'; export 'lib2.dart';"
+
+DuplicatedExportInType:
+  template: "'#name' is exported from both '#uri' and '#uri2'."
+
+DuplicatedImportInType:
+  template: "'#name' is imported from both '#uri' and '#uri2'."
+  analyzerCode: AMBIGUOUS_IMPORT
+  script:
+    lib1.dart: "class A {}"
+    lib2.dart: "class A {}"
+    main.dart: "import 'lib1.dart'; import 'lib2.dart'; A a;"
+
+CyclicClassHierarchy:
+  template: "'#name' is a supertype of itself."
+  analyzerCode: RECURSIVE_INTERFACE_INHERITANCE
+  script:
+    - |
+      class A extends B {}
+      class B extends A {}
+    - |
+      class A implements B {}
+      class B implements A {}
+    - "class C = Object with C;"
+    - "class C extends C {}"
+    - "class C implements C {}"
+
+ExtendingEnum:
+  template: "'#name' is an enum and can't be extended or implemented."
+  analyzerCode: EXTENDS_ENUM
+
+ExtendingRestricted:
+  template: "'#name' is restricted and can't be extended or implemented."
+  analyzerCode: EXTENDS_DISALLOWED_CLASS
+
+NoUnnamedConstructorInObject:
+  template: "'Object' has no unnamed constructor."
+
+IllegalAsyncGeneratorReturnType:
+  template: "Functions marked 'async*' must have a return type assignable to 'Stream'."
+  analyzerCode: ILLEGAL_ASYNC_GENERATOR_RETURN_TYPE
+  script:
+    - >-
+      int g() async* {
+        yield 0;
+      }
+
+IllegalAsyncGeneratorVoidReturnType:
+  template: "Functions marked 'async*' can't have return type 'void'."
+  script:
+    - >-
+      void g() async* {
+      }
+
+IllegalAsyncReturnType:
+  template: "Functions marked 'async' must have a return type assignable to 'Future'."
+  analyzerCode: ILLEGAL_ASYNC_RETURN_TYPE
+  script:
+    - >-
+      int f() async {
+        return 0;
+      }
+
+IllegalSyncGeneratorReturnType:
+  template: "Functions marked 'sync*' must have a return type assignable to 'Iterable'."
+  analyzerCode: ILLEGAL_SYNC_GENERATOR_RETURN_TYPE
+  script:
+    - >-
+      int g() sync* {
+        yield 0;
+      }
+
+IllegalSyncGeneratorVoidReturnType:
+  template: "Functions marked 'sync*' can't have return type 'void'."
+  script:
+    - >-
+      void g() sync* {
+      }
+
+IllegalMixinDueToConstructors:
+  # a class with a constructor is used as a mixin
+  template: "Can't use '#name' as a mixin because it has constructors."
+  analyzerCode: MIXIN_DECLARES_CONSTRUCTOR # CompileTimeErrorCode
+
+MixinDeclaresConstructor:
+  # a mixin declaration contains a constructor declaration
+  index: 95
+  template: "Mixins can't declare constructors."
+  analyzerCode: ParserErrorCode.MIXIN_DECLARES_CONSTRUCTOR
+
+IllegalMixinDueToConstructorsCause:
+  template: "This constructor prevents using '#name' as a mixin."
+  severity: CONTEXT
+
+ExtensionDeclaresAbstractMember:
+  index: 94
+  template: "Extensions can't declare abstract members."
+  tip: "Try providing an implementation for the member."
+  analyzerCode: ParserErrorCode.EXTENSION_DECLARES_ABSTRACT_MEMBER
+  hasPublishedDocs: true
+
+ExtensionDeclaresConstructor:
+  index: 92
+  template: "Extensions can't declare constructors."
+  tip: "Try removing the constructor declaration."
+  analyzerCode: ParserErrorCode.EXTENSION_DECLARES_CONSTRUCTOR
+  hasPublishedDocs: true
+
+ExtensionDeclaresInstanceField:
+  index: 93
+  template: "Extensions can't declare instance fields"
+  tip: "Try removing the field declaration or making it a static field"
+  analyzerCode: ParserErrorCode.EXTENSION_DECLARES_INSTANCE_FIELD
+  hasPublishedDocs: true
+
+ConflictsWithConstructor:
+  template: "Conflicts with constructor '#name'."
+  analyzerCode: CONFLICTS_WITH_CONSTRUCTOR
+
+ConflictsWithFactory:
+  template: "Conflicts with factory '#name'."
+
+ConflictsWithMember:
+  template: "Conflicts with member '#name'."
+  analyzerCode: CONFLICTS_WITH_MEMBER
+
+ConflictsWithImplicitSetter:
+  template: "Conflicts with the implicit setter of the field '#name'."
+  analyzerCode: CONFLICTS_WITH_MEMBER
+
+ConflictsWithSetter:
+  template: "Conflicts with setter '#name'."
+  analyzerCode: CONFLICTS_WITH_MEMBER
+
+ConflictsWithTypeVariable:
+  template: "Conflicts with type variable '#name'."
+  analyzerCode: CONFLICTING_TYPE_VARIABLE_AND_MEMBER
+
+ConflictsWithTypeVariableCause:
+  template: "This is the type variable."
+  severity: CONTEXT
+
+ExtensionMemberConflictsWithObjectMember:
+  template: "This extension member conflicts with Object member '#name'."
+  script:
+    extension Extension on String {
+      int get noSuchMethod => 42;
+    }
+
+DeclaredMemberConflictsWithInheritedMember:
+  template: "Can't declare a member that conflicts with an inherited one."
+  analyzerCode: DECLARED_MEMBER_CONFLICTS_WITH_INHERITED
+  script:
+    - >-
+      class A {
+        var foo;
+      }
+      class B extends A {
+        foo() {}
+      }
+    - >-
+      abstract class A {
+        get foo;
+      }
+      class B implements A {
+        foo() {}
+      }
+    - >-
+      class A {
+        foo() {}
+      }
+      class B extends A {
+        var foo;
+      }
+    - >-
+      abstract class A {
+        foo();
+      }
+      class B implements A {
+        var foo;
+      }
+
+DeclaredMemberConflictsWithInheritedMemberCause:
+  template: "This is the inherited member."
+  severity: CONTEXT
+
+DeclaredMemberConflictsWithOverriddenMembersCause:
+  template: "This is one of the overridden members."
+  severity: CONTEXT
+
+InheritedMembersConflict:
+  template: "Can't inherit members that conflict with each other."
+  analyzerCode: CONFLICTS_WITH_INHERITED_MEMBER
+  script:
+    - >-
+      class A {
+        foo() {}
+      }
+      abstract class B {
+        get foo;
+      }
+      abstract class C extends A implements B {}
+    - >-
+      class A {
+        var foo;
+      }
+      abstract class B {
+        foo();
+      }
+      abstract class C extends A implements B {}
+    - >-
+      class A {
+        get foo => 0;
+      }
+      abstract class B {
+        foo();
+      }
+      abstract class C extends A implements B {}
+
+InheritedMembersConflictCause1:
+  template: "This is one inherited member."
+  severity: CONTEXT
+
+InheritedMembersConflictCause2:
+  template: "This is the other inherited member."
+  severity: CONTEXT
+
+IllegalMixin:
+  template: "The type '#name' can't be mixed in."
+  analyzerCode: ILLEGAL_MIXIN
+
+OverrideTypeVariablesMismatch:
+  template: "Declared type variables of '#name' doesn't match those on overridden method '#name2'."
+  analyzerCode: INVALID_METHOD_OVERRIDE_TYPE_PARAMETERS
+
+OverrideTypeVariablesBoundMismatch:
+  template: "Declared bound '#type' of type variable '#name' of '#name2' doesn't match the bound '#type2' on overridden method '#name3'."
+
+OverriddenMethodCause:
+  template: "This is the overridden method ('#name')."
+  severity: CONTEXT
+
+OverrideMismatchNamedParameter:
+  template: "The method '#name' doesn't have the named parameter '#name2' of overridden method '#name3'."
+  analyzerCode: INVALID_OVERRIDE_NAMED
+
+OverrideFewerNamedArguments:
+  template: "The method '#name' has fewer named arguments than those of overridden method '#name2'."
+  analyzerCode: INVALID_OVERRIDE_NAMED
+
+OverrideFewerPositionalArguments:
+  template: "The method '#name' has fewer positional arguments than those of overridden method '#name2'."
+  analyzerCode: INVALID_OVERRIDE_POSITIONAL
+
+OverrideMoreRequiredArguments:
+  template: "The method '#name' has more required arguments than those of overridden method '#name2'."
+  analyzerCode: INVALID_OVERRIDE_REQUIRED
+
+OverrideTypeMismatchParameter:
+  template: "The parameter '#name' of the method '#name2' has type '#type', which does not match the corresponding type, '#type2', in the overridden method, '#name3'."
+  tip: "Change to a supertype of '#type2', or, for a covariant parameter, a subtype."
+  analyzerCode: INVALID_METHOD_OVERRIDE
+
+OverrideTypeMismatchReturnType:
+  template: "The return type of the method '#name' is '#type', which does not match the return type, '#type2', of the overridden method, '#name2'."
+  tip: "Change to a subtype of '#type2'."
+  analyzerCode: INVALID_METHOD_OVERRIDE
+
+OverrideTypeMismatchSetter:
+  template: "The field '#name' has type '#type', which does not match the corresponding type, '#type2', in the overridden setter, '#name2'."
+  analyzerCode: INVALID_METHOD_OVERRIDE
+
+OverrideMismatchRequiredNamedParameter:
+  template: "The required named parameter '#name' in method '#name2' is not required in overridden method '#name3'."
+  configuration: nnbd-strong
+  script: |
+    abstract class A {
+      method({int? a});
+    }
+    abstract class B implements A {
+      method({required int? a});
+    }
+
+InvalidGetterSetterType:
+  template: "The type '#type' of the getter '#name' is not a subtype of the type '#type2' of the setter '#name2'."
+  configuration: nnbd-strong
+  script: |
+    abstract class A {
+      num get property;
+      void set property(int i);
+    }
+
+InvalidGetterSetterTypeGetterInherited:
+  template: "The type '#type' of the inherited getter '#name' is not a subtype of the type '#type2' of the setter '#name2'."
+  configuration: nnbd-strong
+  script: |
+    abstract class A {
+      num get property;
+    }
+    abstract class B implements A {
+      void set property(int i);
+    }
+
+InvalidGetterSetterTypeFieldInherited:
+  template: "The type '#type' of the inherited field '#name' is not a subtype of the type '#type2' of the setter '#name2'."
+  configuration: nnbd-strong
+  script: |
+    abstract class A {
+      final num property;
+      A(this.property);
+    }
+    abstract class B implements A {
+      void set property(int i);
+    }
+
+InvalidGetterSetterTypeSetterInheritedGetter:
+  template: "The type '#type' of the getter '#name' is not a subtype of the type '#type2' of the inherited setter '#name2'."
+  configuration: nnbd-strong
+  script: |
+    abstract class A {
+      void set property(int i);
+    }
+    abstract class B implements A {
+      num get property;
+    }
+
+InvalidGetterSetterTypeSetterInheritedField:
+  template: "The type '#type' of the field '#name' is not a subtype of the type '#type2' of the inherited setter '#name2'."
+  configuration: nnbd-strong
+  script: |
+    abstract class A {
+      void set property(int i);
+    }
+    abstract class B implements A {
+      final num property;
+      B(this.property);
+    }
+
+InvalidGetterSetterTypeBothInheritedField:
+  template: "The type '#type' of the inherited field '#name' is not a subtype of the type '#type2' of the inherited setter '#name2'."
+  configuration: nnbd-strong
+  script: |
+    abstract class A {
+      final num property;
+      A(this.property);
+    }
+    abstract class B {
+      void set property(int i);
+    }
+    abstract class C implements A, B {}
+
+InvalidGetterSetterTypeBothInheritedGetter:
+  template: "The type '#type' of the inherited getter '#name' is not a subtype of the type '#type2' of the inherited setter '#name2'."
+  configuration: nnbd-strong
+  script: |
+    abstract class A {
+      num get property;
+    }
+    abstract class B {
+      void set property(int i);
+    }
+    abstract class C implements A, B {}
+
+InvalidGetterSetterTypeLegacy:
+  template: "The type '#type' of the getter '#name' is not assignable to the type '#type2' of the setter '#name2'."
+  script: |
+    // @dart=2.9
+    abstract class A {
+      String get property;
+      void set property(int i);
+    }
+
+InvalidGetterSetterTypeGetterInheritedLegacy:
+  template: "The type '#type' of the inherited getter '#name' is not assignable to the type '#type2' of the setter '#name2'."
+  script: |
+    // @dart=2.9
+    abstract class A {
+      String get property;
+    }
+    abstract class B implements A {
+      void set property(int i);
+    }
+
+InvalidGetterSetterTypeFieldInheritedLegacy:
+  template: "The type '#type' of the inherited field '#name' is not assignable to the type '#type2' of the setter '#name2'."
+  script: |
+    // @dart=2.9
+    abstract class A {
+      final String property;
+      A(this.property);
+    }
+    abstract class B implements A {
+      void set property(int i);
+    }
+
+InvalidGetterSetterTypeSetterInheritedGetterLegacy:
+  template: "The type '#type' of the getter '#name' is not assignable to the type '#type2' of the inherited setter '#name2'."
+  script: |
+    // @dart=2.9
+    abstract class A {
+      void set property(int i);
+    }
+    abstract class B implements A {
+      String get property;
+    }
+
+InvalidGetterSetterTypeSetterInheritedFieldLegacy:
+  template: "The type '#type' of the field '#name' is not assignable to the type '#type2' of the inherited setter '#name2'."
+  script: |
+    // @dart=2.9
+    abstract class A {
+      void set property(int i);
+    }
+    abstract class B implements A {
+      final String property;
+      B(this.property);
+    }
+
+InvalidGetterSetterTypeBothInheritedFieldLegacy:
+  template: "The type '#type' of the inherited field '#name' is not assignable to the type '#type2' of the inherited setter '#name2'."
+  script: |
+    // @dart=2.9
+    abstract class A {
+      final String property;
+      A(this.property);
+    }
+    abstract class B {
+      void set property(int i);
+    }
+    abstract class C implements A, B {}
+
+InvalidGetterSetterTypeBothInheritedGetterLegacy:
+  template: "The type '#type' of the inherited getter '#name' is not assignable to the type '#type2' of the inherited setter '#name2'."
+  script: |
+    // @dart=2.9
+    abstract class A {
+      String get property;
+    }
+    abstract class B {
+      void set property(int i);
+    }
+    abstract class C implements A, B {}
+
+InvalidGetterSetterTypeFieldContext:
+  template: "This is the declaration of the field '#name'."
+  severity: CONTEXT
+
+InvalidGetterSetterTypeGetterContext:
+  template: "This is the declaration of the getter '#name'."
+  severity: CONTEXT
+
+InvalidGetterSetterTypeSetterContext:
+  template: "This is the declaration of the setter '#name'."
+  severity: CONTEXT
+
+PartOfSelf:
+  template: "A file can't be a part of itself."
+  analyzerCode: PART_OF_NON_PART
+  script:
+    main.dart: "part 'main.dart';"
+
+TypeVariableDuplicatedName:
+  template: "A type variable can't have the same name as another."
+  analyzerCode: DUPLICATE_DEFINITION
+
+TypeVariableDuplicatedNameCause:
+  template: "The other type variable named '#name'."
+  severity: CONTEXT
+
+TypeVariableSameNameAsEnclosing:
+  template: "A type variable can't have the same name as its enclosing declaration."
+  analyzerCode: CONFLICTING_TYPE_VARIABLE_AND_CLASS
+
+AnnotationOnTypeArgument:
+  template: "Type arguments can't have annotations because they aren't declarations."
+  analyzerCode: ParserErrorCode.ANNOTATION_ON_TYPE_ARGUMENT
+  index: 111
+  script:
+    - "class A<E> {} class C { m() => new A<@Object() C>(); }"
+
+AnnotationOnFunctionTypeTypeVariable:
+  template: "A type variable on a function type can't have annotations."
+  script: |
+     // @dart=2.13
+     main() { Function<@Object() T>() x; }
+
+ExpectedEnumBody:
+  template: "Expected a enum body, but got '#lexeme'."
+  tip: "An enum definition must have a body with at least one constant name."
+  analyzerCode: MISSING_ENUM_BODY
+  script:
+    - "enum E"
+
+EnumDeclarationEmpty:
+  template: "An enum declaration can't be empty."
+  analyzerCode: EMPTY_ENUM_BODY
+  script:
+    - "enum E {}"
+
+ExternalClass:
+  index: 3
+  template: "Classes can't be declared to be 'external'."
+  tip: "Try removing the keyword 'external'."
+  analyzerCode: ParserErrorCode.EXTERNAL_CLASS
+  script:
+    - "external class C {}"
+
+ExternalEnum:
+  index: 5
+  template: "Enums can't be declared to be 'external'."
+  tip: "Try removing the keyword 'external'."
+  analyzerCode: ParserErrorCode.EXTERNAL_ENUM
+  script:
+    - "external enum E {ONE}"
+
+ExternalMethodWithBody:
+  # TODO(danrubel): remove reference to `native` once support has been removed
+  index: 49
+  template: "An external or native method can't have a body."
+  analyzerCode: ParserErrorCode.EXTERNAL_METHOD_WITH_BODY
+  script:
+    - "class C {external foo() {}}"
+    - "class C {foo() native {}}"
+    - "class C {foo() native 'bar' {}}"
+
+ExternalConstructorWithInitializer:
+  index: 106
+  template: "An external constructor can't have any initializers."
+  analyzerCode: ParserErrorCode.EXTERNAL_CONSTRUCTOR_WITH_INITIALIZER
+  script:
+    - "class C { int? x; external C() : x = 1; }"
+    - "class C { int? x; external C.foo() : x = 1; }"
+
+ExternalTypedef:
+  index: 76
+  template: "Typedefs can't be declared to be 'external'."
+  tip: "Try removing the keyword 'external'."
+  analyzerCode: ParserErrorCode.EXTERNAL_TYPEDEF
+  script:
+    - "external typedef F();"
+
+OperatorWithOptionalFormals:
+  template: "An operator can't have optional parameters."
+
+OperatorWithTypeParameters:
+  template: "Types parameters aren't allowed when defining an operator."
+  tip: "Try removing the type parameters."
+  analyzerCode: TYPE_PARAMETER_ON_OPERATOR
+  script:
+    - "class C { operator []<T>(T t) => null; }"
+
+PlatformPrivateLibraryAccess:
+  template: "Can't access platform private library."
+  analyzerCode: IMPORT_INTERNAL_LIBRARY
+
+TypedefNotFunction:
+  template: "Can't create typedef from non-function type."
+  analyzerCode: INVALID_GENERIC_FUNCTION_TYPE
+
+TypedefNotType:
+  template: "Can't create typedef from non-type."
+  analyzerCode: INVALID_TYPE_IN_TYPEDEF
+
+TypedefTypeVariableNotConstructor:
+  template: "Can't use a typedef denoting a type variable as a constructor, nor for a static member access."
+
+TypedefTypeVariableNotConstructorCause:
+  template: "This is the type variable ultimately denoted."
+  severity: CONTEXT
+
+TypedefNullableType:
+  template: "Can't create typedef from nullable type."
+  configuration: nnbd-strong
+  script: |
+    // @dart=2.12
+    typedef F = void Function()?;
+
+TypedefUnaliasedTypeCause:
+  template: "This is the type denoted by the type alias."
+  severity: CONTEXT
+
+TypedefCause:
+  template: "The issue arises via this type alias."
+  severity: CONTEXT
+
+LibraryDirectiveNotFirst:
+  index: 37
+  template: "The library directive must appear before all other directives."
+  tip: "Try moving the library directive before any other directives."
+  analyzerCode: ParserErrorCode.LIBRARY_DIRECTIVE_NOT_FIRST
+  script:
+    - "class Foo{} library l;"
+    - "import 'x.dart'; library l;"
+    - "part 'a.dart'; library l;"
+
+ImportAfterPart:
+  index: 10
+  template: "Import directives must precede part directives."
+  tip: "Try moving the import directives before the part directives."
+  analyzerCode: ParserErrorCode.IMPORT_DIRECTIVE_AFTER_PART_DIRECTIVE
+  script:
+    - "part 'foo.dart'; import 'bar.dart';"
+
+ExportAfterPart:
+  index: 75
+  template: "Export directives must precede part directives."
+  tip: "Try moving the export directives before the part directives."
+  analyzerCode: ParserErrorCode.EXPORT_DIRECTIVE_AFTER_PART_DIRECTIVE
+  script:
+    - "part 'foo.dart'; export 'bar.dart';"
+
+DirectiveAfterDeclaration:
+  index: 69
+  template: "Directives must appear before any declarations."
+  tip: "Try moving the directive before any declarations."
+  analyzerCode: ParserErrorCode.DIRECTIVE_AFTER_DECLARATION
+  script:
+    - "class foo { } import 'bar.dart';"
+    - "class foo { } export 'bar.dart';"
+
+NonPartOfDirectiveInPart:
+  template: "The part-of directive must be the only directive in a part."
+  tip: "Try removing the other directives, or moving them to the library for which this is a part."
+  analyzerCode: NON_PART_OF_DIRECTIVE_IN_PART
+  script:
+    - "part of l; part 'f.dart';"
+
+PartOfTwice:
+  index: 25
+  template: "Only one part-of directive may be declared in a file."
+  tip: "Try removing all but one of the part-of directives."
+  analyzerCode: ParserErrorCode.MULTIPLE_PART_OF_DIRECTIVES
+  script:
+    - main.dart: |
+        part "part.dart";
+        main() {}
+      other.dart: ""
+      part.dart: |
+        part of "other.dart";
+        part of "main.dart";
+    - main.dart: |
+        part of "lib.dart";
+        part of "lib.dart";
+        main() {}
+      lib.dart: |
+        part "main.dart";
+    - main.dart: |
+        part "part.dart";
+      part.dart: |
+        part of "main.dart";
+        part of "main.dart";
+
+PartTwice:
+  template: "Can't use '#uri' as a part more than once."
+  analyzerCode: DUPLICATE_PART
+  script:
+    part.dart: "part of 'main.dart';"
+    main.dart: "part 'part.dart'; part 'part.dart';"
+
+PartOfTwoLibraries:
+  template: "A file can't be part of more than one library."
+  tip: "Try moving the shared declarations into the libraries, or into a new library."
+  analyzerCode: PART_OF_DIFFERENT_LIBRARY
+  script:
+    main.dart: "library lib; import 'lib.dart'; part 'part.dart';"
+    lib.dart: "library lib; part 'part.dart';"
+    part.dart: "part of lib;"
+
+PartOfTwoLibrariesContext:
+  template: "Used as a part in this library."
+  severity: CONTEXT
+
+FactoryTopLevelDeclaration:
+  index: 78
+  template: "Top-level declarations can't be declared to be 'factory'."
+  tip: "Try removing the keyword 'factory'."
+  analyzerCode: ParserErrorCode.FACTORY_TOP_LEVEL_DECLARATION
+  script:
+    - "factory class C {}"
+
+RedirectionInNonFactory:
+  index: 21
+  template: "Only factory constructor can specify '=' redirection."
+  tip: "Try making this a factory constructor, or remove the redirection."
+  analyzerCode: ParserErrorCode.REDIRECTION_IN_NON_FACTORY_CONSTRUCTOR
+  script:
+    - "class C { C() = D; }"
+
+TopLevelOperator:
+  index: 14
+  template: "Operators must be declared within a class."
+  tip: "Try removing the operator, moving it to a class, or converting it to be a function."
+  analyzerCode: ParserErrorCode.TOP_LEVEL_OPERATOR
+  script:
+    - "operator +(bool x, bool y) => x | y;"
+    - "bool operator +(bool x, bool y) => x | y;"
+    - "void operator +(bool x, bool y) => x | y;"
+
+MissingFunctionParameters:
+  template: "A function declaration needs an explicit list of parameters."
+  tip: "Try adding a parameter list to the function declaration."
+  analyzerCode: MISSING_FUNCTION_PARAMETERS
+  script:
+    - "void f {}"
+
+MissingMethodParameters:
+  template: "A method declaration needs an explicit list of parameters."
+  tip: "Try adding a parameter list to the method declaration."
+  analyzerCode: MISSING_METHOD_PARAMETERS
+  script:
+    - "class C { void m {} }"
+
+MissingTypedefParameters:
+  template: "A typedef needs an explicit list of parameters."
+  tip: "Try adding a parameter list to the typedef."
+  analyzerCode: MISSING_TYPEDEF_PARAMETERS
+  script:
+    - "typedef void F;"
+
+MissingPartOf:
+  template: "Can't use '#uri' as a part, because it has no 'part of' declaration."
+  analyzerCode: PART_OF_NON_PART
+  script:
+    part.dart: ""
+    main.dart: "part 'part.dart';"
+
+PartOfInLibrary:
+  template: "Can't import '#uri', because it has a 'part of' declaration."
+  tip: "Try removing the 'part of' declaration, or using '#uri' as a part."
+  analyzerCode: IMPORT_OF_NON_LIBRARY
+  script:
+    main.dart: |
+      import "part.dart";
+      import "lib.dart";
+      main() {}
+
+    part.dart: |
+      part of "lib.dart";
+
+    lib.dart: |
+      part "part.dart";
+
+PartInPart:
+  template: "A file that's a part of a library can't have parts itself."
+  tip: "Try moving the 'part' declaration to the containing library."
+  analyzerCode: NON_PART_OF_DIRECTIVE_IN_PART
+  script:
+    main.dart: |
+      part "part.dart";
+      main() {}
+
+    part.dart: |
+      part of "main.dart";
+      part "part_part.dart";
+
+    part_part.dart: |
+      part of "part.dart";
+
+PartInPartLibraryContext:
+  template: "This is the containing library."
+  severity: CONTEXT
+
+PartOrphan:
+  template: "This part doesn't have a containing library."
+  tip: "Try removing the 'part of' declaration."
+  script: "part of none; main() {}"
+
+PartExport:
+  template: "Can't export this file because it contains a 'part of' declaration."
+  analyzerCode: EXPORT_OF_NON_LIBRARY
+  script:
+    main.dart: |
+      export "part.dart";
+      import "lib.dart";
+      main() {}
+
+    part.dart: |
+      part of "lib.dart";
+
+    lib.dart: |
+      part "part.dart";
+
+PartExportContext:
+  template: "This is the file that can't be exported."
+  severity: CONTEXT
+
+SupertypeIsFunction:
+  template: "Can't use a function type as supertype."
+
+DeferredPrefixDuplicated:
+  template: "Can't use the name '#name' for a deferred library, as the name is used elsewhere."
+  analyzerCode: SHARED_DEFERRED_PREFIX
+
+DeferredPrefixDuplicatedCause:
+  template: "'#name' is used here."
+  severity: CONTEXT
+
+TypeArgumentsOnTypeVariable:
+  index: 13
+  template: "Can't use type arguments with type variable '#name'."
+  tip: "Try removing the type arguments."
+  analyzerCode: ParserErrorCode.TYPE_ARGUMENTS_ON_TYPE_VARIABLE
+  script:
+    - "dynamic<T>(x) => 0"
+
+# Use this message when a duplicated declaration is introduced.  For example:
+#
+#    class C {} // First declaration (related information points here).
+#    class C {} // Duplicated declaration (error here).
+#    main() {
+#      new C(); // Use of duplicated declaration.
+#    }
+#
+# We follow the convention from C that a definition is the unique element that
+# provides the implementation of a name, and a declaration may not be unique
+# (for example, forward declaration). Using this terminology, one could argue
+# that a method that is abstract or external is a declaration, not a
+# definition. Similarly, imported names are declarations, not
+# definitions. Consequently, it is more convenient to use the word
+# "declaration" instead of "definition" as the former implies less.
+DuplicatedDeclaration:
+  template: "'#name' is already declared in this scope."
+  analyzerCode: DUPLICATE_DEFINITION
+  script: |
+    class C {} // First declaration (related information points here).
+    class C {} // Duplicated declaration (error here).
+    main() {
+      // The following line is commented out as it would lead to an extraneous
+      // diagnostic.
+      // new C(); // Use of duplicated declaration.
+    }
+
+DuplicatedDeclarationCause:
+  template: "Previous declaration of '#name'."
+  severity: CONTEXT
+
+DuplicatedDeclarationSyntheticCause:
+  template: "Previous declaration of '#name' is implied by this definition."
+  severity: CONTEXT
+
+# Use this message when a duplicated declaration is used.
+DuplicatedDeclarationUse:
+  template: "Can't use '#name' because it is declared more than once."
+  exampleAllowMoreCodes: true
+  script:
+    - main.dart: |
+        // This test can't pass as tests must produce only one error message.
+        class C {} // First declaration (related information points here).
+        class C {} // Duplicated declaration (error here).
+        main() {
+          new C(); // Use of duplicated declaration.
+        }
+    - main.dart: |
+        import 'lib1.dart';
+        import 'lib2.dart';
+
+        main() {
+          new C(); // Use of duplicated declaration.
+        }
+      lib1.dart: |
+        class C {}
+      lib2.dart: |
+        class C {}
+    - main.dart: |
+        class C {
+          method() {}
+          method() {}
+        }
+        main() => new C().method();
+    - main.dart: |
+        class C {
+          method() {}
+          method() {}
+        }
+        var f = new C().method();
+
+DuplicatedNamePreviouslyUsed:
+  template: "Can't declare '#name' because it was already used in this scope."
+  analyzerCode: REFERENCED_BEFORE_DECLARATION
+  script:
+    - "main(arguments) { arguments; var arguments; }"
+
+DuplicatedNamePreviouslyUsedCause:
+  template: "Previous use of '#name'."
+  severity: CONTEXT
+
+DuplicatedNamedArgument:
+  template: "Duplicated named argument '#name'."
+  analyzerCode: DUPLICATE_NAMED_ARGUMENT
+
+DuplicatedParameterName:
+  template: "Duplicated parameter name '#name'."
+  analyzerCode: DUPLICATE_DEFINITION
+
+DuplicatedParameterNameCause:
+  template: "Other parameter named '#name'."
+  severity: CONTEXT
+
+MemberWithSameNameAsClass:
+  template: "A class member can't have the same name as the enclosing class."
+  tip: "Try renaming the member."
+  analyzerCode: ParserErrorCode.MEMBER_WITH_CLASS_NAME
+  index: 105
+  script:
+    - "class C { get C {} }"
+    - "class C { get C => 42; }"
+    - "class C { set C(x) {} }"
+    - "class C { set C(x) => 42; }"
+    - "class C { int? C; }"
+    - "class C { int? A, B, C, D, E; }"
+
+EnumConstantSameNameAsEnclosing:
+  template: "Name of enum constant '#name' can't be the same as the enum's own name."
+  analyzerCode: ENUM_CONSTANT_WITH_ENUM_NAME
+
+MissingOperatorKeyword:
+  index: 31
+  template: "Operator declarations must be preceded by the keyword 'operator'."
+  tip: "Try adding the keyword 'operator'."
+  analyzerCode: ParserErrorCode.MISSING_KEYWORD_OPERATOR
+  script:
+    - "class C { +(x) {} }"
+
+InvalidOperator:
+  index: 39
+  template: "The string '#lexeme' isn't a user-definable operator."
+  analyzerCode: ParserErrorCode.INVALID_OPERATOR
+  script:
+    - "class C { void operator %=(x) {} }"
+
+NotBinaryOperator:
+  template: "'#lexeme' isn't a binary operator."
+  script: >
+    class C { operator~() { return null; } }
+
+    main() {
+      C c = new C();
+      print(c ~ 2);
+    }
+
+OperatorParameterMismatch0:
+  template: "Operator '#name' shouldn't have any parameters."
+
+OperatorParameterMismatch1:
+  template: "Operator '#name' should have exactly one parameter."
+  analyzerCode: WRONG_NUMBER_OF_PARAMETERS_FOR_OPERATOR
+
+OperatorParameterMismatch2:
+  template: "Operator '#name' should have exactly two parameters."
+  analyzerCode: WRONG_NUMBER_OF_PARAMETERS_FOR_OPERATOR
+
+OperatorMinusParameterMismatch:
+  template: "Operator '#name' should have zero or one parameter."
+  tip: >-
+    With zero parameters, it has the syntactic form '-a', formally known as 'unary-'.
+    With one parameter, it has the syntactic form 'a - b', formally known as '-'.
+  analyzerCode: WRONG_NUMBER_OF_PARAMETERS_FOR_OPERATOR_MINUS
+
+SupertypeIsIllegal:
+  template: "The type '#name' can't be used as supertype."
+  analyzerCode: EXTENDS_NON_CLASS
+  script: |
+
+
+    class C extends dynamic {}
+
+SupertypeIsIllegalAliased:
+  template: "The type '#name' which is an alias of '#type' can't be used as supertype."
+  analyzerCode: EXTENDS_NON_CLASS
+  script: |
+    typedef F = void Function();
+    class C extends F {}
+
+SupertypeIsNullableAliased:
+  template: "The type '#name' which is an alias of '#type' can't be used as supertype because it is nullable."
+  analyzerCode: EXTENDS_NON_CLASS
+  experiments: nonfunction-type-aliases
+  script: |
+    class A {}
+    typedef B = A?;
+    class C extends B {}
+
+SupertypeIsTypeVariable:
+  template: "The type variable '#name' can't be used as supertype."
+  analyzerCode: EXTENDS_NON_CLASS
+  script: |
+    class C<T> extends T {}
+
+PartOfLibraryNameMismatch:
+  template: "Using '#uri' as part of '#name' but its 'part of' declaration says '#name2'."
+  analyzerCode: PART_OF_DIFFERENT_LIBRARY
+
+PartOfUseUri:
+  template: "Using '#uri' as part of '#uri2' but its 'part of' declaration says '#name'."
+  tip: "Try changing the 'part of' declaration to use a relative file name."
+  analyzerCode: PART_OF_UNNAMED_LIBRARY
+
+PartOfUriMismatch:
+  template: "Using '#uri' as part of '#uri2' but its 'part of' declaration says '#uri3'."
+  analyzerCode: PART_OF_DIFFERENT_LIBRARY
+
+MissingMain:
+  template: "No 'main' method found."
+  tip: "Try adding a method named 'main' to your program."
+
+MissingInput:
+  template: "No input file provided to the compiler."
+
+InputFileNotFound:
+  template: "Input file not found: #uri."
+
+SdkRootNotFound:
+  template: "SDK root directory not found: #uri."
+
+SdkSummaryNotFound:
+  template: "SDK summary not found: #uri."
+
+SdkSpecificationNotFound:
+  template: "SDK libraries specification not found: #uri."
+  tip: "Normally, the specification is a file named 'libraries.json' in the Dart SDK install location."
+
+InvalidSuperInInitializer:
+  index: 47
+  template: "Can only use 'super' in an initializer for calling the superclass constructor (e.g. 'super()' or 'super.namedConstructor()')"
+  analyzerCode: ParserErrorCode.INVALID_SUPER_IN_INITIALIZER
+
+InvalidThisInInitializer:
+  index: 65
+  template: "Can only use 'this' in an initializer for field initialization (e.g. 'this.x = something') and constructor redirection (e.g. 'this()' or 'this.namedConstructor())"
+  analyzerCode: ParserErrorCode.INVALID_THIS_IN_INITIALIZER
+
+ThisAccessInFieldInitializer:
+  template: "Can't access 'this' in a field initializer to read '#name'."
+  analyzerCode: THIS_ACCESS_FROM_FIELD_INITIALIZER
+
+ThisOrSuperAccessInFieldInitializer:
+  template: "Can't access '#string' in a field initializer."
+  analyzerCode: THIS_ACCESS_FROM_INITIALIZER
+
+ThisAsIdentifier:
+  template: "Expected identifier, but got 'this'."
+  analyzerCode: INVALID_REFERENCE_TO_THIS
+
+# TODO(johnniwinther): Confusing message, it should probably mention that `super` is not available.
+SuperAsIdentifier:
+  template: "Expected identifier, but got 'super'."
+  analyzerCode: SUPER_AS_EXPRESSION
+
+SuperAsExpression:
+  template: "Can't use 'super' as an expression."
+  tip: "To delegate a constructor to a super constructor, put the super call as an initializer."
+  analyzerCode: SUPER_AS_EXPRESSION
+
+SwitchExpressionNotAssignable:
+  template: "Type '#type' of the switch expression isn't assignable to the type '#type2' of this case expression."
+  analyzerCode: SWITCH_EXPRESSION_NOT_ASSIGNABLE
+  script:
+    - |
+      // @dart=2.9
+      void f() {
+        switch (42) {
+          case "foo": break;
+        }
+      }
+
+SwitchExpressionNotAssignableCause:
+  template: "The switch expression is here."
+  severity: CONTEXT
+
+SwitchExpressionNotSubtype:
+  template: "Type '#type' of the case expression is not a subtype of type '#type2' of this switch expression."
+  script:
+    - |
+      void f() {
+        switch (42) {
+          case "foo": break;
+        }
+      }
+
+SwitchHasCaseAfterDefault:
+  index: 16
+  template: "The default case should be the last case in a switch statement."
+  tip: "Try moving the default case after the other case clauses."
+  analyzerCode: ParserErrorCode.SWITCH_HAS_CASE_AFTER_DEFAULT_CASE
+  script:
+    - "class C { foo(int a) {switch (a) {default: return 0; case 1: return 1;}} }"
+
+SwitchHasMultipleDefaults:
+  index: 15
+  template: "The 'default' case can only be declared once."
+  tip: "Try removing all but one default case."
+  analyzerCode: ParserErrorCode.SWITCH_HAS_MULTIPLE_DEFAULT_CASES
+  script:
+    - "class C { foo(int a) {switch (a) {default: return 0; default: return 1;}} }"
+
+SwitchCaseFallThrough:
+  template: "Switch case may fall through to the next case."
+  analyzerCode: CASE_BLOCK_NOT_TERMINATED
+
+FieldAlreadyInitializedAtDeclaration:
+  template: "'#name' is a final instance variable that was initialized at the declaration."
+  analyzerCode: FIELD_INITIALIZED_IN_INITIALIZER_AND_DECLARATION
+  script:
+    - "class C { final int x = 2; C(): this.x = 3 {} }"
+
+FieldAlreadyInitializedAtDeclarationCause:
+  template: "'#name' was initialized here."
+  severity: CONTEXT
+
+ConstructorInitializeSameInstanceVariableSeveralTimes:
+  template: "'#name' was already initialized by this constructor."
+  analyzerCode: FIELD_INITIALIZED_BY_MULTIPLE_INITIALIZERS
+  script:
+    - "class C { final int x; C(): this.x = 1, this.x = 2 {} }"
+    - "class C { int x; C(): this.x = 1, this.x = 2 {} }"
+
+TypeVariableInStaticContext:
+  template: "Type variables can't be used in static members."
+  analyzerCode: TYPE_PARAMETER_REFERENCED_BY_STATIC
+  declaration:
+    - |
+      class C<T> {
+        static List<T> staticMethod() {}
+      }
+    - |
+      class C<T> {
+        static T staticMethod() {}
+      }
+    - |
+      class C<T> {
+        static staticMethod(List<T> argument) {}
+      }
+    - |
+      class C<T> {
+        static staticMethod(T argument) {}
+      }
+    - |
+      class C<T> {
+        static staticMethod() {
+          List<T>? t = null;
+          return t;
+        }
+      }
+    - |
+      class C<T> {
+        static staticMethod() {
+          T? t = null;
+          return t;
+        }
+      }
+
+TypeVariableInConstantContext:
+  template: "Type variables can't be used as constants."
+  analyzerCode: TYPE_PARAMETER_IN_CONST_EXPRESSION
+  declaration:
+    - |
+      class C<T> {
+        instanceMethod() {
+          return const <Object>[T];
+        }
+      }
+    - |
+      class C<T> {
+        instanceMethod() {
+          return const <T>[];
+        }
+      }
+    - |
+      class C<T> {
+        instanceMethod() {
+          return const <List<T>>[];
+        }
+      }
+
+SuperclassMethodArgumentMismatch:
+  template: "Superclass doesn't have a method named '#name' with matching arguments."
+
+SuperclassHasNoGetter:
+  template: "Superclass has no getter named '#name'."
+  analyzerCode: UNDEFINED_SUPER_GETTER
+
+SuperclassHasNoSetter:
+  template: "Superclass has no setter named '#name'."
+  analyzerCode: UNDEFINED_SUPER_SETTER
+
+SuperclassHasNoMethod:
+  template: "Superclass has no method named '#name'."
+  analyzerCode: UNDEFINED_SUPER_METHOD
+
+SuperclassHasNoConstructor:
+  template: "Superclass has no constructor named '#name'."
+  analyzerCode:
+    - UNDEFINED_CONSTRUCTOR_IN_INITIALIZER
+    - UNDEFINED_CONSTRUCTOR_IN_INITIALIZER_DEFAULT
+  script:
+    - |
+      class Super {
+        Super._();
+      }
+
+      class Sub extends Super {
+        Sub() : super();
+      }
+    - |
+      class Super {
+        Super._();
+      }
+
+      class Sub extends Super {
+        Sub.foo() : super.foo();
+      }
+
+SuperclassHasNoDefaultConstructor:
+  template: "The superclass, '#name', has no unnamed constructor that takes no arguments."
+  analyzerCode: NO_DEFAULT_SUPER_CONSTRUCTOR_IMPLICIT
+
+ConstConstructorNonFinalField:
+  template: "Constructor is marked 'const' so all fields must be final."
+  analyzerCode: CONST_CONSTRUCTOR_WITH_NON_FINAL_FIELD
+
+ConstConstructorNonFinalFieldCause:
+  template: "Field isn't final, but constructor is 'const'."
+  severity: CONTEXT
+
+ConstConstructorLateFinalFieldError:
+  template: "Can't have a late final field in a class with a const constructor."
+
+ConstConstructorLateFinalFieldCause:
+  template: "This constructor is const."
+  severity: CONTEXT
+
+ConstConstructorRedirectionToNonConst:
+  template: "A constant constructor can't call a non-constant constructor."
+  script:
+    - >-
+      class A {
+        const A.foo() : this.bar();
+        A.bar() {}
+      }
+
+ConstConstructorWithNonConstSuper:
+  template: "A constant constructor can't call a non-constant super constructor."
+  analyzerCode: CONST_CONSTRUCTOR_WITH_NON_CONST_SUPER
+  script:
+    - >-
+      class A {
+        A.bar() {}
+      }
+      class B extends A {
+        const B.foo() : super.bar();
+      }
+
+AccessError:
+  template: "Access error: '#name'."
+
+ExpressionNotMetadata:
+  template: "This can't be used as an annotation; an annotation should be a reference to a compile-time constant variable, or a call to a constant constructor."
+
+ExpectedAnInitializer:
+  index: 36
+  template: "Expected an initializer."
+  analyzerCode: ParserErrorCode.MISSING_INITIALIZER
+  script:
+    - "class C { C() : {} }"
+
+MissingAssignmentInInitializer:
+  index: 34
+  template: "Expected an assignment after the field name."
+  tip: "To initialize a field, use the syntax 'name = value'."
+  analyzerCode: ParserErrorCode.MISSING_ASSIGNMENT_IN_INITIALIZER
+  script:
+    - "class C { C() : x(3) {} }"
+
+RedirectingConstructorWithBody:
+  index: 22
+  template: "Redirecting constructors can't have a body."
+  tip: "Try removing the body, or not making this a redirecting constructor."
+  analyzerCode: ParserErrorCode.REDIRECTING_CONSTRUCTOR_WITH_BODY
+  script:
+    - "class C { C() : this.x() {} }"
+
+CannotAssignToParenthesizedExpression:
+  template: "Can't assign to a parenthesized expression."
+  analyzerCode: ASSIGNMENT_TO_PARENTHESIZED_EXPRESSION
+
+NotAnLvalue:
+  template: "Can't assign to this."
+  analyzerCode: NOT_AN_LVALUE
+
+CannotAssignToSuper:
+  template: "Can't assign to super."
+  analyzerCode: NOT_AN_LVALUE
+
+IllegalAssignmentToNonAssignable:
+  index: 45
+  template: "Illegal assignment to non-assignable expression."
+  analyzerCode: ParserErrorCode.ILLEGAL_ASSIGNMENT_TO_NON_ASSIGNABLE
+  script:
+    - "main(){ f()++; }"
+
+MissingAssignableSelector:
+  index: 35
+  template: "Missing selector such as '.identifier' or '[0]'."
+  tip: "Try adding a selector."
+  analyzerCode: ParserErrorCode.MISSING_ASSIGNABLE_SELECTOR
+  script:
+    - "main(){ ++f(); }"
+
+CannotReadSdkSpecification:
+  template: "Unable to read the 'libraries.json' specification file:\n  #string."
+
+CantInferPackagesFromManyInputs:
+  template: "Can't infer a packages file when compiling multiple inputs."
+  tip: "Try specifying the file explicitly with the --packages option."
+
+CantInferPackagesFromPackageUri:
+  template: "Can't infer a packages file from an input 'package:*' URI."
+  tip: "Try specifying the file explicitly with the --packages option."
+
+PackageNotFound:
+  template: "Couldn't resolve the package '#name' in '#uri'."
+
+InvalidPackageUri:
+  template: "Invalid package URI '#uri':\n  #string."
+
+CouldNotParseUri:
+  template: "Couldn't parse URI '#string':\n  #string2."
+
+ExpectedUri:
+  template: "Expected a URI."
+
+InterpolationInUri:
+  template: "Can't use string interpolation in a URI."
+  analyzerCode: INVALID_LITERAL_IN_CONFIGURATION
+
+IntegerLiteralIsOutOfRange:
+  template: "The integer literal #string can't be represented in 64 bits."
+  tip: "Try using the BigInt class if you need an integer larger than 9,223,372,036,854,775,807 or less than -9,223,372,036,854,775,808."
+  analyzerCode: INTEGER_LITERAL_OUT_OF_RANGE
+
+ColonInPlaceOfIn:
+  index: 54
+  template: "For-in loops use 'in' rather than a colon."
+  tip: "Try replacing the colon with the keyword 'in'."
+  analyzerCode: ParserErrorCode.COLON_IN_PLACE_OF_IN
+
+BinaryOperatorWrittenOut:
+  index: 112
+  template: "Binary operator '#string' is written as '#string2' instead of the written out word."
+  tip: "Try replacing '#string' with '#string2'."
+  analyzerCode: ParserErrorCode.BINARY_OPERATOR_WRITTEN_OUT
+  script: >
+    int foo(int x, int y) => x xor y;
+
+ExternalFactoryRedirection:
+  index: 85
+  template: "A redirecting factory can't be external."
+  tip: "Try removing the 'external' modifier."
+  analyzerCode: ParserErrorCode.EXTERNAL_FACTORY_REDIRECTION
+
+ArgumentTypeNotAssignable:
+  template: "The argument type '#type' can't be assigned to the parameter type '#type2'."
+  analyzerCode: ARGUMENT_TYPE_NOT_ASSIGNABLE
+  script: >
+    method(int i) {}
+    main() {
+      method(1.5);
+    }
+
+ArgumentTypeNotAssignableNullability:
+  template: "The argument type '#type' can't be assigned to the parameter type '#type2' because '#type' is nullable and '#type2' isn't."
+  analyzerCode: ARGUMENT_TYPE_NOT_ASSIGNABLE
+  configuration: nnbd-strong
+  script: >
+    method(int i) {}
+    main() {
+      int? j = null;
+      method(j);
+    }
+
+ArgumentTypeNotAssignablePartNullability:
+  template: "The argument type '#type' can't be assigned to the parameter type '#type2' because '#type3' is nullable and '#type4' isn't."
+  analyzerCode: ARGUMENT_TYPE_NOT_ASSIGNABLE
+  configuration: nnbd-strong
+  script: >
+    method(List<int> i) {}
+    main() {
+      List<int?> j = [null];
+      method(j);
+    }
+
+ArgumentTypeNotAssignableNullabilityNull:
+  template: "The value 'null' can't be assigned to the parameter type '#type' because '#type' is not nullable."
+  analyzerCode: ARGUMENT_TYPE_NOT_ASSIGNABLE
+  configuration: nnbd-strong
+  script: >
+    method(int i) {}
+    main() {
+      method(null);
+    }
+
+ArgumentTypeNotAssignableNullabilityNullType:
+  template: "The argument type '#type' can't be assigned to the parameter type '#type2' because '#type2' is not nullable."
+  analyzerCode: ARGUMENT_TYPE_NOT_ASSIGNABLE
+  configuration: nnbd-strong
+  script: >
+    method(int i) {}
+    main() {
+      Null n;
+      method(n);
+    }
+
+InvalidAssignmentError:
+  template: "A value of type '#type' can't be assigned to a variable of type '#type2'."
+  analyzerCode: INVALID_ASSIGNMENT
+  script: >
+    main() {
+      int i;
+      i = 1.5;
+    }
+
+InvalidAssignmentErrorNullability:
+  template: "A value of type '#type' can't be assigned to a variable of type '#type2' because '#type' is nullable and '#type2' isn't."
+  analyzerCode: INVALID_ASSIGNMENT
+  configuration: nnbd-strong
+  script: >
+    main() {
+      int i = 0;
+      int? j;
+      i = j;
+    }
+
+InvalidAssignmentErrorPartNullability:
+  template: "A value of type '#type' can't be assigned to a variable of type '#type2' because '#type3' is nullable and '#type4' isn't."
+  analyzerCode: INVALID_ASSIGNMENT
+  configuration: nnbd-strong
+  script: >
+    main() {
+      List<int> i = [];
+      List<int?> j = [null];
+      i = j;
+    }
+
+InvalidAssignmentErrorNullabilityNull:
+  template: "The value 'null' can't be assigned to a variable of type '#type' because '#type' is not nullable."
+  analyzerCode: INVALID_ASSIGNMENT
+  configuration: nnbd-strong
+  script: >
+    main() {
+      int i = 0;
+      i = null;
+    }
+
+InvalidAssignmentErrorNullabilityNullType:
+  template: "A value of type '#type' can't be assigned to a variable of type '#type2' because '#type2' is not nullable."
+  analyzerCode: INVALID_ASSIGNMENT
+  configuration: nnbd-strong
+  script: >
+    main() {
+      Null n;
+      int i = 0;
+      i = n;
+    }
+
+PatchClassTypeVariablesMismatch:
+  template: "A patch class must have the same number of type variables as its origin class."
+
+PatchClassOrigin:
+  template: "This is the origin class."
+  severity: CONTEXT
+
+PatchDeclarationMismatch:
+  template: "This patch doesn't match origin declaration."
+
+PatchDeclarationOrigin:
+  template: "This is the origin declaration."
+  severity: CONTEXT
+
+PatchInjectionFailed:
+  template: "Can't inject '#name' into '#uri'."
+  tip: "Try adding '@patch'."
+
+PatchNonExternal:
+  template: "Can't apply this patch as its origin declaration isn't external."
+  tip: "Try adding 'external' to the origin declaration."
+
+InvalidCastFunctionExpr:
+  template: "The function expression type '#type' isn't of expected type '#type2'."
+  tip: "Change the type of the function expression or the context in which it is used."
+  analyzerCode: INVALID_CAST_FUNCTION_EXPR
+
+InvalidCastLiteralList:
+  template: "The list literal type '#type' isn't of expected type '#type2'."
+  tip: "Change the type of the list literal or the context in which it is used."
+  analyzerCode: INVALID_CAST_LITERAL_LIST
+
+InvalidCastLiteralMap:
+  template: "The map literal type '#type' isn't of expected type '#type2'."
+  tip: "Change the type of the map literal or the context in which it is used."
+  analyzerCode: INVALID_CAST_LITERAL_MAP
+
+InvalidCastLiteralSet:
+  template: "The set literal type '#type' isn't of expected type '#type2'."
+  tip: "Change the type of the set literal or the context in which it is used."
+  analyzerCode: INVALID_CAST_LITERAL_SET
+
+InvalidCastLocalFunction:
+  template: "The local function has type '#type' that isn't of expected type '#type2'."
+  tip: "Change the type of the function or the context in which it is used."
+  analyzerCode: INVALID_CAST_FUNCTION
+
+InvalidCastNewExpr:
+  template: "The constructor returns type '#type' that isn't of expected type '#type2'."
+  tip: "Change the type of the object being constructed or the context in which it is used."
+  analyzerCode: INVALID_CAST_NEW_EXPR
+
+InvalidCastStaticMethod:
+  template: "The static method has type '#type' that isn't of expected type '#type2'."
+  tip: "Change the type of the method or the context in which it is used."
+  analyzerCode: INVALID_CAST_METHOD
+
+InvalidCastTopLevelFunction:
+  template: "The top level function has type '#type' that isn't of expected type '#type2'."
+  tip: "Change the type of the function or the context in which it is used."
+  analyzerCode: INVALID_CAST_FUNCTION
+
+InvalidCatchArguments:
+  template: "Invalid catch arguments."
+  analyzerCode: INVALID_CATCH_ARGUMENTS
+
+InvalidUseOfNullAwareAccess:
+  template: "Cannot use '?.' here."
+  tip: "Try using '.'."
+  analyzerCode: INVALID_USE_OF_NULL_AWARE_ACCESS
+
+UndefinedGetter:
+  template: "The getter '#name' isn't defined for the class '#type'."
+  tip: "Try correcting the name to the name of an existing getter, or defining a getter or field named '#name'."
+  analyzerCode: UNDEFINED_GETTER
+  script: >
+    class C {}
+    test(C c) {
+      print(c.foo);
+    }
+
+UndefinedSetter:
+  template: "The setter '#name' isn't defined for the class '#type'."
+  tip: "Try correcting the name to the name of an existing setter, or defining a setter or field named '#name'."
+  analyzerCode: UNDEFINED_SETTER
+  script: >
+    class C {}
+    test(C c) {
+      c.foo = 0;
+    }
+
+UndefinedMethod:
+  template: "The method '#name' isn't defined for the class '#type'."
+  tip: "Try correcting the name to the name of an existing method, or defining a method named '#name'."
+  analyzerCode: UNDEFINED_METHOD
+  script: >
+    class C {}
+    test(C c) {
+      c.foo();
+    }
+
+UndefinedOperator:
+  template: "The operator '#name' isn't defined for the class '#type'."
+  tip: "Try correcting the operator to an existing operator, or defining a '#name' operator."
+  analyzerCode: UNDEFINED_METHOD
+  script: >
+    class C {}
+    test(C c) {
+      c + 0;
+    }
+
+UndefinedExtensionGetter:
+  template: "The getter '#name' isn't defined for the extension '#type'."
+  tip: "Try correcting the name to the name of an existing getter, or defining a getter or field named '#name'."
+
+UndefinedExtensionSetter:
+  template: "The setter '#name' isn't defined for the extension '#type'."
+  tip: "Try correcting the name to the name of an existing setter, or defining a setter or field named '#name'."
+
+UndefinedExtensionMethod:
+  template: "The method '#name' isn't defined for the extension '#type'."
+  tip: "Try correcting the name to the name of an existing method, or defining a method name '#name'."
+
+UndefinedExtensionOperator:
+  template: "The operator '#name' isn't defined for the extension '#type'."
+  tip: "Try correcting the operator to an existing operator, or defining a '#name' operator."
+
+AmbiguousExtensionMethod:
+  template: "The method '#name' is defined in multiple extensions for '#type' and neither is more specific."
+  tip: "Try using an explicit extension application of the wanted extension or hiding unwanted extensions from scope."
+  script: |
+    class C {}
+    extension A on C { method() {} }
+    extension B on C { method() {} }
+    main() {
+      C c = new C();
+      c.method();
+    }
+
+AmbiguousExtensionProperty:
+  template: "The property '#name' is defined in multiple extensions for '#type' and neither is more specific."
+  tip: "Try using an explicit extension application of the wanted extension or hiding unwanted extensions from scope."
+  script: |
+    class C {}
+    extension A on C { get property => null; }
+    extension B on C { set property(_) {} }
+    main() {
+      C c = new C();
+      c.property;
+    }
+
+AmbiguousExtensionOperator:
+  template: "The operator '#name' is defined in multiple extensions for '#type' and neither is more specific."
+  tip: "Try using an explicit extension application of the wanted extension or hiding unwanted extensions from scope."
+  script: |
+    class C {}
+    extension A on C { operator +(int i) {} }
+    extension B on C { operator +(int i) {}  }
+    main() {
+      C c = new C();
+      c + 0;
+    }
+
+AmbiguousExtensionCause:
+  template: "This is one of the extension members."
+  severity: CONTEXT
+
+SourceOutlineSummary:
+  template: |
+    Built outlines for #count compilation units (#count2 bytes) in #num1%.3ms, that is,
+    #num2%12.3 bytes/ms, and
+    #num3%12.3 ms/compilation unit.
+
+SourceBodySummary:
+  template: |
+    Built bodies for #count compilation units (#count2 bytes) in #num1%.3ms, that is,
+    #num2%12.3 bytes/ms, and
+    #num3%12.3 ms/compilation unit.
+
+DillOutlineSummary:
+  template: |
+    Indexed #count libraries (#count2 bytes) in #num1%.3ms, that is,
+    #num2%12.3 bytes/ms, and
+    #num3%12.3 ms/libraries.
+
+CantInferTypesDueToNoCombinedSignature:
+  template: "Can't infer types for '#name' as the overridden members don't have a combined signature."
+  tip: "Try adding explicit types."
+  analyzerCode: COMPILE_TIME_ERROR.NO_COMBINED_SUPER_SIGNATURE
+  script: |
+    class A {
+      void method(int a, String b) {}
+    }
+    class B {
+      void method(String a, int b) {}
+    }
+    class C implements A, B {
+      void method(a, b) {}
+    }
+
+CantInferTypeDueToNoCombinedSignature:
+  template: "Can't infer a type for '#name' as the overridden members don't have a combined signature."
+  tip: "Try adding an explicit type."
+  analyzerCode: COMPILE_TIME_ERROR.NO_COMBINED_SUPER_SIGNATURE
+  configuration: nnbd-strong
+  script: |
+    class A {
+      void method(int a) {}
+    }
+    class B {
+      void method(String a) {}
+    }
+    class C implements A, B {
+      void method(a) {}
+    }
+
+CantInferReturnTypeDueToNoCombinedSignature:
+  template: "Can't infer a return type for '#name' as the overridden members don't have a combined signature."
+  tip: "Try adding an explicit type."
+  analyzerCode: COMPILE_TIME_ERROR.NO_COMBINED_SUPER_SIGNATURE
+  configuration: nnbd-strong
+  script: |
+    abstract class A {
+      int get getter;
+    }
+    abstract class B {
+      String get getter;
+    }
+    abstract class C implements A, B {
+      get getter;
+    }
+
+CantInferTypeDueToCircularity:
+  template: "Can't infer the type of '#string': circularity found during type inference."
+  tip: "Specify the type explicitly."
+  analyzerCode: RECURSIVE_COMPILE_TIME_CONSTANT
+
+AmbiguousSupertypes:
+  template: "'#name' can't implement both '#type' and '#type2'"
+  analyzerCode: AMBIGUOUS_SUPERTYPES
+
+MixinInferenceNoMatchingClass:
+  template: "Type parameters couldn't be inferred for the mixin '#name' because '#name2' does not implement the mixin's supertype constraint '#type'."
+  analyzerCode: MIXIN_INFERENCE_NO_POSSIBLE_SUBSTITUTION
+
+ImplicitCallOfNonMethod:
+  template: "Cannot invoke an instance of '#type' because it declares 'call' to be something other than a method."
+  tip: "Try changing 'call' to a method or explicitly invoke 'call'."
+  analyzerCode: IMPLICIT_CALL_OF_NON_METHOD
+
+ExpectedOneExpression:
+  template: "Expected one expression, but found additional input."
+
+ForInLoopNotAssignable:
+  template: "Can't assign to this, so it can't be used in a for-in loop."
+  statement: "for (1 in []) {}"
+
+ForInLoopExactlyOneVariable:
+  template: "A for-in loop can't have more than one loop variable."
+  statement: "for (var x, y in []) {}"
+
+ForInLoopWithConstVariable:
+  template: "A for-in loop-variable can't be 'const'."
+  tip: "Try removing the 'const' modifier."
+  analyzerCode: FOR_IN_WITH_CONST_VARIABLE
+
+ForInLoopElementTypeNotAssignable:
+  template: "A value of type '#type' can't be assigned to a variable of type '#type2'."
+  tip: "Try changing the type of the variable."
+  analyzerCode: FOR_IN_OF_INVALID_ELEMENT_TYPE
+  script: |
+    method() {
+      List<String> list = [];
+      for (int i in list) {}
+    }
+
+ForInLoopElementTypeNotAssignableNullability:
+  template: "A value of type '#type' can't be assigned to a variable of type '#type2' because '#type' is nullable and '#type2' isn't."
+  tip: "Try changing the type of the variable."
+  analyzerCode: FOR_IN_OF_INVALID_ELEMENT_TYPE
+  configuration: nnbd-strong
+  script: |
+    method() {
+      List<int?> list = [];
+      for (int i in list) {}
+    }
+
+ForInLoopElementTypeNotAssignablePartNullability:
+  template: "A value of type '#type' can't be assigned to a variable of type '#type2' because '#type3' is nullable and '#type4' isn't."
+  tip: "Try changing the type of the variable."
+  analyzerCode: FOR_IN_OF_INVALID_ELEMENT_TYPE
+  configuration: nnbd-strong
+  script: |
+    method() {
+      List<List<int?>> list = [[]];
+      for (List<int> i in list) {}
+    }
+
+ForInLoopTypeNotIterable:
+  template: "The type '#type' used in the 'for' loop must implement '#type2'."
+  analyzerCode: FOR_IN_OF_INVALID_TYPE
+  script: |
+    method() {
+      String list = '';
+      for (int i in list) {}
+    }
+
+ForInLoopTypeNotIterableNullability:
+  template: "The type '#type' used in the 'for' loop must implement '#type2' because '#type' is nullable and '#type2' isn't."
+  analyzerCode: FOR_IN_OF_INVALID_TYPE
+  configuration: nnbd-strong
+  script: |
+    method() {
+      List<int>? list = null;
+      for (int i in list) {}
+    }
+
+# This cannot never occur since the iterable is checked to be assignable to `Iterable<dynamic>` so nullability can
+# only be a problem at the immediate level as in [ForInLoopTypeNotIterableNullability]. The message is needed for
+# symmetry in the call site.
+ForInLoopTypeNotIterablePartNullability:
+  template: "The type '#type' used in the 'for' loop must implement '#type2' because '#type3' is nullable and '#type4' isn't."
+  analyzerCode: FOR_IN_OF_INVALID_TYPE
+
+InitializingFormalTypeMismatch:
+  template: "The type of parameter '#name', '#type' is not a subtype of the corresponding field's type, '#type2'."
+  tip: "Try changing the type of parameter '#name' to a subtype of '#type2'."
+  analyzerCode: INVALID_PARAMETER_DECLARATION
+  script: >
+    class C {
+      int x;
+      C(num this.x);
+    }
+
+InitializingFormalTypeMismatchField:
+  template: "The field that corresponds to the parameter."
+  severity: CONTEXT
+
+InitializeFromDillNotSelfContained:
+  template: |
+    Tried to initialize from a previous compilation (#string), but the file was not self-contained. This might be a bug.
+
+    The Dart team would greatly appreciate it if you would take a moment to report this problem at http://dartbug.com/new.
+    If you are comfortable with it, it would improve the chances of fixing any bug if you included the file #uri in your error report, but be aware that this file includes your source code.
+    Either way, you should probably delete the file so it doesn't use unnecessary disk space.
+
+  severity: WARNING
+  frontendInternal: true
+  external: test/incremental_load_from_invalid_dill_test.dart
+
+InitializeFromDillNotSelfContainedNoDump:
+  template: |
+    Tried to initialize from a previous compilation (#string), but the file was not self-contained. This might be a bug.
+
+    The Dart team would greatly appreciate it if you would take a moment to report this problem at http://dartbug.com/new.
+
+  severity: WARNING
+  frontendInternal: true
+  external: test/incremental_load_from_invalid_dill_test.dart
+
+InitializeFromDillUnknownProblem:
+  template: |
+    Tried to initialize from a previous compilation (#string), but couldn't.
+    Error message was '#string2'.
+    Stacktrace included '#string3'.
+    This might be a bug.
+
+    The Dart team would greatly appreciate it if you would take a moment to report this problem at http://dartbug.com/new.
+    If you are comfortable with it, it would improve the chances of fixing any bug if you included the file #uri in your error report, but be aware that this file includes your source code.
+    Either way, you should probably delete the file so it doesn't use unnecessary disk space.
+
+  severity: WARNING
+  frontendInternal: true
+  external: test/incremental_load_from_invalid_dill_test.dart
+
+InitializeFromDillUnknownProblemNoDump:
+  template: |
+    Tried to initialize from a previous compilation (#string), but couldn't.
+    Error message was '#string2'.
+    Stacktrace included '#string3'.
+    This might be a bug.
+
+    The Dart team would greatly appreciate it if you would take a moment to report this problem at http://dartbug.com/new.
+
+  severity: WARNING
+  frontendInternal: true
+  external: test/incremental_load_from_invalid_dill_test.dart
+
+WebLiteralCannotBeRepresentedExactly:
+  template: "The integer literal #string can't be represented exactly in JavaScript."
+  tip: "Try changing the literal to something that can be represented in Javascript. In Javascript #string2 is the nearest value that can be represented exactly."
+
+BoundIssueViaRawTypeWithNonSimpleBounds:
+  template: "Generic type '#name' can't be used without type arguments in a type variable bound."
+  tip: "Try providing type arguments to '#name' here."
+  analyzerCode: NOT_INSTANTIATED_BOUND
+  script: >
+    class Hest<X extends Hest<X>> {}
+    class Fisk<Y extends Hest> {}
+
+NonSimpleBoundViaVariable:
+  template: "Bound of this variable references variable '#name' from the same declaration."
+  severity: CONTEXT
+
+BoundIssueViaLoopNonSimplicity:
+  template: "Generic type '#name' can't be used without type arguments in the bounds of its own type variables."
+  tip: "Try providing type arguments to '#name' here."
+  analyzerCode: NOT_INSTANTIATED_BOUND
+  script: >
+    class Hest<X extends Hest> {}
+
+BoundIssueViaCycleNonSimplicity:
+  template: "Generic type '#name' can't be used without type arguments in the bounds of its own type variables. It is referenced indirectly through '#name2'."
+  tip: "Try providing type arguments to '#name2' here or to some other raw types in the bounds along the reference chain."
+  analyzerCode: NOT_INSTANTIATED_BOUND
+  script: >
+    class Hest<X extends Fisk> {}
+    class Fisk<Y extends Hest> {}
+
+NonSimpleBoundViaReference:
+  template: "Bound of this variable references raw type '#name'."
+  severity: CONTEXT
+
+CycleInTypeVariables:
+  template: "Type '#name' is a bound of itself via '#string'."
+  tip: "Try breaking the cycle by removing at least on of the 'extends' clauses in the cycle."
+  analyzerCode: TYPE_PARAMETER_SUPERTYPE_OF_ITS_BOUND
+  script:
+    - "foo<A extends B, B extends A>() {}"
+
+DirectCycleInTypeVariables:
+  template: "Type '#name' can't use itself as a bound."
+  tip: "Try breaking the cycle by removing at least on of the 'extends' clauses in the cycle."
+  analyzerCode: TYPE_PARAMETER_SUPERTYPE_OF_ITS_BOUND
+  script:
+    - "foo<A extends A>() {}"
+
+CantUsePrefixAsExpression:
+  template: "A prefix can't be used as an expression."
+  analyzerCode: PREFIX_IDENTIFIER_NOT_FOLLOWED_BY_DOT
+  script: |
+    import "dart:core" as prefix;
+
+    main() {
+      for (prefix in []) {}
+    }
+
+CantUsePrefixWithNullAware:
+  template: "A prefix can't be used with null-aware operators."
+  tip: "Try replacing '?.' with '.'"
+  analyzerCode: PREFIX_IDENTIFIER_NOT_FOLLOWED_BY_DOT
+  script: |
+    import "dart:core" as prefix;
+
+    main() {
+      prefix?.Object;
+    }
+
+CantUseControlFlowOrSpreadAsConstant:
+  template: "'#lexeme' is not supported in constant expressions."
+  analyzerCode: NOT_CONSTANT_EXPRESSION
+
+CantUseDeferredPrefixAsConstant:
+  template: >
+    '#lexeme' can't be used in a constant expression because it's marked as
+    'deferred' which means it isn't available until loaded.
+  tip: >
+    Try moving the constant from the deferred library, or removing 'deferred'
+    from the import.
+  analyzerCode: CONST_DEFERRED_CLASS
+  script: |
+    import "dart:convert" deferred as prefix;
+
+    main() {
+      const prefix.JsonCodec();
+    }
+
+CyclicRedirectingFactoryConstructors:
+  template: "Cyclic definition of factory '#name'."
+  analyzerCode: RECURSIVE_FACTORY_REDIRECT
+  script: |
+    class Foo {
+      factory Foo.foo() = Foo.bar;
+      factory Foo.bar() = Foo.foo;
+    }
+    main() { var foo = new Foo.foo(); }
+
+GenericFunctionTypeInBound:
+  template: "Type variables can't have generic function types in their bounds."
+  analyzerCode: GENERIC_FUNCTION_TYPE_CANNOT_BE_BOUND
+  script: |
+    // @dart=2.13
+    class Hest<X extends Y Function<Y>(Y)> {}
+
+VoidExpression:
+  template: "This expression has type 'void' and can't be used."
+  analyzerCode: USE_OF_VOID_RESULT
+  statement: |
+    {
+      void x;
+      int y = x;
+    }
+
+ReturnFromVoidFunction:
+  template: "Can't return a value from a void function."
+  analyzerCode: RETURN_OF_INVALID_TYPE
+  declaration: "void foo() { return 1; }"
+
+ReturnWithoutExpression:
+  template: "Must explicitly return a value from a non-void function."
+  severity: WARNING
+  analyzerCode: RETURN_WITHOUT_VALUE
+  script: |
+    // @dart=2.9
+    int foo() { return; }
+
+ReturnWithoutExpressionSync:
+  template: "A value must be explicitly returned from a non-void function."
+  configuration: nnbd-strong
+  script: |
+    import "dart:async";
+    FutureOr<Object?> foo() { return; }
+
+ReturnWithoutExpressionAsync:
+  template: "A value must be explicitly returned from a non-void async function."
+  configuration: nnbd-strong
+  declaration: "Future<int> foo() async { return; }"
+
+InvalidReturn:
+  template: "A value of type '#type' can't be returned from a function with return type '#type2'."
+  configuration: nnbd-strong
+  declaration: "int foo() { return true; }"
+
+InvalidReturnNullability:
+  template: "A value of type '#type' can't be returned from a function with return type '#type2' because '#type' is nullable and '#type2' isn't."
+  configuration: nnbd-strong
+  declaration: "int foo(int? i) { return i; }"
+
+InvalidReturnPartNullability:
+  template: "A value of type '#type' can't be returned from a function with return type '#type2' because '#type3' is nullable and '#type4' isn't."
+  configuration: nnbd-strong
+  declaration: "List<int> foo(List<int?> list) { return list; }"
+
+InvalidReturnNullabilityNull:
+  template: "The value 'null' can't be returned from a function with return type '#type' because '#type' is not nullable."
+  configuration: nnbd-strong
+  declaration: "int foo() { return null; }"
+
+InvalidReturnNullabilityNullType:
+  template: "A value of type '#type' can't be returned from a function with return type '#type2' because '#type2' is not nullable."
+  configuration: nnbd-strong
+  declaration: "int foo(Null i) { return i; }"
+
+InvalidReturnAsync:
+  template: "A value of type '#type' can't be returned from an async function with return type '#type2'."
+  configuration: nnbd-strong
+  declaration: "Future<int> foo() async { return true; }"
+
+InvalidReturnAsyncNullability:
+  template: "A value of type '#type' can't be returned from an async function with return type '#type2' because '#type' is nullable and '#type2' isn't."
+  configuration: nnbd-strong
+  declaration: "Future<int> foo(int? i) async { return i; }"
+
+InvalidReturnAsyncPartNullability:
+  template: "A value of type '#type' can't be returned from an async function with return type '#type2' because '#type3' is nullable and '#type4' isn't."
+  configuration: nnbd-strong
+  declaration: "Future<List<int>> foo(List<int?> list) async { return list; }"
+
+InvalidReturnAsyncNullabilityNull:
+  template: "The value 'null' can't be returned from an async function with return type '#type' because '#type' is not nullable."
+  configuration: nnbd-strong
+  declaration: "Future<int> foo() async { return null; }"
+
+InvalidReturnAsyncNullabilityNullType:
+  template: "A value of type '#type' can't be returned from an async function with return type '#type2' because '#type2' is not nullable."
+  configuration: nnbd-strong
+  declaration: "Future<int> foo(Null n) async { return n; }"
+
+ImplicitReturnNull:
+  template: "A non-null value must be returned since the return type '#type' doesn't allow null."
+  configuration: nnbd-strong
+  script: |
+    String method() {}
+
+RethrowNotCatch:
+  template: "'rethrow' can only be used in catch clauses."
+  analyzerCode: RETHROW_OUTSIDE_CATCH
+
+InvokeNonFunction:
+  template: "'#name' isn't a function or method and can't be invoked."
+  analyzerCode: INVOCATION_OF_NON_FUNCTION
+  script: |
+    // @dart=2.9
+    class Foo {
+      int f;
+    }
+    main() {
+      Foo foo = new Foo();
+      foo.f();
+    }
+
+ConstInstanceField:
+  template: "Only static fields can be declared as const."
+  tip: "Try using 'final' instead of 'const', or adding the keyword 'static'."
+  analyzerCode: CONST_INSTANCE_FIELD
+  script:
+    - "class C { const field = 0; }"
+
+DefaultValueInRedirectingFactoryConstructor:
+  template: "Can't have a default value here because any default values of '#name' would be used instead."
+  tip: "Try removing the default value."
+  analyzerCode: DEFAULT_VALUE_IN_REDIRECTING_FACTORY_CONSTRUCTOR
+  script:
+    - >-
+      class A {
+        factory A.f({int x = 42}) = A.g;
+        A.g({int x = 40}) {}
+      }
+
+UntranslatableUri:
+  template: "Not found: '#uri'"
+  analyzerCode: URI_DOES_NOT_EXIST
+  script: |
+    import "dart:non_existing_library";
+
+    main() {
+    }
+
+CantReadFile:
+  template: "Error when reading '#uri': #string"
+  analyzerCode: URI_DOES_NOT_EXIST
+  external: test/packages_format_error_test.dart
+  script: |
+    import "non_existing_file.dart";
+
+    main() {
+    }
+
+ExceptionReadingFile:
+  template: "Exception when reading '#uri': #string"
+
+PackagesFileFormat:
+  template: "Problem in packages configuration file: #string"
+  external: test/packages_format_error_test.dart
+
+IncompatibleRedirecteeFunctionType:
+  template: "The constructor function type '#type' isn't a subtype of '#type2'."
+  analyzerCode: REDIRECT_TO_INVALID_TYPE
+  script:
+    - >-
+      class A {
+        factory A() = B;
+      }
+      class B {
+        B();
+      }
+    - >-
+      class A {
+        factory A.one(int x) = A.zero;
+        A.zero() {}
+      }
+    - >-
+      class A {
+        factory A.i(int x) = A.s;
+        A.s(String x) { }
+      }
+    - >-
+      class A {
+        factory A.f({int? x}) = A.g;
+        A.g({int? y}) { }
+      }
+    - >-
+      class A {
+        factory A.f(int x) = A.g;
+        A.g(int x, int y) {}
+      }
+    - >-
+      class A<T extends int> {
+         factory A() = B<T, int>;
+      }
+      class B<T extends int, S extends String> implements A<T> {}
+
+RedirectingFactoryIncompatibleTypeArgument:
+  template: "The type '#type' doesn't extend '#type2'."
+  tip: "Try using a different type as argument."
+  analyzerCode: TYPE_ARGUMENT_NOT_MATCHING_BOUNDS
+  script:
+    - >-
+      class A<T extends int> {
+         factory A() = B<T, int>;
+      }
+      class B<T extends int, S extends String> implements A<T> {}
+
+SyntheticToken:
+  template: "This couldn't be parsed."
+  frontendInternal: true
+
+IncorrectTypeArgument:
+  template: "Type argument '#type' doesn't conform to the bound '#type2' of the type variable '#name' on '#name2'."
+  tip: "Try changing type arguments so that they conform to the bounds."
+  analyzerCode: TYPE_ARGUMENT_NOT_MATCHING_BOUNDS
+  script: >
+    class C<T extends num> {}
+    main() { new C<String>(); }
+
+IncorrectTypeArgumentQualified:
+  template: "Type argument '#type' doesn't conform to the bound '#type2' of the type variable '#name' on '#type3.#name2'."
+  tip: "Try changing type arguments so that they conform to the bounds."
+  analyzerCode: TYPE_ARGUMENT_NOT_MATCHING_BOUNDS
+  script: >
+    class C<T> { foo<U extends num>() {} }
+    main() { new C<String>().foo<String>(); }
+
+IncorrectTypeArgumentInSupertype:
+  template: "Type argument '#type' doesn't conform to the bound '#type2' of the type variable '#name' on '#name2' in the supertype '#name3' of class '#name4'."
+  tip: "Try changing type arguments so that they conform to the bounds."
+  analyzerCode: TYPE_ARGUMENT_NOT_MATCHING_BOUNDS
+  script: >
+    class A<T extends num> {}
+    class B extends A<String> {}
+
+IncorrectTypeArgumentInReturnType:
+  template: "Type argument '#type' doesn't conform to the bound '#type2' of the type variable '#name' on '#name2' in the return type."
+  tip: "Try changing type arguments so that they conform to the bounds."
+  analyzerCode: TYPE_ARGUMENT_NOT_MATCHING_BOUNDS
+  script: >
+    class A<T extends num> {}
+    A<String> foo() => throw '';
+
+IncorrectTypeArgumentInferred:
+  template: "Inferred type argument '#type' doesn't conform to the bound '#type2' of the type variable '#name' on '#name2'."
+  tip: "Try specifying type arguments explicitly so that they conform to the bounds."
+  analyzerCode: TYPE_ARGUMENT_NOT_MATCHING_BOUNDS
+  script: >
+    void foo<T extends num>(T t) {}
+    main() { foo("bar"); }
+
+IncorrectTypeArgumentQualifiedInferred:
+  template: "Inferred type argument '#type' doesn't conform to the bound '#type2' of the type variable '#name' on '#type3.#name2'."
+  tip: "Try specifying type arguments explicitly so that they conform to the bounds."
+  analyzerCode: TYPE_ARGUMENT_NOT_MATCHING_BOUNDS
+  script: >
+    class C<T> { foo<U extends num>(U u) {} }
+    main() { new C<String>().foo(""); }
+
+IncorrectTypeArgumentInSupertypeInferred:
+  template: "Inferred type argument '#type' doesn't conform to the bound '#type2' of the type variable '#name' on '#name2' in the supertype '#name3' of class '#name4'."
+  tip: "Try specifying type arguments explicitly so that they conform to the bounds."
+  analyzerCode: TYPE_ARGUMENT_NOT_MATCHING_BOUNDS
+  script: >
+    class A<T extends A<T>> {}
+    class B extends A {}
+
+IncorrectTypeArgumentInstantiation:
+  template: "Type argument '#type' doesn't conform to the bound '#type2' of the type variable '#name' on '#type3'."
+  tip: "Try changing type arguments so that they conform to the bounds."
+  analyzerCode: TYPE_ARGUMENT_NOT_MATCHING_BOUNDS
+  experiments: constructor-tearoffs
+  script: |
+    X bounded<X extends num>(X x) => x;
+    main() {
+      bounded<String>;
+    }
+
+IncorrectTypeArgumentInstantiationInferred:
+  template: "Inferred type argument '#type' doesn't conform to the bound '#type2' of the type variable '#name' on '#type3'."
+  tip: "Try specifying type arguments explicitly so that they conform to the bounds."
+  analyzerCode: TYPE_ARGUMENT_NOT_MATCHING_BOUNDS
+  script: |
+    X bounded<X extends num>(X x) => x;
+    main() {
+      String Function(String) c = bounded;
+    }
+
+IncorrectTypeArgumentVariable:
+  template: "This is the type variable whose bound isn't conformed to."
+  severity: CONTEXT
+
+SuperBoundedHint:
+  template: "If you want '#type' to be a super-bounded type, note that the inverted type '#type2' must then satisfy its bounds, which it does not."
+  severity: CONTEXT
+
+InferredPackageUri:
+  template: "Interpreting this as package URI, '#uri'."
+  severity: WARNING
+  frontendInternal: true
+  script:
+    "main.dart": |
+      main() {}
+    ".packages": |
+      example:./
+
+MixinApplicationIncompatibleSupertype:
+  template: "'#type' doesn't implement '#type2' so it can't be used with '#type3'."
+  analyzerCode: MIXIN_APPLICATION_NOT_IMPLEMENTED_INTERFACE
+  script: >-
+    class I {}
+    mixin M on I {}
+    class C = Object with M;
+
+GenericFunctionTypeUsedAsActualTypeArgument:
+  template: "A generic function type can't be used as a type argument."
+  tip: "Try using a non-generic function type."
+  analyzerCode: GENERIC_FUNCTION_CANNOT_BE_TYPE_ARGUMENT
+  script:
+    - |
+      // @dart=2.13
+      typedef F = Class<T> Function<T>(T);
+      class Class<T> {}
+      main() {
+        Class<F> class1;
+      }
+    - |
+      // @dart=2.13
+      typedef F = Class<T> Function<T>(T);
+      class Class<T> {}
+      main() {
+        Class<F>();
+      }
+
+GenericFunctionTypeInferredAsActualTypeArgument:
+  template: "Generic function type '#type' inferred as a type argument."
+  tip: "Try providing a non-generic function type explicitly."
+  analyzerCode: GENERIC_FUNCTION_CANNOT_BE_TYPE_ARGUMENT
+  script: |
+    // @dart=2.13
+    foo<X>(X x) => null;
+    bar<Y>(Y y) => null;
+    main() { foo(bar); }
+
+# These two message templates are used for constructing supplemental text
+# about the origins of raw interface types in error messages containing types.
+TypeOrigin:
+  template: "'#name' is from '#uri'."
+  frontendInternal: true
+  external: test/type_labeler_test.dart
+
+TypeOriginWithFileUri:
+  template: "'#name' is from '#uri' ('#uri2')."
+  frontendInternal: true
+  external: test/type_labeler_test.dart
+
+ObjectExtends:
+  template: "The class 'Object' can't have a superclass."
+  frontendInternal: true
+  external: test/fasta/object_supertype_test.dart
+
+ObjectImplements:
+  template: "The class 'Object' can't implement anything."
+  frontendInternal: true
+  external: test/fasta/object_supertype_test.dart
+
+ObjectMixesIn:
+  template: "The class 'Object' can't use mixins."
+  frontendInternal: true
+  external: test/fasta/object_supertype_test.dart
+
+StaticAndInstanceConflict:
+  template: "This static member conflicts with an instance member."
+  script:
+    - |
+      class C {
+        set foo(value) {}
+        static get foo => 42;
+      }
+    - |
+      class C {
+        static set foo(value) {}
+        get foo => 42;
+      }
+  analyzerCode: CONFLICTING_STATIC_AND_INSTANCE
+
+StaticAndInstanceConflictCause:
+  template: "This is the instance member."
+  severity: CONTEXT
+
+FfiTypeMismatch:
+  # Used by dart:ffi
+  template: "Expected type '#type' to be '#type2', which is the Dart type corresponding to '#type3'."
+  external: test/ffi_test.dart
+
+FfiEmptyStruct:
+  # Used by dart:ffi
+  template: "#string '#name' is empty. Empty structs and unions are undefined behavior."
+  external: test/ffi_test.dart
+
+FfiTypeInvalid:
+  # Used by dart:ffi
+  template: "Expected type '#type' to be a valid and instantiated subtype of 'NativeType'."
+  external: test/ffi_test.dart
+
+FfiFieldNull:
+  # Used by dart:ffi
+  template: "Field '#name' cannot have type 'Null', it must be `int`, `double`, `Pointer`, or a subtype of `Struct` or `Union`."
+  external: test/ffi_test.dart
+
+FfiFieldAnnotation:
+  # Used by dart:ffi
+  template: "Field '#name' requires exactly one annotation to declare its native type, which cannot be Void. dart:ffi Structs and Unions cannot have regular Dart fields."
+  external: test/ffi_test.dart
+
+FfiFieldNoAnnotation:
+  # Used by dart:ffi
+  template: "Field '#name' requires no annotation to declare its native type, it is a Pointer which is represented by the same type in Dart and native code."
+  external: test/ffi_test.dart
+
+FfiFieldCyclic:
+  # Used by dart:ffi
+  template: |
+    #string '#name' contains itself. Cycle elements:
+    #names
+  external: test/ffi_test.dart
+
+FfiNotStatic:
+  # Used by dart:ffi
+  template: "#name expects a static function as parameter. dart:ffi only supports calling static Dart functions from native code. Closures and tear-offs are not supported because they can capture context."
+  external: test/ffi_test.dart
+
+FfiFieldInitializer:
+  # Used by dart:ffi
+  template: "Field '#name' is a dart:ffi Pointer to a struct field and therefore cannot be initialized before constructor execution."
+  tip: "Mark the field as external to avoid having to initialize it."
+  external: test/ffi_test.dart
+
+FfiExtendsOrImplementsSealedClass:
+  # Used by dart:ffi
+  template: "Class '#name' cannot be extended or implemented."
+  external: test/ffi_test.dart
+
+FfiPackedAnnotation:
+  # Used by dart:ffi
+  template: "Struct '#name' must have at most one 'Packed' annotation."
+  external: test/ffi_test.dart
+
+FfiPackedAnnotationAlignment:
+  # Used by dart:ffi
+  template: "Only packing to 1, 2, 4, 8, and 16 bytes is supported."
+  external: test/ffi_test.dart
+
+FfiPackedNestingNonPacked:
+  # Used by dart:ffi
+  template: "Nesting the non-packed or less tightly packed struct '#name' in a packed struct '#name2' is not supported."
+  external: test/ffi_test.dart
+
+FfiSizeAnnotation:
+  # Used by dart:ffi
+  template: "Field '#name' must have exactly one 'Array' annotation."
+  external: test/ffi_test.dart
+
+FfiSizeAnnotationDimensions:
+  # Used by dart:ffi
+  template: "Field '#name' must have an 'Array' annotation that matches the dimensions."
+  external: test/ffi_test.dart
+
+FfiStructGeneric:
+  # Used by dart:ffi
+  template: "#string '#name' should not be generic."
+  external: test/ffi_test.dart
+
+FfiDartTypeMismatch:
+  # Used by dart:ffi
+  template: "Expected '#type' to be a subtype of '#type2'."
+  external: test/ffi_test.dart
+
+FfiExpectedExceptionalReturn:
+  # Used by dart:ffi
+  template: "Expected an exceptional return value for a native callback returning '#type'."
+  external: test/ffi_test.dart
+
+FfiExpectedNoExceptionalReturn:
+  # Used by dart:ffi
+  template: "Exceptional return value cannot be provided for a native callback returning '#type'."
+  external: test/ffi_test.dart
+
+FfiExpectedConstant:
+  # Used by dart:ffi
+  template: "Exceptional return value must be a constant."
+  external: test/ffi_test.dart
+
+FfiExceptionalReturnNull:
+  # Used by dart:ffi
+  template: "Exceptional return value must not be null."
+  external: test/ffi_test.dart
+
+FfiExpectedConstantArg:
+  # Used by dart:ffi
+  template: "Argument '#name' must be a constant."
+  external: test/ffi_test.dart
+
+FfiLeafCallMustNotTakeHandle:
+  # Used by dart:ffi
+  template: "FFI leaf call must not have Handle argument types."
+  external: test/ffi_test.dart
+
+FfiLeafCallMustNotReturnHandle:
+  # Used by dart:ffi
+  template: "FFI leaf call must not have Handle return type."
+  external: test/ffi_test.dart
+
+FfiNativeAnnotationMustAnnotateStatic:
+  # Used by dart:ffi
+  template: "FfiNative annotations can only be used on static functions."
+  external: test/ffi_test.dart
+
+SpreadTypeMismatch:
+  template: "Unexpected type '#type' of a spread.  Expected 'dynamic' or an Iterable."
+  script:
+    - |
+      main() {
+        int a = 42;
+        var b = [...a];
+      }
+    - |
+      main() {
+        int Function() a = () => 42;
+        var b = [...a];
+      }
+
+SpreadElementTypeMismatch:
+  template: "Can't assign spread elements of type '#type' to collection elements of type '#type2'."
+  analyzerCode: LIST_ELEMENT_TYPE_NOT_ASSIGNABLE
+  script: >
+    main() {
+      List<String> a = <String>["foo"];
+      List<int> b = <int>[...a];
+    }
+
+SpreadElementTypeMismatchNullability:
+  template: "Can't assign spread elements of type '#type' to collection elements of type '#type2' because '#type' is nullable and '#type2' isn't."
+  analyzerCode: LIST_ELEMENT_TYPE_NOT_ASSIGNABLE
+  configuration: nnbd-strong
+  script: >
+    main() {
+      List<int?> a = <int?>[0, null];
+      List<int> b = <int>[...a];
+    }
+
+SpreadElementTypeMismatchPartNullability:
+  template: "Can't assign spread elements of type '#type' to collection elements of type '#type2' because '#type3' is nullable and '#type4' isn't."
+  analyzerCode: LIST_ELEMENT_TYPE_NOT_ASSIGNABLE
+  configuration: nnbd-strong
+  script: >
+    main() {
+      List<List<int?>> a = <List<int?>>[[0, null]];
+      List<List<int>> b = <List<int>>[...a];
+    }
+
+SpreadMapEntryTypeMismatch:
+  template: "Unexpected type '#type' of a map spread entry.  Expected 'dynamic' or a Map."
+  script:
+    - |
+      main() {
+        int a = 42;
+        var b = <dynamic, dynamic>{...a};
+      }
+    - |
+      main() {
+        int Function() a = () => 42;
+        var b = <dynamic, dynamic>{...a};
+      }
+
+SpreadMapEntryElementKeyTypeMismatch:
+  template: "Can't assign spread entry keys of type '#type' to map entry keys of type '#type2'."
+  analyzerCode: MAP_KEY_TYPE_NOT_ASSIGNABLE
+  script: >
+    main() {
+      Map<String, int> a = <String, int>{"foo": 42};
+      Map<int, int> b = <int, int>{...a};
+    }
+
+SpreadMapEntryElementKeyTypeMismatchNullability:
+  template: "Can't assign spread entry keys of type '#type' to map entry keys of type '#type2' because '#type' is nullable and '#type2' isn't."
+  analyzerCode: MAP_KEY_TYPE_NOT_ASSIGNABLE
+  configuration: nnbd-strong
+  script: >
+    main() {
+      Map<String?, int> a = <String?, int>{"foo": 42, null: 87};
+      Map<String, int> b = <String, int>{...a};
+    }
+
+SpreadMapEntryElementKeyTypeMismatchPartNullability:
+  template: "Can't assign spread entry keys of type '#type' to map entry keys of type '#type2' because '#type3' is nullable and '#type4' isn't."
+  analyzerCode: MAP_KEY_TYPE_NOT_ASSIGNABLE
+  configuration: nnbd-strong
+  script: >
+    main() {
+      Map<List<String?>, int> a = <List<String?>, int>{["foo"]: 42, [null]: 87};
+      Map<List<String>, int> b = <List<String>, int>{...a};
+    }
+
+SpreadMapEntryElementValueTypeMismatch:
+  template: "Can't assign spread entry values of type '#type' to map entry values of type '#type2'."
+  analyzerCode: MAP_VALUE_TYPE_NOT_ASSIGNABLE
+  script: >
+    main() {
+      Map<String, int> a = <String, int>{"foo": 42};
+      Map<String, String> b = <String, String>{...a};
+    }
+
+SpreadMapEntryElementValueTypeMismatchNullability:
+  template: "Can't assign spread entry values of type '#type' to map entry values of type '#type2' because '#type' is nullable and '#type2' isn't."
+  analyzerCode: MAP_VALUE_TYPE_NOT_ASSIGNABLE
+  configuration: nnbd-strong
+  script: >
+    main() {
+      Map<String, int?> a = <String, int?>{"foo": 42, "bar": null};
+      Map<String, int> b = <String, int>{...a};
+    }
+
+SpreadMapEntryElementValueTypeMismatchPartNullability:
+  template: "Can't assign spread entry values of type '#type' to map entry values of type '#type2' because '#type3' is nullable and '#type4' isn't."
+  analyzerCode: MAP_VALUE_TYPE_NOT_ASSIGNABLE
+  configuration: nnbd-strong
+  script: >
+    main() {
+      Map<String, List<int?>> a = <String, List<int?>>{"foo": [42], "bar": [null]};
+      Map<String, List<int>> b = <String, List<int>>{...a};
+    }
+
+CantDisambiguateNotEnoughInformation:
+  template: "Not enough type information to disambiguate between literal set and literal map."
+  tip: "Try providing type arguments for the literal explicitly to disambiguate it."
+  script: >
+    foo(dynamic spread) {
+      var a = {...spread};
+    }
+
+CantDisambiguateAmbiguousInformation:
+  template: "Both Iterable and Map spread elements encountered in ambiguous literal."
+  script: >
+    foo(Iterable<int> iterableSpread, Map<int, int> mapSpread) {
+      var c = {...iterableSpread, ...mapSpread};
+    }
+
+SpreadElement:
+  template: "Iterable spread."
+  severity: CONTEXT
+
+SpreadMapElement:
+  template: "Map spread."
+  severity: CONTEXT
+
+NonNullAwareSpreadIsNull:
+  template: "Can't spread a value with static type '#type'."
+  script: >
+    main() {
+      <int>[...null];
+    }
+
+NonPositiveArrayDimensions:
+  # Used by dart:ffi
+  template: "Array dimensions must be positive numbers."
+  external: test/ffi_test.dart
+
+InvalidTypeVariableInSupertype:
+  template: "Can't use implicitly 'out' variable '#name' in an '#string2' position in supertype '#name2'."
+  script: >
+    class A<X> {}
+    class B<Y> extends A<Function(Y)> {}
+
+InvalidTypeVariableInSupertypeWithVariance:
+  template: "Can't use '#string' type variable '#name' in an '#string2' position in supertype '#name2'."
+  script: >
+    class A<out X> {}
+    class B<out Y> extends A<Function(Y)> {}
+
+InvalidTypeVariableVariancePosition:
+  template: "Can't use '#string' type variable '#name' in an '#string2' position."
+  script: >
+    class A<out T> {
+      void method(T x) {}
+    }
+
+InvalidTypeVariableVariancePositionInReturnType:
+  template: "Can't use '#string' type variable '#name' in an '#string2' position in the return type."
+  script: >
+    class A<in T> {
+      T method() {
+        return null;
+      }
+    }
+
+CombinedMemberSignatureFailed:
+  template: "Class '#name' inherits multiple members named '#name2' with incompatible signatures."
+  tip: "Try adding a declaration of '#name2' to '#name'."
+  analyzerCode: INCONSISTENT_INHERITANCE
+  script:
+    - |
+      abstract class I1 {
+        foo(x);
+      }
+
+      abstract class I2 {
+        foo();
+      }
+
+      abstract class C implements I2, I1 {}
+
+LanguageVersionTooHigh:
+  template: "The specified language version is too high. The highest supported language version is #count.#count2."
+  script: >
+    // @dart = 100.200
+
+LanguageVersionInvalidInDotPackages:
+  template: "The language version is not specified correctly in the packages file."
+  exampleAllowMoreCodes: true
+  script:
+    main.dart: "import 'package:foo/foo.dart';"
+    lib/foo.dart: "// blah blah blah"
+    .dart_tool/package_config.json: >
+      {
+          "configVersion": 2,
+          "packages": [
+              {
+                  "name": "foo",
+                  "rootUri": "../lib/",
+                  "languageVersion": "arglebargle"
+              }
+          ]
+      }
+
+LanguageVersionMismatchInPart:
+  template: "The language version override has to be the same in the library and its part(s)."
+  script:
+    main.dart: >
+      // @dart = 2.4
+
+      part 'part.dart';
+    part.dart: >
+      // @dart = 2.3
+
+      part of 'main.dart';
+
+LanguageVersionMismatchInPatch:
+  template: "The language version override has to be the same in the library and its patch(es)."
+
+LanguageVersionLibraryContext:
+  template: "This is language version annotation in the library."
+  severity: CONTEXT
+
+LanguageVersionPartContext:
+  template: "This is language version annotation in the part."
+  severity: CONTEXT
+
+LanguageVersionPatchContext:
+  template: "This is language version annotation in the patch."
+  severity: CONTEXT
+
+ExplicitExtensionArgumentMismatch:
+  template: "Explicit extension application requires exactly 1 positional argument."
+
+ExplicitExtensionTypeArgumentMismatch:
+  template: "Explicit extension application of extension '#name' takes '#count' type argument(s)."
+
+ExplicitExtensionAsExpression:
+  template: "Explicit extension application cannot be used as an expression."
+
+ExplicitExtensionAsLvalue:
+  template: "Explicit extension application cannot be a target for assignment."
+
+DeferredExtensionImport:
+  template: "Extension '#name' cannot be imported through a deferred import."
+  tip: "Try adding the `hide #name` to the import."
+  script:
+    main.dart: "import 'lib.dart' deferred as prefix;"
+    lib.dart: "extension Extension on void {}"
+
+MultipleVarianceModifiers:
+  index: 97
+  template: "Each type parameter can have at most one variance modifier."
+  tip: "Use at most one of the 'in', 'out', or 'inout' modifiers."
+  analyzerCode: ParserErrorCode.MULTIPLE_VARIANCE_MODIFIERS
+
+VariableCouldBeNullDueToWrite:
+  template: "Variable '#name' could not be promoted due to an assignment."
+  tip: "Try null checking the variable after the assignment.  See #string"
+
+FieldNotPromoted:
+  template: "'#name' refers to a property so it couldn't be promoted."
+  tip: "See #string"
+
+ThisNotPromoted:
+  template: "'this' can't be promoted."
+  tip: "See #string"
+
+NullablePropertyAccessError:
+  template: "Property '#name' cannot be accessed on '#type' because it is potentially null."
+  tip: "Try accessing using ?. instead."
+
+NullableMethodCallError:
+  template: "Method '#name' cannot be called on '#type' because it is potentially null."
+  tip: "Try calling using ?. instead."
+
+NullableExpressionCallError:
+  template: "Can't use an expression of type '#type' as a function because it's potentially null."
+  tip: "Try calling using ?.call instead."
+
+NullableOperatorCallError:
+  template: "Operator '#name' cannot be called on '#type' because it is potentially null."
+
+NullableTearoffError:
+  template: "Can't tear off method '#name' from a potentially null value."
+
+NullableSpreadError:
+  template: "An expression whose value can be 'null' must be null-checked before it can be dereferenced."
+
+ThrowingNotAssignableToObjectError:
+  template: "Can't throw a value of '#type' since it is neither dynamic nor non-nullable."
+
+RequiredNamedParameterHasDefaultValueError:
+  template: "Named parameter '#name' is required and can't have a default value."
+
+ValueForRequiredParameterNotProvidedError:
+  template: "Required named parameter '#name' must be provided."
+
+OptionalNonNullableWithoutInitializerError:
+  template: "The parameter '#name' can't have a value of 'null' because of its type '#type', but the implicit default value is 'null'."
+  tip: "Try adding either an explicit non-'null' default value or the 'required' modifier."
+  analyzerCode: MISSING_DEFAULT_VALUE_FOR_PARAMETER
+  configuration: nnbd-strong
+  script:
+    - method1({int a}) {}
+    - method2([int a]) {}
+
+FieldNonNullableWithoutInitializerError:
+  template: "Field '#name' should be initialized because its type '#type' doesn't allow null."
+
+FieldNonNullableNotInitializedByConstructorError:
+  template: "This constructor should initialize field '#name' because its type '#type' doesn't allow null."
+
+NonNullableOptOutExplicit:
+  template: "Null safety features are disabled for this library."
+  tip: "Try removing the `@dart=` annotation or setting the language version to #string or higher."
+
+NonNullableOptOutImplicit:
+  template: "Null safety features are disabled for this library."
+  tip: "Try removing the package language version or setting the language version to #string or higher."
+
+NonNullableOptOutComment:
+  template: "This is the annotation that opts out this library from null safety features."
+  severity: CONTEXT
+
+AwaitInLateLocalInitializer:
+  template: "`await` expressions are not supported in late local initializers."
+
+NullableSuperclassError:
+  template: "Can't extend '#name' because it's marked with '?'."
+
+NullableInterfaceError:
+  template: "Can't implement '#name' because it's marked with '?'."
+
+NullableMixinError:
+  template: "Can't mix '#name' in because it's marked with '?'."
+
+JsInteropAnonymousFactoryPositionalParameters:
+  template: "Factory constructors for @anonymous JS interop classes should not contain any positional parameters."
+  tip: "Try replacing them with named parameters instead."
+
+JsInteropDartClassExtendsJSClass:
+  template: "Dart class '#name' cannot extend JS interop class '#name2'."
+  tip: "Try adding the JS interop annotation or removing it from the parent class."
+
+JsInteropEnclosingClassJSAnnotation:
+  template: "Member has a JS interop annotation but the enclosing class does not."
+  tip: "Try adding the annotation to the enclosing class."
+
+JsInteropEnclosingClassJSAnnotationContext:
+  template: "This is the enclosing class."
+  severity: CONTEXT
+
+JsInteropExternalExtensionMemberOnTypeInvalid:
+  template: "JS interop or Native class required for 'external' extension members."
+  tip: "Try adding a JS interop annotation to the on type class of the extension."
+
+JsInteropExternalMemberNotJSAnnotated:
+  template: "Only JS interop members may be 'external'."
+  tip: "Try removing the 'external' keyword or adding a JS interop annotation."
+
+JsInteropIndexNotSupported:
+  template: "JS interop classes do not support [] and []= operator methods."
+  tip: "Try replacing with a normal method."
+
+JsInteropJSClassExtendsDartClass:
+  template: "JS interop class '#name' cannot extend Dart class '#name2'."
+  tip: "Try removing the JS interop annotation or adding it to the parent class."
+
+JsInteropNamedParameters:
+  template: "Named parameters for JS interop functions are only allowed in a factory constructor of an @anonymous JS class."
+  tip: "Try replacing them with normal or optional parameters."
+
+JsInteropNativeClassInAnnotation:
+  template: "JS interop class '#name' conflicts with natively supported class '#name2' in '#string3'."
+  tip: "Try making the @JS class into an @anonymous class or use js_util on the JS object."
+
+JsInteropNonExternalConstructor:
+  template: "JS interop classes do not support non-external constructors."
+  tip: "Try annotating with `external`."
+
+JsInteropNonExternalMember:
+  template: "This JS interop member must be annotated with `external`. Only factories and static methods can be non-external."
+  tip: "Try annotating the member with `external`."
+
+DefaultListConstructorError:
+  template: "Can't use the default List constructor."
+  tip: "Try using List.filled instead."
+
+NonNullableInNullAware:
+  template: "Operand of null-aware operation '#name' has type '#type' which excludes null."
+  severity: WARNING
+
+ThisInNullAwareReceiver:
+  template: "The receiver 'this' cannot be null."
+  tip: "Try replacing '?.' with '.'"
+  severity: WARNING
+  configuration: nnbd-strong
+  script: |
+    class C {
+      var field;
+      method() {
+        this?.field;
+      }
+    }
+
+ClassInNullAwareReceiver:
+  template: "The class '#name' cannot be null."
+  tip: "Try replacing '?.' with '.'"
+  severity: WARNING
+  configuration: nnbd-strong
+  script: |
+    class C {
+      static var field;
+    }
+    method() {
+      C?.field;
+    }
+
+NonNullableNotAssignedError:
+  template: "Non-nullable variable '#name' must be assigned before it can be used."
+  configuration: nnbd-strong
+  script: |
+    method<T>() {
+      T t; t;
+    }
+
+FinalNotAssignedError:
+  template: "Final variable '#name' must be assigned before it can be used."
+  analyzerCode: READ_POTENTIALLY_UNASSIGNED_FINAL
+  configuration: nnbd-strong
+  script: >
+    method(bool b) {
+      final int i;
+      if (b) {
+        i = 0;
+      }
+      i;
+    }
+
+LateDefinitelyUnassignedError:
+  template: "Late variable '#name' without initializer is definitely unassigned."
+  configuration: nnbd-strong
+  script: |
+    method<T>() {
+      late T t; t;
+    }
+
+LateDefinitelyAssignedError:
+  template: "Late final variable '#name' definitely assigned."
+  configuration: nnbd-strong
+  script: |
+    method() {
+      late final int t;
+      t = 0;
+      t = 0;
+    }
+
+FinalPossiblyAssignedError:
+  template: "Final variable '#name' might already be assigned at this point."
+  analyzerCode: ASSIGNMENT_TO_FINAL_LOCAL
+  configuration: nnbd-strong
+  script: |
+    method() {
+      final int i;
+      i = 0;
+      i = 0;
+    }
+
+NonAgnosticConstant:
+  template: "Constant value is not strong/weak mode agnostic."
+
+ExportOptOutFromOptIn:
+  template: "Null safe libraries are not allowed to export declarations from of opt-out libraries."
+  configuration: nnbd-weak
+  script:
+    main.dart: |
+      export 'lib.dart';
+    lib.dart: |
+      // @dart=2.5
+      class A {}
+
+ExtendFunction:
+  template: "Extending 'Function' is deprecated."
+  tip: "Try removing 'Function' from the 'extends' clause."
+  severity: IGNORED
+  script: |
+    class A extends Function {}
+
+ImplementFunction:
+  template: "Implementing 'Function' is deprecated."
+  tip: "Try removing 'Function' from the 'implements' clause."
+  severity: IGNORED
+  script: |
+    class A implements Function {}
+
+MixinFunction:
+  template: "Mixing in 'Function' is deprecated."
+  tip: "Try removing 'Function' from the 'with' clause."
+  severity: IGNORED
+  script: |
+    class A extends Object with Function {}
+
+CannotAssignToFinalVariable:
+  template: "Can't assign to the final variable '#name'."
+  script: |
+     main() {
+       final int i = 0;
+       i = 42;
+     }
+
+CannotAssignToConstVariable:
+  template: "Can't assign to the const variable '#name'."
+  script: |
+    main() {
+      const int i = 0;
+      i = 42;
+    }
+
+CannotAssignToExtensionThis:
+  template: "Can't assign to 'this'."
+  script: |
+    extension E on String {
+      method() {
+        this = "";
+      }
+    }
+
+CannotAssignToTypeLiteral:
+  template: "Can't assign to a type literal."
+  script: |
+    main() {
+      Object = String;
+    }
+
+NonVoidReturnOperator:
+  template: "The return type of the operator []= must be 'void'."
+  tip: "Try changing the return type to 'void'."
+  analyzerCode: NON_VOID_RETURN_FOR_OPERATOR
+  script:
+    - class Class { int operator[]=(a, b) {} }
+    - class Class { dynamic operator[]=(a, b) {} }
+
+NonVoidReturnSetter:
+  template: "The return type of the setter must be 'void' or absent."
+  tip: "Try removing the return type, or define a method rather than a setter."
+  analyzerCode: NON_VOID_RETURN_FOR_SETTER
+  script:
+    - int set setter(_) {}
+    - dynamic set setter(_) {}
+
+NeverReachableSwitchDefaultError:
+  template: "`null` encountered as case in a switch expression with a non-nullable enum type."
+
+NeverReachableSwitchDefaultWarning:
+  template: "The default case is not reachable with sound null safety because the switch expression is non-nullable."
+  severity: WARNING
+
+NeverValueError:
+  template: "`null` encountered as the result from expression with type `Never`."
+
+NeverValueWarning:
+  template: "The expression can not result in a value with sound null safety because the expression type is `Never`."
+  severity: WARNING
+
+MainNotFunctionDeclaration:
+  template: "The 'main' declaration must be a function declaration."
+  configuration: nnbd-strong
+  script:
+    - var main;
+
+MainNotFunctionDeclarationExported:
+  template: "The exported 'main' declaration must be a function declaration."
+  configuration: nnbd-strong
+  exampleAllowMoreCodes: true
+  script:
+    main.dart:
+      export 'lib.dart';
+    lib.dart:
+      var main;
+
+MainTooManyRequiredParameters:
+  template: "The 'main' method must have at most 2 required parameters."
+  configuration: nnbd-strong
+  script:
+    - main(a, b, c) {}
+
+MainTooManyRequiredParametersExported:
+  template: "The exported 'main' method must have at most 2 required parameters."
+  configuration: nnbd-strong
+  exampleAllowMoreCodes: true
+  script:
+    main.dart:
+      export 'lib.dart';
+    lib.dart:
+      main(a, b, c) {}
+
+MainRequiredNamedParameters:
+  template: "The 'main' method cannot have required named parameters."
+  configuration: nnbd-strong
+  script:
+    - main({required a}) {}
+
+MainRequiredNamedParametersExported:
+  template: "The exported 'main' method cannot have required named parameters."
+  configuration: nnbd-strong
+  exampleAllowMoreCodes: true
+  script:
+    main.dart:
+      export 'lib.dart';
+    lib.dart:
+      main({required a}) {}
+
+MainWrongParameterType:
+  template: "The type '#type' of the first parameter of the 'main' method is not a supertype of '#type2'."
+  configuration: nnbd-strong
+  script:
+    - main(Set<String> args) {}
+
+MainWrongParameterTypeExported:
+  template: "The type '#type' of the first parameter of the exported 'main' method is not a supertype of '#type2'."
+  configuration: nnbd-strong
+  exampleAllowMoreCodes: true
+  script:
+    main.dart:
+      export 'lib.dart';
+    lib.dart:
+      main(Set<String> args) {}
+
+ExportedMain:
+  template: "This is exported 'main' declaration."
+  severity: CONTEXT
+
+UnexpectedModifierInNonNnbd:
+  template: "The modifier '#lexeme' is only available in null safe libraries."
+  exampleAllowMoreCodes: true
+  analyzerCode: UNEXPECTED_TOKEN
+  script: |
+    // @dart=2.9
+    late int x;
+
+CompilingWithSoundNullSafety:
+  template: "Compiling with sound null safety"
+  configuration: nnbd-strong,compile
+  severity: INFO
+  script: |
+    main() {}
+
+CompilingWithoutSoundNullSafety:
+  template: "Compiling without sound null safety"
+  configuration: nnbd-weak,compile
+  severity: INFO
+  script: |
+    // @dart=2.9
+    main() {}
+
+DeprecateDartExt:
+  template: "Dart native extensions are deprecated and will be removed in the 2.15 release of Dart SDK."
+  tip: "Migrate to using FFI instead (https://dart.dev/guides/libraries/c-interop)"
+  severity: INFO
+  script: |
+    import 'dart-ext:foo.dart';
+
+InstantiationNonGenericFunctionType:
+  template: "The static type of the explicit instantiation operand must be a generic function type but is '#type'."
+  tip: "Try changing the operand or remove the type arguments."
+  experiments: constructor-tearoffs
+  script: |
+    f() {}
+    main() => f<int>;
+
+InstantiationTooFewArguments:
+  template: "Too few type arguments: #count required, #count2 given."
+  tip: "Try adding the missing type arguments."
+  experiments: constructor-tearoffs
+  script: |
+    f<X, Y>() {}
+    main() => f<int>;
+
+InstantiationTooManyArguments:
+  template: "Too many type arguments: #count allowed, but #count2 found."
+  tip: "Try removing the extra type arguments."
+  experiments: constructor-tearoffs
+  script: |
+    f<X>() {}
+    main() => f<int, String>;
+
+AbstractClassConstructorTearOff:
+  template: "Constructors on abstract classes can't be torn off."
+  experiments: constructor-tearoffs
+  script: |
+    abstract class Class {}
+    main() => Class.new;

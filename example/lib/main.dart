@@ -24,22 +24,18 @@ class Observer {
 }
 
 void injectDemo(List<Observer> observers) {
-  int a = 10;
-  if (a > 5) {
-    print('[KWLM]:if1');
-  }
-  print('[KWLM]:a');
-  for (Observer o in observers) {
-    print('[KWLM]:Observer1');
-    o.onChanged();
-    print('[KWLM]:Observer2');
-  }
-  print('[KWLM]:b');
-  for (int i = 0; i < 10; i++) {
-    print('[KWLM]:for i $i');
-    print('[KWLM]:for i $i');
-  }
-  print('[KWLM]:c');
+  // int a = 10;
+  // if (a > 5) {
+  //   print('[KWLM]:if1');
+  // }
+  // print('[KWLM]:a');
+  // for (Observer o in observers) {
+  //   print('[KWLM]:Observer1');
+  //   o.onChanged();
+  //   print('[KWLM]:Observer2');
+  // }
+  //
+  // print('[KWLM]:c');
 }
 
 class MyApp extends StatelessWidget {
@@ -54,7 +50,7 @@ class MyApp extends StatelessWidget {
 
     appInit();
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Flutter Demo1',
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -90,6 +86,24 @@ class MyHomePage extends StatefulWidget {
   _MyHomePageState createState() => _MyHomePageState(i: 19);
 }
 
+class TextRightImageModel {
+  String showName;
+
+  String rightIcon;
+
+  Widget showCardWidget(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.only(left: 4.0, right: 4.0),
+      alignment: Alignment.center,
+      child: wrapTextLimit(context, const Text("")),
+    );
+  }
+
+  Widget wrapTextLimit(BuildContext str, Widget widget) {
+    return widget;
+  }
+}
+
 class _MyHomePageState extends State<MyHomePage> {
   int i;
   String s = 'fffff';
@@ -114,6 +128,8 @@ class _MyHomePageState extends State<MyHomePage> {
       // called again, and so nothing would appear to happen.
       i++;
     });
+
+    TextRightImageModel().showCardWidget(context);
   }
 
   static void testFunction() {}

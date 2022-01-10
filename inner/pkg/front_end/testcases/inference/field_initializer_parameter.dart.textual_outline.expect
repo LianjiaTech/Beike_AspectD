@@ -1,0 +1,11 @@
+// @dart = 2.9
+library test;
+
+T f<T>(T t) => t;
+
+class C {
+  final x;
+  C(int p) : x = f(p);
+}
+
+main() {}

@@ -1,0 +1,8 @@
+// @dart = 2.9
+library test;
+
+int x = 0;
+test1() {}
+int y = 0;
+final z = 42;
+main() {}

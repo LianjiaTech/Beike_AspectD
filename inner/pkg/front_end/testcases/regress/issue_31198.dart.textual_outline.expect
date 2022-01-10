@@ -1,0 +1,7 @@
+// @dart = 2.9
+abstract class A {}
+class B extends A {
+  B(): super().foo() {}
+}
+bad() {}
+main() {}

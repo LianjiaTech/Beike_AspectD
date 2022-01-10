@@ -1,0 +1,12 @@
+// @dart = 2.9
+library test;
+
+class F3<T> {
+  F3(Iterable<Iterable<T>> a) {}
+}
+
+class F4<T> {
+  F4({Iterable<Iterable<T>> a}) {}
+}
+
+void main() {}

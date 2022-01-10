@@ -1,0 +1,19 @@
+// @dart = 2.9
+library test;
+
+abstract class I<T> {
+  void f(T x);
+}
+
+class B {
+  void f(int x) {}
+}
+
+class C = B with M implements I<int>;
+
+class M {}
+
+void g1(C c) {}
+void g2(I<num> i) {}
+void main() {}
+void test() {}

@@ -1,0 +1,9 @@
+// @dart = 2.9
+beforeTestMissingTry() {}
+
+class E {
+  foo() {}
+}
+
+main() {}
+testMissingTry() {}

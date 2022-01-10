@@ -1,0 +1,16 @@
+// @dart = 2.9
+library test;
+
+T f<T>(T x) => x;
+
+class C {
+  T f<T>(T x) => x;
+  static T g<T>(T x) => x;
+}
+
+class D extends C {
+  void test() {}
+}
+
+void test() {}
+main() {}

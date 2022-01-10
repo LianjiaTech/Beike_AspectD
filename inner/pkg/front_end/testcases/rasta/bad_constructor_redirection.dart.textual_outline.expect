@@ -1,0 +1,7 @@
+// @dart = 2.9
+class C {
+  const C() : this.x(1);
+  const C.x();
+}
+
+main() {}

@@ -1,0 +1,10 @@
+// @dart = 2.9
+class Class {
+  var map = {
+    'foo': (String a) {
+      int c = a.length;
+    }
+  };
+}
+
+main() {}

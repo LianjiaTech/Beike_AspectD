@@ -1,0 +1,11 @@
+// @dart = 2.9
+library test;
+
+class B {}
+
+class C extends B {
+  var z;
+}
+
+main() {}
+void test(B x) {}

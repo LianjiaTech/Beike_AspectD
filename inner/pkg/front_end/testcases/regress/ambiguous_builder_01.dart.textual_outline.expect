@@ -1,0 +1,9 @@
+// @dart = 2.9
+x(){}
+.
+y = 42;
+x(){}
+.
+z = true;
+void foo() {}
+main() {}

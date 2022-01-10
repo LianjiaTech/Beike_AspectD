@@ -1,0 +1,8 @@
+// @dart = 2.9
+library test;
+
+class C {
+  T m<T>(T x) => x;
+}
+
+main() {}

@@ -1,0 +1,12 @@
+// @dart = 2.9
+library test;
+
+import 'dart:async';
+
+abstract class MyStream<T> extends Stream<T> {
+  factory MyStream() => null;
+}
+
+Stream<List<int>> foo() async* {}
+Iterable<Map<int, int>> bar() sync* {}
+main() {}

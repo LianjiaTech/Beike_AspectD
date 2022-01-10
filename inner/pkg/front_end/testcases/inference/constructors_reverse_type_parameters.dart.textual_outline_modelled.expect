@@ -1,0 +1,11 @@
+// @dart = 2.9
+library test;
+
+class Pair<T, U> {
+  Pair(this.t, this.u);
+  Pair<U, T> get reversed => new Pair(u, t);
+  T t;
+  U u;
+}
+
+main() {}

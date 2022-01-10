@@ -1,0 +1,5 @@
+// @dart = 2.9
+String s;
+int i;
+main() {}
+var x = i = s;

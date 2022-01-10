@@ -1,0 +1,12 @@
+// @dart = 2.9
+class A extends Missing {}
+
+class B implements Missing {}
+
+class C = Object with Missing;
+
+class D {
+  factory D() = Missing;
+}
+
+void main() {}

@@ -1,0 +1,9 @@
+// @dart = 2.9
+library test;
+
+class A<T> {}
+
+class B<T extends A> {}
+
+B v = null;
+main() {}

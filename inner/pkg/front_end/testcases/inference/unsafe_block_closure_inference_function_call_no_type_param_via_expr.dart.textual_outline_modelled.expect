@@ -1,0 +1,5 @@
+// @dart = 2.9
+library test;
+
+double f(x) => 1.0;
+main() {}

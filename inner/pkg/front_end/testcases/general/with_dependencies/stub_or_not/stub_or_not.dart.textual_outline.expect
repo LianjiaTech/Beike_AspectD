@@ -1,0 +1,6 @@
+// @dart = 2.9
+import 'stub_or_not_lib1.dart';
+
+class ProblemClass extends Foo {}
+
+main() {}
