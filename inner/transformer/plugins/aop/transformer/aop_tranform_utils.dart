@@ -824,6 +824,11 @@ class AopUtils {
       return TypedefType(node.typedefNode, Nullability.legacy,
           deepCopyASTNodes(node.typeArguments, ignoreGeneric: ignoreGenerics));
     }
+
+    if (node is InterfaceType) {
+      return InterfaceType(node.classNode, node.declaredNullability,
+          deepCopyASTNodes(node.typeArguments, ignoreGeneric: ignoreGenerics));
+    }
     return node;
   }
 

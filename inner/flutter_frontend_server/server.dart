@@ -45,10 +45,8 @@ class _FlutterFrontendCompiler implements frontend.CompilerInterface {
   Future<bool> compile(String filename, ArgResults options,
       {IncrementalCompiler generator}) async {
     final bool incremental = options.arguments.contains('--incremental');
-    final bool initializeFromDill =
-        options.arguments.contains('--initialize-from-dill');
 
-    if (!incremental && !initializeFromDill) {
+    if (!incremental) {
       List<FlutterProgramTransformer> transformers =
           FlutterTarget.flutterProgramTransformers;
       if (!transformers.contains(aspectdAopTransformer)) {
