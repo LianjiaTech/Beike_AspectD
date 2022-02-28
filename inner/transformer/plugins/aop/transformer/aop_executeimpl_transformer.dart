@@ -28,7 +28,8 @@ class AopStatementsInsertInfo {
 }
 
 class AopExecuteImplTransformer extends Transformer {
-  AopExecuteImplTransformer(this._aopItemInfoList, this._libraryMap, this._uriToSource);
+  AopExecuteImplTransformer(
+      this._aopItemInfoList, this._libraryMap, this._uriToSource);
 
   final List<AopItemInfo> _aopItemInfoList;
   final Map<String, Library> _libraryMap;
@@ -98,7 +99,8 @@ class AopExecuteImplTransformer extends Transformer {
     for (Procedure procedure in library.procedures) {
       if (procedure.isStatic == aopItemInfo.isStatic &&
           procedure.function.body != null &&
-          procedure.function.typeParameters.isEmpty) // Generic type annotated procedures can not be manipulated as lack of type information.
+          procedure.function.typeParameters
+              .isEmpty) // Generic type annotated procedures can not be manipulated as lack of type information.
       {
         if (aopItemInfo.isRegex) {
           if (RegExp(aopItemInfo.methodName).hasMatch(procedure.name.name)) {
@@ -139,8 +141,7 @@ class AopExecuteImplTransformer extends Transformer {
     for (Constructor constructor in cls.constructors) {
       final String functionName = AopUtils.nameForConstructor(constructor);
       if (true == aopItemInfo.isStatic &&
-          constructor.function.typeParameters.isEmpty
-      ) {
+          constructor.function.typeParameters.isEmpty) {
         //&& constructor.function.body != null
         if (aopItemInfo.isRegex) {
           if (RegExp(aopItemInfo.methodName).hasMatch(functionName)) {
@@ -159,7 +160,7 @@ class AopExecuteImplTransformer extends Transformer {
     for (Procedure procedure in cls.procedures) {
       if (procedure.isStatic == aopItemInfo.isStatic
 //          && procedure.function.typeParameters.isEmpty
-      ) {
+          ) {
         //procedure.function.body != null
         if (aopItemInfo.isRegex) {
           if (RegExp(aopItemInfo.methodName).hasMatch(procedure.name.name)) {
@@ -384,7 +385,7 @@ class AopExecuteImplTransformer extends Transformer {
         body,
         shouldReturn);
     originalClass.addMember(originalStubProcedure);
-    functionNode.body = createPointcutCallFromOriginal(
+    Block bodyBlock = createPointcutCallFromOriginal(
         originalLibrary,
         aopItemInfo,
         stubKey,
@@ -392,6 +393,8 @@ class AopExecuteImplTransformer extends Transformer {
         originalProcedure,
         AopUtils.argumentsFromFunctionNode(functionNode),
         shouldReturn);
+    functionNode.body = bodyBlock;
+    bodyBlock.parent = functionNode;
 
     //Pointcut类中新增stub，并且添加调用
     final Library pointcutLibrary =
@@ -428,11 +431,11 @@ class AopExecuteImplTransformer extends Transformer {
         library, aopItemInfo.aopMember.parent.parent);
     final Arguments redirectArguments = Arguments.empty();
 
-    final Map<String, String> sourceInfo = AopUtils.calcSourceInfo(
-        _uriToSource, library, 0);
+    final Map<String, String> sourceInfo =
+        AopUtils.calcSourceInfo(_uriToSource, library, 0);
     sourceInfo.putIfAbsent('procedure', () => member.toString());
-    AopUtils.concatArgumentsForAopMethod(
-        sourceInfo, redirectArguments, stubKey, targetExpression, member, arguments, null);
+    AopUtils.concatArgumentsForAopMethod(sourceInfo, redirectArguments, stubKey,
+        targetExpression, member, arguments, null);
     Expression callExpression;
     if (aopItemInfo.aopMember is Procedure) {
       final Procedure procedure = aopItemInfo.aopMember;
