@@ -143,7 +143,9 @@ class AopUtils {
       }
       final String sourceString = const Utf8Decoder().convert(source.source);
       final String sourceLine = sourceString.substring(charFrom, charTo);
-      if (sourceLine.endsWith(AopUtils.kAopPointcutIgnoreVariableDeclaration) || sourceLine.endsWith(AopUtils.kAopPointcutIgnoreVariableDeclaration+'\n')) {
+      if (sourceLine.endsWith(AopUtils.kAopPointcutIgnoreVariableDeclaration) ||
+          sourceLine.endsWith(
+              AopUtils.kAopPointcutIgnoreVariableDeclaration + '\n')) {
         return variableDeclaration;
       }
     }
@@ -200,6 +202,11 @@ class AopUtils {
         return field;
       }
     }
+
+    if (cls.superclass != null) {
+      return findFieldForClassWithName(cls.superclass, fieldName);
+    }
+
     return null;
   }
 
@@ -252,14 +259,18 @@ class AopUtils {
     pointCutConstructorArguments.positional.add(StringLiteral(memberName));
     pointCutConstructorArguments.positional
         .add(StringLiteral(stubKey ?? stubKeyDefault));
-    pointCutConstructorArguments.positional
-        .add(ListLiteral(invocationArguments.positional));
+    final ListLiteral positionalLiteral =
+        ListLiteral(invocationArguments.positional);
+
+    pointCutConstructorArguments.positional.add(positionalLiteral);
     final List<MapEntry> entries = <MapEntry>[];
     for (NamedExpression namedExpression in invocationArguments.named) {
       entries.add(
           MapEntry(StringLiteral(namedExpression.name), namedExpression.value));
     }
-    pointCutConstructorArguments.positional.add(MapLiteral(entries));
+    final MapLiteral namedLiteral = MapLiteral(entries);
+
+    pointCutConstructorArguments.positional.add(namedLiteral);
 
     Class clz;
     if (currrentClass == null && member.parent is Class) {
@@ -285,8 +296,7 @@ class AopUtils {
 
             if (f.initializer is DoubleLiteral) {
               c = DoubleConstant((f.initializer as DoubleLiteral).value);
-            }
-            else if (f.initializer is StringLiteral) {
+            } else if (f.initializer is StringLiteral) {
               c = StringConstant((f.initializer as StringLiteral).value);
             } else if (f.initializer is IntLiteral) {
               c = IntConstant((f.initializer as IntLiteral).value);
@@ -359,7 +369,11 @@ class AopUtils {
     final ConstructorInvocation pointCutConstructorInvocation =
         ConstructorInvocation(pointCutProceedProcedureCls.constructors.first,
             pointCutConstructorArguments);
+    positionalLiteral.parent = pointCutConstructorInvocation;
+    namedLiteral.parent = pointCutConstructorInvocation;
+
     redirectArguments.positional.add(pointCutConstructorInvocation);
+    pointCutConstructorInvocation.parent = redirectArguments;
   }
 
   static void concatArgumentsForAopField(
@@ -514,65 +528,6 @@ class AopUtils {
     return arguments;
   }
 
-//   static Arguments concatArguments4PointcutStubCall2(Member member, ConstructorInvocation constructorInvocation) {
-
-//     final Arguments arguments = Arguments.empty();
-//     int i = 0;
-//     for (VariableDeclaration variableDeclaration
-//         in member.function.positionalParameters) {
-
-//       final Arguments getArguments = Arguments.empty();
-//       getArguments.positional.add(IntLiteral(i));
-//       final MethodInvocation methodInvocation = MethodInvocation(
-//           PropertyGet(ThisExpression(), Name('positionalParams')),
-//           listGetProcedure.name,
-//           getArguments);
-//       final AsExpression asExpression = AsExpression(methodInvocation,
-//           deepCopyASTNode(variableDeclaration.type, ignoreGenerics: true));
-
-//       arguments.positional.add(asExpression);
-//       i++;
-//     }
-//     final List<NamedExpression> namedEntries = <NamedExpression>[];
-
-//     for (VariableDeclaration variableDeclaration
-//         in member.function.namedParameters) {
-
-// bool inserted = false;
-//         for(NamedExpression e in constructorInvocation.arguments.named) {
-
-//             if(variableDeclaration.name == e.name) {
-//  namedEntries
-//             .add(NamedExpression(variableDeclaration.name, e.value));
-//             inserted = true;
-//             break;
-
-//             }
-//         }
-
-//     if(inserted == false) {
-// final Arguments getArguments = Arguments.empty();
-//         getArguments.positional.add(StringLiteral(variableDeclaration.name));
-//         final MethodInvocation methodInvocation = MethodInvocation(
-//             PropertyGet(ThisExpression(), Name('namedParams')),
-//             mapGetProcedure.name,
-//             getArguments);
-
-//         final AsExpression asExpression = AsExpression(methodInvocation,
-//             deepCopyASTNode(variableDeclaration.type, ignoreGenerics: true));
-
-//         namedEntries
-//             .add(NamedExpression(variableDeclaration.name, asExpression));
-//     }
-
-//       }
-//     if (namedEntries.isNotEmpty) {
-//       arguments.named.addAll(namedEntries);
-//     }
-
-//     return arguments;
-//   }
-
   static void insertProceedBranch(Procedure procedure, bool shouldReturn) {
     final Block block = pointCutProceedProcedure.function.body;
     final String methodName = procedure.name.name;
@@ -713,7 +668,7 @@ class AopUtils {
       functionNode,
       isStatic: referProcedure.isStatic,
       fileUri: referProcedure.fileUri,
-      stubKind : referProcedure.stubKind,
+      stubKind: referProcedure.stubKind,
       stubTarget: referProcedure.stubTarget,
     );
 
