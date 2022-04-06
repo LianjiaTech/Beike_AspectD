@@ -2,13 +2,10 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'dart:io' show Directory, Platform;
 import 'package:_fe_analyzer_shared/src/testing/id.dart' show ActualData, Id;
 import 'package:_fe_analyzer_shared/src/testing/id_testing.dart'
     show DataInterpreter, StringDataInterpreter, runTests;
-import 'package:_fe_analyzer_shared/src/testing/id_testing.dart';
 import 'package:front_end/src/testing/id_testing_helper.dart'
     show
         CfeDataExtractor,
@@ -23,7 +20,7 @@ import 'package:front_end/src/testing/id_testing_helper.dart'
 import 'package:front_end/src/testing/id_testing_utils.dart';
 import 'package:kernel/ast.dart';
 
-main(List<String> args) async {
+Future<void> main(List<String> args) async {
   Directory dataDir = new Directory.fromUri(Platform.script
       .resolve('../../../_fe_analyzer_shared/test/constants/data'));
   await runTests<String>(dataDir,
@@ -42,7 +39,7 @@ class ConstantsDataComputer extends DataComputer<String> {
       InternalCompilerResult compilerResult,
       Member member,
       Map<Id, ActualData<String>> actualMap,
-      {bool verbose}) {
+      {bool? verbose}) {
     member.accept(new ConstantsDataExtractor(compilerResult, actualMap));
   }
 
@@ -52,7 +49,7 @@ class ConstantsDataComputer extends DataComputer<String> {
       InternalCompilerResult compilerResult,
       Class cls,
       Map<Id, ActualData<String>> actualMap,
-      {bool verbose}) {
+      {bool? verbose}) {
     new ConstantsDataExtractor(compilerResult, actualMap).computeForClass(cls);
   }
 
@@ -60,6 +57,7 @@ class ConstantsDataComputer extends DataComputer<String> {
   bool get supportsErrors => true;
 
   /// Returns data corresponding to [error].
+  @override
   String computeErrorData(TestConfig config, InternalCompilerResult compiler,
       Id id, List<FormattedMessage> errors) {
     return errorsToText(errors);
@@ -75,7 +73,7 @@ class ConstantsDataExtractor extends CfeDataExtractor<String> {
       : super(compilerResult, actualMap);
 
   @override
-  String computeNodeValue(Id id, TreeNode node) {
+  String? computeNodeValue(Id id, TreeNode node) {
     if (node is ConstantExpression) {
       return constantToText(node.constant);
     }

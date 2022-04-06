@@ -2,15 +2,13 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'dart:io' show Directory, Platform;
 import 'package:_fe_analyzer_shared/src/testing/id.dart' show ActualData, Id;
 import 'package:_fe_analyzer_shared/src/testing/id_testing.dart';
 import 'package:front_end/src/testing/id_testing_helper.dart';
 import 'package:kernel/ast.dart' hide Variance;
 
-main(List<String> args) async {
+Future<void> main(List<String> args) async {
   Directory dataDir = new Directory.fromUri(Platform.script.resolve(
       '../../../_fe_analyzer_shared/test/flow_analysis/nullability/data'));
   await runTests<String>(dataDir,
@@ -30,12 +28,13 @@ class NullabilityDataComputer extends DataComputer<String> {
   /// Function that computes a data mapping for [member].
   ///
   /// Fills [actualMap] with the data.
+  @override
   void computeMemberData(
       TestConfig config,
       InternalCompilerResult compilerResult,
       Member member,
       Map<Id, ActualData<String>> actualMap,
-      {bool verbose}) {
+      {bool? verbose}) {
     member.accept(new NullabilityDataExtractor(compilerResult, actualMap));
   }
 }
@@ -46,10 +45,10 @@ class NullabilityDataExtractor extends CfeDataExtractor<String> {
       : super(compilerResult, actualMap);
 
   @override
-  String computeNodeValue(Id id, TreeNode node) {
+  String? computeNodeValue(Id id, TreeNode node) {
     if (node is VariableGet && node.promotedType != null) {
       if (node.variable.type.nullability != Nullability.nonNullable &&
-          node.promotedType.nullability == Nullability.nonNullable) {
+          node.promotedType!.nullability == Nullability.nonNullable) {
         return 'nonNullable';
       }
     }

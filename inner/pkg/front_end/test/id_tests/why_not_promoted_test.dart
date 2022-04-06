@@ -2,21 +2,18 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'dart:io' show Directory, Platform;
 
 import 'package:_fe_analyzer_shared/src/testing/id.dart' show ActualData, Id;
 import 'package:_fe_analyzer_shared/src/testing/id_testing.dart'
     show DataInterpreter, runTests;
-import 'package:_fe_analyzer_shared/src/testing/id_testing.dart';
 import 'package:front_end/src/fasta/builder/member_builder.dart';
 import 'package:front_end/src/fasta/type_inference/type_inference_engine.dart';
 import 'package:front_end/src/testing/id_testing_helper.dart';
 import 'package:front_end/src/testing/id_testing_utils.dart';
 import 'package:kernel/ast.dart' hide Variance, MapLiteralEntry;
 
-main(List<String> args) async {
+Future<void> main(List<String> args) async {
   Directory dataDir = new Directory.fromUri(
       Platform.script.resolve('../../../_fe_analyzer_shared/test/flow_analysis/'
           'why_not_promoted/data'));
@@ -43,16 +40,17 @@ class WhyNotPromotedDataComputer extends DataComputer<String> {
   /// Function that computes a data mapping for [member].
   ///
   /// Fills [actualMap] with the data.
+  @override
   void computeMemberData(
       TestConfig config,
       InternalCompilerResult compilerResult,
       Member member,
       Map<Id, ActualData<String>> actualMap,
-      {bool verbose}) {
+      {bool? verbose}) {
     MemberBuilderImpl memberBuilder =
-        lookupMemberBuilder(compilerResult, member);
+        lookupMemberBuilder(compilerResult, member) as MemberBuilderImpl;
     member.accept(new WhyNotPromotedDataExtractor(compilerResult, actualMap,
-        memberBuilder.dataForTesting.inferenceData.flowAnalysisResult));
+        memberBuilder.dataForTesting!.inferenceData.flowAnalysisResult));
   }
 }
 
@@ -64,8 +62,8 @@ class WhyNotPromotedDataExtractor extends CfeDataExtractor<String> {
       : super(compilerResult, actualMap);
 
   @override
-  String computeNodeValue(Id id, TreeNode node) {
-    String nonPromotionReason = _flowResult.nonPromotionReasons[node];
+  String? computeNodeValue(Id id, TreeNode node) {
+    String? nonPromotionReason = _flowResult.nonPromotionReasons[node];
     if (nonPromotionReason != null) {
       return 'notPromoted($nonPromotionReason)';
     }
@@ -77,10 +75,10 @@ class _WhyNotPromotedDataInterpreter implements DataInterpreter<String> {
   const _WhyNotPromotedDataInterpreter();
 
   @override
-  String getText(String actualData, [String indentation]) => actualData;
+  String getText(String actualData, [String? indentation]) => actualData;
 
   @override
-  String isAsExpected(String actualData, String expectedData) {
+  String? isAsExpected(String actualData, String? expectedData) {
     if (actualData == expectedData) {
       return null;
     } else {
@@ -89,5 +87,5 @@ class _WhyNotPromotedDataInterpreter implements DataInterpreter<String> {
   }
 
   @override
-  bool isEmpty(String actualData) => actualData == null;
+  bool isEmpty(String? actualData) => actualData == null;
 }

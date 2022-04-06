@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -11,7 +9,7 @@ import 'dart:math';
 
 import "vm_service_heap_helper.dart" as helper;
 
-Completer completer;
+late Completer completer;
 
 Set<String> files = {};
 
@@ -26,7 +24,7 @@ Set<String> files = {};
 // but assumes that flutter has been setup as by the script
 // `tools/bots/flutter/compile_flutter.sh`.
 
-main(List<String> args) async {
+Future<void> main(List<String> args) async {
   if (Platform.isWindows) {
     throw "This script cannot run on Windows as it uses non-Windows "
         "assumptions both for the placement of pub packages and the presence "
@@ -36,7 +34,7 @@ main(List<String> args) async {
 
   bool quicker = false;
   bool alternativeInvalidation = false;
-  String rootPath;
+  String? rootPath;
 
   for (String arg in args) {
     if (arg == "--quicker") {

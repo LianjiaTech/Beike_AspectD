@@ -2,11 +2,9 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import "dart:io" show Platform;
 
 import "subtypes_benchmark.dart" show run;
 
-main() =>
+void main() =>
     run(Platform.script.resolve("benchmark_data/dart2js.json.gz"), "Dart2js");

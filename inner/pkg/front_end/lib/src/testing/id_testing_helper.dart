@@ -52,18 +52,20 @@ class TestConfig {
   final Map<ExperimentalFlag, bool> explicitExperimentalFlags;
   final AllowedExperimentalFlags? allowedExperimentalFlags;
   final Uri? librariesSpecificationUri;
+  final Uri? packageConfigUri;
   // TODO(johnniwinther): Tailor support to redefine selected platform
   // classes/members only.
   final bool compileSdk;
-  final TargetFlags targetFlags;
+  final TestTargetFlags targetFlags;
   final NnbdMode nnbdMode;
 
   const TestConfig(this.marker, this.name,
       {this.explicitExperimentalFlags = const {},
       this.allowedExperimentalFlags,
       this.librariesSpecificationUri,
+      this.packageConfigUri,
       this.compileSdk: false,
-      this.targetFlags: const TargetFlags(),
+      this.targetFlags: const TestTargetFlags(),
       this.nnbdMode: NnbdMode.Weak});
 
   void customizeCompilerOptions(CompilerOptions options, TestData testData) {}
@@ -77,7 +79,9 @@ abstract class DataComputer<T> {
   void setup() {}
 
   // Called to allow for (awaited) inspection of the compilation result.
-  Future<void> inspectComponent(Component component) async {}
+  Future<void> inspectComponent(Component component) {
+    return new Future.value(null);
+  }
 
   /// Function that computes a data mapping for [member].
   ///
@@ -307,7 +311,8 @@ Future<TestResult<T>> runTestForConfig<T>(
     if (!succinct) printDiagnosticMessage(message, print);
   };
   options.debugDump = printCode;
-  options.target = new NoneTarget(config.targetFlags);
+  options.target = new TestTargetWrapper(
+      new NoneTarget(config.targetFlags), config.targetFlags);
   options.explicitExperimentalFlags.addAll(config.explicitExperimentalFlags);
   options.allowedExperimentalFlagsForTesting = config.allowedExperimentalFlags;
   options.nnbdMode = config.nnbdMode;
@@ -319,6 +324,7 @@ Future<TestResult<T>> runTestForConfig<T>(
       options.compileSdk = config.compileSdk;
     }
   }
+  options.packagesFileUri = config.packageConfigUri;
   config.customizeCompilerOptions(options, testData);
   InternalCompilerResult compilerResult = await compileScript(
       testData.memorySourceFiles,

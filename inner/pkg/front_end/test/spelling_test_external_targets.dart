@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'dart:io' show Directory, File, FileSystemEntity;
 
 import 'package:testing/testing.dart'
@@ -15,7 +13,7 @@ import 'spell_checking_utils.dart' as spell;
 
 import 'testing_utils.dart' show checkEnvironment;
 
-main([List<String> arguments = const []]) =>
+void main([List<String> arguments = const []]) =>
     runMe(arguments, createContext, configurationPath: "../testing.json");
 
 Future<SpellContext> createContext(
@@ -30,7 +28,7 @@ Future<SpellContext> createContext(
 }
 
 class SpellContextExternal extends SpellContext {
-  SpellContextExternal({bool interactive, bool onlyInGit})
+  SpellContextExternal({required bool interactive, required bool onlyInGit})
       : super(interactive: interactive, onlyInGit: onlyInGit);
 
   @override
@@ -43,6 +41,7 @@ class SpellContextExternal extends SpellContext {
   String get repoRelativeSuitePath =>
       "pkg/front_end/test/spelling_test_external_targets.dart";
 
+  @override
   Stream<TestDescription> list(Chain suite) async* {
     for (String subdir in const ["pkg/", "sdk/"]) {
       Directory testRoot = new Directory.fromUri(suite.uri.resolve(subdir));

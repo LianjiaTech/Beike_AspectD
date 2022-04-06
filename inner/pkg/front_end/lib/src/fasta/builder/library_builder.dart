@@ -8,7 +8,7 @@ import 'package:_fe_analyzer_shared/src/messages/severity.dart' show Severity;
 
 import 'package:kernel/ast.dart' show Library, Nullability;
 
-import '../combinator.dart' show Combinator;
+import '../combinator.dart' show CombinatorBuilder;
 
 import '../problems.dart' show internalProblem, unsupported;
 
@@ -29,7 +29,6 @@ import '../scope.dart';
 
 import 'builder.dart';
 import 'class_builder.dart';
-import 'field_builder.dart';
 import 'member_builder.dart';
 import 'modifier_builder.dart';
 import 'name_iterator.dart';
@@ -76,8 +75,8 @@ abstract class LibraryBuilder implements ModifierBuilder {
 
   Builder? addBuilder(String? name, Builder declaration, int charOffset);
 
-  void addExporter(
-      LibraryBuilder exporter, List<Combinator>? combinators, int charOffset);
+  void addExporter(LibraryBuilder exporter,
+      List<CombinatorBuilder>? combinators, int charOffset);
 
   /// Add a problem with a severity determined by the severity of the message.
   ///
@@ -101,14 +100,6 @@ abstract class LibraryBuilder implements ModifierBuilder {
       String name, Builder declaration, Builder other, int charOffset,
       {bool isExport: false, bool isImport: false});
 
-  int finishDeferredLoadTearoffs();
-
-  int finishForwarders();
-
-  int finishNativeMethods();
-
-  int finishPatchMethods();
-
   /// Looks up [constructorName] in the class named [className].
   ///
   /// The class is looked up in this library's export scope unless
@@ -123,21 +114,6 @@ abstract class LibraryBuilder implements ModifierBuilder {
   /// `"_"`, and [bypassLibraryPrivacy] is false.
   MemberBuilder getConstructor(String className,
       {String constructorName, bool bypassLibraryPrivacy: false});
-
-  int finishTypeVariables(ClassBuilder object, TypeBuilder dynamicType);
-
-  /// Computes variances of type parameters on typedefs.
-  ///
-  /// The variance property of type parameters on typedefs is computed from the
-  /// use of the parameters in the right-hand side of the typedef definition.
-  int computeVariances() => 0;
-
-  /// This method instantiates type parameters to their bounds in some cases
-  /// where they were omitted by the programmer and not provided by the type
-  /// inference.  The method returns the number of distinct type variables
-  /// that were instantiated in this library.
-  int computeDefaultTypes(TypeBuilder dynamicType, TypeBuilder nullType,
-      TypeBuilder bottomType, ClassBuilder objectClass);
 
   void becomeCoreLibrary();
 
@@ -159,10 +135,6 @@ abstract class LibraryBuilder implements ModifierBuilder {
   void applyPatches();
 
   void recordAccess(int charOffset, int length, Uri fileUri);
-
-  void buildOutlineExpressions();
-
-  List<FieldBuilder>? takeImplicitlyTypedFields();
 
   bool get isNonNullableByDefault;
 
@@ -220,7 +192,7 @@ abstract class LibraryBuilderImpl extends ModifierBuilderImpl
   bool get isPart => false;
 
   @override
-  String get debugName => "LibraryBuilder";
+  String get debugName => "$runtimeType";
 
   @override
   Loader get loader;
@@ -242,8 +214,8 @@ abstract class LibraryBuilderImpl extends ModifierBuilderImpl
   }
 
   @override
-  void addExporter(
-      LibraryBuilder exporter, List<Combinator>? combinators, int charOffset) {
+  void addExporter(LibraryBuilder exporter,
+      List<CombinatorBuilder>? combinators, int charOffset) {
     exporters.add(new Export(exporter, this, combinators, charOffset));
   }
 
@@ -284,18 +256,6 @@ abstract class LibraryBuilderImpl extends ModifierBuilderImpl
       }
     }
   }
-
-  @override
-  int finishDeferredLoadTearoffs() => 0;
-
-  @override
-  int finishForwarders() => 0;
-
-  @override
-  int finishNativeMethods() => 0;
-
-  @override
-  int finishPatchMethods() => 0;
 
   @override
   MemberBuilder getConstructor(String className,
@@ -340,18 +300,6 @@ abstract class LibraryBuilderImpl extends ModifierBuilderImpl
   }
 
   @override
-  int finishTypeVariables(ClassBuilder object, TypeBuilder dynamicType) => 0;
-
-  @override
-  int computeVariances() => 0;
-
-  @override
-  int computeDefaultTypes(TypeBuilder dynamicType, TypeBuilder nullType,
-      TypeBuilder bottomType, ClassBuilder objectClass) {
-    return 0;
-  }
-
-  @override
   void becomeCoreLibrary() {
     if (scope.lookupLocalMember("dynamic", setter: false) == null) {
       addSyntheticDeclarationOfDynamic();
@@ -392,12 +340,6 @@ abstract class LibraryBuilderImpl extends ModifierBuilderImpl
   void recordAccess(int charOffset, int length, Uri fileUri) {}
 
   @override
-  void buildOutlineExpressions() {}
-
-  @override
-  List<FieldBuilder>? takeImplicitlyTypedFields() => null;
-
-  @override
   Nullability get nullable {
     return isNonNullableByDefault ? Nullability.nullable : Nullability.legacy;
   }
@@ -435,6 +377,11 @@ abstract class LibraryBuilderImpl extends ModifierBuilderImpl
         ? const NullabilityBuilder.nullable()
         : const NullabilityBuilder.omitted();
   }
+
+  @override
+  StringBuffer printOn(StringBuffer buffer) {
+    return buffer..write(name ?? (isPart ? fileUri : importUri));
+  }
 }
 
 class LibraryLocalDeclarationIterator implements Iterator<Builder> {
@@ -444,8 +391,10 @@ class LibraryLocalDeclarationIterator implements Iterator<Builder> {
   LibraryLocalDeclarationIterator(this.library)
       : iterator = library.scope.iterator;
 
+  @override
   Builder get current => iterator.current;
 
+  @override
   bool moveNext() {
     while (iterator.moveNext()) {
       if (current.parent == library) return true;
@@ -461,10 +410,13 @@ class LibraryLocalDeclarationNameIterator implements NameIterator {
   LibraryLocalDeclarationNameIterator(this.library)
       : iterator = library.scope.nameIterator;
 
+  @override
   Builder get current => iterator.current;
 
+  @override
   String get name => iterator.name;
 
+  @override
   bool moveNext() {
     while (iterator.moveNext()) {
       if (current.parent == library) return true;

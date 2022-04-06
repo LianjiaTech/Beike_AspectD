@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'dart:io';
 
 import 'package:_fe_analyzer_shared/src/messages/severity.dart';
@@ -16,20 +14,20 @@ import 'package:front_end/src/compute_platform_binaries_location.dart'
 import 'package:front_end/src/fasta/builder/declaration_builder.dart';
 import 'package:front_end/src/fasta/builder/field_builder.dart';
 import 'package:front_end/src/fasta/builder/modifier_builder.dart';
+import 'package:front_end/src/fasta/builder/type_builder.dart';
 import 'package:front_end/src/fasta/builder/type_declaration_builder.dart';
-import 'package:front_end/src/fasta/builder/unresolved_type.dart';
 import 'package:front_end/src/fasta/compiler_context.dart';
 import 'package:front_end/src/fasta/constant_context.dart';
 import 'package:front_end/src/fasta/dill/dill_target.dart';
 import 'package:front_end/src/fasta/fasta_codes.dart' as fasta;
 import 'package:front_end/src/fasta/kernel/body_builder.dart';
 import 'package:front_end/src/fasta/kernel/constness.dart';
+import 'package:front_end/src/fasta/kernel/expression_generator_helper.dart';
 import 'package:front_end/src/fasta/kernel/kernel_target.dart';
 import 'package:front_end/src/fasta/scope.dart';
 import 'package:front_end/src/fasta/source/diet_listener.dart';
 import 'package:front_end/src/fasta/source/source_library_builder.dart';
 import 'package:front_end/src/fasta/source/source_loader.dart';
-import 'package:front_end/src/fasta/source/stack_listener_impl.dart';
 import 'package:front_end/src/fasta/ticker.dart';
 import 'package:front_end/src/fasta/type_inference/type_inference_engine.dart';
 import 'package:front_end/src/fasta/type_inference/type_inferrer.dart';
@@ -86,15 +84,14 @@ Future<void> main(List<String> args) async {
 
   Stopwatch stopwatch = new Stopwatch()..start();
 
-  await CompilerContext.runWithOptions<List<Uri>>(options,
-      (CompilerContext c) async {
+  await CompilerContext.runWithOptions(options, (CompilerContext c) async {
     UriTranslator uriTranslator = await c.options.getUriTranslator();
     DillTarget dillTarget =
         new DillTarget(ticker, uriTranslator, c.options.target);
     KernelTarget kernelTarget =
         new KernelTargetTest(c.fileSystem, false, dillTarget, uriTranslator);
 
-    Uri platform = c.options.sdkSummary;
+    Uri? platform = c.options.sdkSummary;
     if (platform != null) {
       var bytes = new File.fromUri(platform).readAsBytesSync();
       var platformComponent = loadComponentFromBytes(bytes);
@@ -103,10 +100,9 @@ Future<void> main(List<String> args) async {
     }
 
     kernelTarget.setEntryPoints(c.options.inputs);
-    await dillTarget.buildOutlines();
+    dillTarget.buildOutlines();
     await kernelTarget.buildOutlines();
     await kernelTarget.buildComponent();
-    return null;
   });
 
   print("Done in ${stopwatch.elapsedMilliseconds} ms. "
@@ -135,9 +131,10 @@ class SourceLoaderTest extends SourceLoader {
         library, hierarchy, coreTypes, typeInferenceEngine);
   }
 
+  @override
   BodyBuilder createBodyBuilderForOutlineExpression(
       SourceLibraryBuilder library,
-      DeclarationBuilder declarationBuilder,
+      DeclarationBuilder? declarationBuilder,
       ModifierBuilder member,
       Scope scope,
       Uri fileUri) {
@@ -145,6 +142,7 @@ class SourceLoaderTest extends SourceLoader {
         library, declarationBuilder, member, scope, fileUri);
   }
 
+  @override
   BodyBuilder createBodyBuilderForField(
       FieldBuilder field, TypeInferrer typeInferrer) {
     return new BodyBuilderTest.forField(field, typeInferrer);
@@ -157,13 +155,13 @@ class DietListenerTest extends DietListener {
       : super(library, hierarchy, coreTypes, typeInferenceEngine);
 
   @override
-  StackListenerImpl createListenerInternal(
+  BodyBuilder createListenerInternal(
       ModifierBuilder builder,
       Scope memberScope,
-      Scope formalParameterScope,
+      Scope? formalParameterScope,
       bool isDeclarationInstanceMember,
-      VariableDeclaration extensionThis,
-      List<TypeParameter> extensionTypeParameters,
+      VariableDeclaration? extensionThis,
+      List<TypeParameter>? extensionTypeParameters,
       TypeInferrer typeInferrer,
       ConstantContext constantContext) {
     return new BodyBuilderTest(
@@ -219,7 +217,7 @@ class BodyBuilderTest extends BodyBuilder {
   @override
   BodyBuilderTest.forOutlineExpression(
       SourceLibraryBuilder library,
-      DeclarationBuilder declarationBuilder,
+      DeclarationBuilder? declarationBuilder,
       ModifierBuilder member,
       Scope scope,
       Uri fileUri)
@@ -228,17 +226,18 @@ class BodyBuilderTest extends BodyBuilder {
 
   @override
   Expression buildConstructorInvocation(
-      TypeDeclarationBuilder type,
+      TypeDeclarationBuilder? type,
       Token nameToken,
       Token nameLastToken,
-      Arguments arguments,
+      Arguments? arguments,
       String name,
-      List<UnresolvedType> typeArguments,
+      List<TypeBuilder>? typeArguments,
       int charOffset,
       Constness constness,
       {bool isTypeArgumentsInForest = false,
-      TypeDeclarationBuilder typeAliasBuilder}) {
-    Token maybeNewOrConst = nameToken.previous;
+      TypeDeclarationBuilder? typeAliasBuilder,
+      required UnresolvedKind unresolvedKind}) {
+    Token maybeNewOrConst = nameToken.previous!;
     bool doReport = true;
     if (maybeNewOrConst is KeywordToken) {
       if (maybeNewOrConst.lexeme == "new" ||
@@ -270,7 +269,8 @@ class BodyBuilderTest extends BodyBuilder {
     }
     return super.buildConstructorInvocation(type, nameToken, nameLastToken,
         arguments, name, typeArguments, charOffset, constness,
-        isTypeArgumentsInForest: isTypeArgumentsInForest);
+        isTypeArgumentsInForest: isTypeArgumentsInForest,
+        unresolvedKind: unresolvedKind);
   }
 }
 

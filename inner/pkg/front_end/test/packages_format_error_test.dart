@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'package:_fe_analyzer_shared/src/messages/diagnostic_message.dart'
     show DiagnosticMessage, getMessageCodeObject;
 
@@ -25,7 +23,7 @@ import 'package:front_end/src/fasta/compiler_context.dart' show CompilerContext;
 import 'package:front_end/src/fasta/messages.dart'
     show codeCantReadFile, codePackagesFileFormat;
 
-main() {
+void main() {
   Uri root = Uri.parse("org-dartlang-test:///");
   MemoryFileSystem fs = new MemoryFileSystem(root);
   Uri packages = root.resolve(".packages");

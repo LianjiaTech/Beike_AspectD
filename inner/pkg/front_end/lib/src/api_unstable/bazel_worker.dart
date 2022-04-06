@@ -72,7 +72,7 @@ Future<InitializedCompilerState> initializeIncrementalCompiler(
     Map<String, String> environmentDefines,
     {bool trackNeededDillLibraries: false,
     bool verbose: false,
-    NnbdMode nnbdMode: NnbdMode.Weak}) async {
+    NnbdMode nnbdMode: NnbdMode.Weak}) {
   List<Component> outputLoadedAdditionalDills =
       new List<Component>.filled(additionalDills.length, dummyComponent);
   Map<ExperimentalFlag, bool> experimentalFlags = parseExperimentalFlags(
@@ -98,7 +98,7 @@ Future<InitializedCompilerState> initializeIncrementalCompiler(
       nnbdMode: nnbdMode);
 }
 
-Future<InitializedCompilerState> initializeCompiler(
+InitializedCompilerState initializeCompiler(
   InitializedCompilerState? oldState,
   Uri sdkSummary,
   Uri librariesSpecificationUri,
@@ -110,7 +110,7 @@ Future<InitializedCompilerState> initializeCompiler(
   Map<String, String> environmentDefines, {
   bool verbose: false,
   NnbdMode nnbdMode: NnbdMode.Weak,
-}) async {
+}) {
   // TODO(sigmund): use incremental compiler when it supports our use case.
   // Note: it is common for the summary worker to invoke the compiler with the
   // same input summary URIs, but with different contents, so we'd need to be
@@ -137,8 +137,9 @@ Future<InitializedCompilerState> initializeCompiler(
 
 Future<CompilerResult> _compile(InitializedCompilerState compilerState,
     List<Uri> inputs, DiagnosticMessageHandler diagnosticMessageHandler,
-    {bool? summaryOnly, bool includeOffsets: true}) {
-  summaryOnly ??= true;
+    {bool? buildSummary, bool? buildComponent, bool includeOffsets: true}) {
+  buildSummary ??= true;
+  buildComponent ??= true;
   CompilerOptions options = compilerState.options;
   options..onDiagnostic = diagnosticMessageHandler;
 
@@ -147,8 +148,8 @@ Future<CompilerResult> _compile(InitializedCompilerState compilerState,
   processedOpts.inputs.addAll(inputs);
 
   return generateKernel(processedOpts,
-      buildSummary: summaryOnly,
-      buildComponent: !summaryOnly,
+      buildSummary: buildSummary,
+      buildComponent: buildComponent,
       includeOffsets: includeOffsets);
 }
 
@@ -157,15 +158,18 @@ Future<List<int>?> compileSummary(InitializedCompilerState compilerState,
     {bool includeOffsets: false}) async {
   CompilerResult result = await _compile(
       compilerState, inputs, diagnosticMessageHandler,
-      summaryOnly: true, includeOffsets: includeOffsets);
+      buildSummary: true,
+      buildComponent: false,
+      includeOffsets: includeOffsets);
   return result.summary;
 }
 
 Future<Component?> compileComponent(InitializedCompilerState compilerState,
-    List<Uri> inputs, DiagnosticMessageHandler diagnosticMessageHandler) async {
+    List<Uri> inputs, DiagnosticMessageHandler diagnosticMessageHandler,
+    {bool buildSummary: true}) async {
   CompilerResult result = await _compile(
       compilerState, inputs, diagnosticMessageHandler,
-      summaryOnly: false);
+      buildSummary: buildSummary, buildComponent: true);
 
   Component? component = result.component;
   if (component != null) {

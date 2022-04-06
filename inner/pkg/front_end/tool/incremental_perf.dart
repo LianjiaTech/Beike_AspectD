@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart=2.9
-
 /// An entrypoint used to measure performance of the incremental compiler.
 ///
 /// Given an input a program and a .json file describing edits, this script will
@@ -57,7 +55,7 @@ import 'package:front_end/src/fasta/uri_translator.dart';
 
 import 'perf_common.dart';
 
-main(List<String> args) async {
+Future<void> main(List<String> args) async {
   var options = argParser.parse(args);
   if (options.rest.length != 2) {
     throw """
@@ -100,8 +98,8 @@ Future benchmark(
     bool verbose,
     bool verboseCompilation,
     List<ChangeSet> changeSets,
-    String sdkSummary,
-    String sdkLibrarySpecification,
+    String? sdkSummary,
+    String? sdkLibrarySpecification,
     String cache) async {
   var overlayFs = new OverlayFileSystem();
   var compilerOptions = new CompilerOptions()
@@ -127,7 +125,8 @@ Future benchmark(
   collector.start("Initial compilation");
   var generator = new IncrementalKernelGenerator(compilerOptions, entryUri);
 
-  var component = await generator.computeDelta();
+  var compilerResult = await generator.computeDelta();
+  var component = compilerResult.component;
   collector.stop("Initial compilation");
   if (verbose) {
     print("Libraries changed: ${component.libraries.length}");
@@ -141,7 +140,8 @@ Future benchmark(
     await applyEdits(
         changeSet.edits, overlayFs, generator, uriTranslator, verbose);
     collector.start(name);
-    component = await generator.computeDelta();
+    compilerResult = await generator.computeDelta();
+    component = compilerResult.component;
     collector.stop(name);
     if (verbose) {
       print("Change '${changeSet.name}' - "
@@ -157,7 +157,7 @@ Future benchmark(
 
 /// Apply all edits of a single iteration by updating the copy of the file in
 /// the memory file system.
-applyEdits(
+Future<void> applyEdits(
     List<Edit> edits,
     OverlayFileSystem fs,
     IncrementalKernelGenerator generator,
@@ -168,9 +168,10 @@ applyEdits(
       print('edit $edit');
     }
     var uri = edit.uri;
-    if (uri.scheme == 'package') uri = uriTranslator.translate(uri);
+    if (uri.scheme == 'package') uri = uriTranslator.translate(uri)!;
     generator.invalidate(uri);
-    OverlayFileSystemEntity entity = fs.entityForUri(uri);
+    OverlayFileSystemEntity entity =
+        fs.entityForUri(uri) as OverlayFileSystemEntity;
     var contents = await entity.readAsString();
     entity.writeAsStringSync(
         contents.replaceAll(edit.original, edit.replacement));
@@ -227,18 +228,19 @@ class OverlayFileSystem implements FileSystem {
 }
 
 class OverlayFileSystemEntity implements FileSystemEntity {
+  @override
   final Uri uri;
-  FileSystemEntity _delegate;
+  FileSystemEntity? _delegate;
   final OverlayFileSystem _fs;
 
   OverlayFileSystemEntity(this.uri, this._fs);
 
   Future<FileSystemEntity> get delegate async {
-    if (_delegate != null) return _delegate;
+    if (_delegate != null) return _delegate!;
     FileSystemEntity entity = _fs.memory.entityForUri(uri);
     if (await entity.exists()) {
       _delegate = entity;
-      return _delegate;
+      return _delegate!;
     }
     return _delegate = _fs.physical.entityForUri(uri.replace(scheme: 'file'));
   }
@@ -273,6 +275,7 @@ class Edit {
   Edit(String uriString, this.original, this.replacement)
       : uri = _resolveOverlayUri(uriString);
 
+  @override
   String toString() => 'Edit($uri, "$original" -> "$replacement")';
 }
 
@@ -283,10 +286,11 @@ class ChangeSet {
 
   ChangeSet(this.name, this.edits);
 
+  @override
   String toString() => 'ChangeSet($name, $edits)';
 }
 
-_resolveOverlayUri(String uriString) {
+Uri _resolveOverlayUri(String uriString) {
   Uri result = Uri.base.resolve(uriString);
   return result.isScheme("file")
       ? result.replace(scheme: 'org-dartlang-overlay')

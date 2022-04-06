@@ -2,13 +2,10 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'dart:io' show Directory, Platform;
 import 'package:_fe_analyzer_shared/src/testing/id.dart';
 import 'package:_fe_analyzer_shared/src/testing/id_testing.dart'
     show DataInterpreter, runTests;
-import 'package:_fe_analyzer_shared/src/testing/id_testing.dart';
 import 'package:_fe_analyzer_shared/src/testing/features.dart';
 import 'package:front_end/src/api_prototype/experimental_flags.dart';
 import 'package:front_end/src/base/nnbd_mode.dart';
@@ -23,7 +20,7 @@ import 'package:kernel/target/targets.dart';
 const String isNullMarker = 'is-null';
 const String sentinelMarker = 'sentinel';
 
-main(List<String> args) async {
+Future<void> main(List<String> args) async {
   Directory dataDir = new Directory.fromUri(Platform.script.resolve('data'));
   await runTests<Features>(dataDir,
       args: args,
@@ -34,7 +31,9 @@ main(List<String> args) async {
             explicitExperimentalFlags: const {
               ExperimentalFlag.nonNullable: true
             },
-            targetFlags: const TargetFlags(
+            targetFlags: const TestTargetFlags(
+                forceConstructorTearOffLoweringForTesting:
+                    ConstructorTearOffLowering.all,
                 forceLateLoweringsForTesting: LateLowering.all,
                 forceLateLoweringSentinelForTesting: false),
             nnbdMode: NnbdMode.Strong),
@@ -42,7 +41,9 @@ main(List<String> args) async {
             explicitExperimentalFlags: const {
               ExperimentalFlag.nonNullable: true
             },
-            targetFlags: const TargetFlags(
+            targetFlags: const TestTargetFlags(
+                forceConstructorTearOffLoweringForTesting:
+                    ConstructorTearOffLowering.all,
                 forceLateLoweringsForTesting: LateLowering.all,
                 forceLateLoweringSentinelForTesting: true),
             nnbdMode: NnbdMode.Strong)
@@ -64,6 +65,10 @@ class Tags {
   static const String lateLocalSetter = 'lateLocalSetter';
 
   static const String extensionThis = 'extensionThis';
+
+  static const String tearoffLowering = 'tearoffLowering';
+  static const String tearoffConstructor = 'tearoffConstructor';
+  static const String tearoffTypedef = 'tearoffTypedef';
 }
 
 class PredicateDataComputer extends DataComputer<Features> {
@@ -72,12 +77,13 @@ class PredicateDataComputer extends DataComputer<Features> {
   /// Function that computes a data mapping for [library].
   ///
   /// Fills [actualMap] with the data.
+  @override
   void computeLibraryData(
       TestConfig config,
       InternalCompilerResult compilerResult,
       Library library,
       Map<Id, ActualData<Features>> actualMap,
-      {bool verbose}) {
+      {bool? verbose}) {
     new PredicateDataExtractor(compilerResult, actualMap)
         .computeForLibrary(library);
   }
@@ -88,7 +94,7 @@ class PredicateDataComputer extends DataComputer<Features> {
       InternalCompilerResult compilerResult,
       Member member,
       Map<Id, ActualData<Features>> actualMap,
-      {bool verbose}) {
+      {bool? verbose}) {
     member.accept(new PredicateDataExtractor(compilerResult, actualMap));
   }
 
@@ -106,14 +112,14 @@ class PredicateDataExtractor extends CfeDataExtractor<Features> {
       : super(compilerResult, actualMap);
 
   @override
-  Features computeLibraryValue(Id id, Library node) {
+  Features? computeLibraryValue(Id id, Library node) {
     return null;
   }
 
   @override
-  Features computeMemberValue(Id id, Member node) {
+  Features? computeMemberValue(Id id, Member node) {
+    Features features = new Features();
     if (node is Field) {
-      Features features = new Features();
       if (isLateLoweredField(node)) {
         features.add(Tags.lateField);
         features[Tags.lateFieldName] =
@@ -124,18 +130,16 @@ class PredicateDataExtractor extends CfeDataExtractor<Features> {
         features[Tags.lateFieldName] =
             extractFieldNameFromLateLoweredIsSetField(node).text;
       }
-      Field target = getLateFieldTarget(node);
+      Field? target = getLateFieldTarget(node);
       if (target != null) {
         features[Tags.lateFieldTarget] = getQualifiedMemberName(target);
       }
-      Expression initializer = getLateFieldInitializer(node);
+      Expression? initializer = getLateFieldInitializer(node);
       if (initializer != null) {
         features[Tags.lateFieldInitializer] =
             initializer.toText(astTextStrategyForTesting);
       }
-      return features;
     } else if (node is Procedure) {
-      Features features = new Features();
       if (isLateLoweredFieldGetter(node)) {
         features.add(Tags.lateFieldGetter);
         features[Tags.lateFieldName] =
@@ -146,51 +150,61 @@ class PredicateDataExtractor extends CfeDataExtractor<Features> {
         features[Tags.lateFieldName] =
             extractFieldNameFromLateLoweredFieldSetter(node).text;
       }
-      Field target = getLateFieldTarget(node);
+      Field? target = getLateFieldTarget(node);
       if (target != null) {
         features[Tags.lateFieldTarget] = getQualifiedMemberName(target);
       }
-      Expression initializer = getLateFieldInitializer(node);
+      Expression? initializer = getLateFieldInitializer(node);
       if (initializer != null) {
         features[Tags.lateFieldInitializer] =
             initializer.toText(astTextStrategyForTesting);
       }
-      return features;
+      if (isConstructorTearOffLowering(node)) {
+        features.add(Tags.tearoffConstructor);
+      }
+      if (isTypedefTearOffLowering(node)) {
+        features.add(Tags.tearoffTypedef);
+      }
     }
-    return null;
+    if (isTearOffLowering(node)) {
+      features.add(Tags.tearoffLowering);
+    }
+    return features;
   }
 
+  @override
   void visitProcedure(Procedure node) {
     super.visitProcedure(node);
     nodeIdMap.forEach((String name, NodeId id) {
-      Features features = featureMap[name];
+      Features? features = featureMap[name];
       if (features != null) {
-        TreeNode nodeWithOffset = computeTreeNodeWithOffset(node);
+        TreeNode nodeWithOffset = computeTreeNodeWithOffset(node)!;
         registerValue(
-            nodeWithOffset.location.file, id.value, id, features, name);
+            nodeWithOffset.location!.file, id.value, id, features, name);
       }
     });
     nodeIdMap.clear();
     featureMap.clear();
   }
 
+  @override
   void visitVariableDeclaration(VariableDeclaration node) {
-    String name;
-    String tag;
+    String? name;
+    String? tag;
     if (isLateLoweredLocal(node)) {
-      name = extractLocalNameFromLateLoweredLocal(node.name);
+      name = extractLocalNameFromLateLoweredLocal(node.name!);
       tag = Tags.lateLocal;
     } else if (isLateLoweredIsSetLocal(node)) {
-      name = extractLocalNameFromLateLoweredIsSet(node.name);
+      name = extractLocalNameFromLateLoweredIsSet(node.name!);
       tag = Tags.lateIsSetLocal;
     } else if (isLateLoweredLocalGetter(node)) {
-      name = extractLocalNameFromLateLoweredGetter(node.name);
+      name = extractLocalNameFromLateLoweredGetter(node.name!);
       tag = Tags.lateLocalGetter;
     } else if (isLateLoweredLocalSetter(node)) {
-      name = extractLocalNameFromLateLoweredSetter(node.name);
+      name = extractLocalNameFromLateLoweredSetter(node.name!);
       tag = Tags.lateLocalSetter;
     } else if (isExtensionThis(node)) {
-      name = extractLocalNameForExtensionThis(node.name);
+      name = extractLocalNameForExtensionThis(node.name!);
       tag = Tags.extensionThis;
     } else if (node.name != null) {
       name = node.name;
@@ -208,7 +222,7 @@ class PredicateDataExtractor extends CfeDataExtractor<Features> {
   }
 
   @override
-  ActualData<Features> mergeData(
+  ActualData<Features>? mergeData(
       ActualData<Features> value1, ActualData<Features> value2) {
     if ('${value1.value}' == '${value2.value}') {
       // The extension this parameter is seen twice in the extension method

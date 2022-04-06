@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'dart:io' show Directory, File, Platform;
 import 'package:_fe_analyzer_shared/src/testing/id.dart' show ActualData, Id;
 import 'package:_fe_analyzer_shared/src/testing/features.dart';
@@ -26,7 +24,7 @@ import 'package:front_end/src/testing/id_testing_utils.dart';
 
 import 'package:kernel/ast.dart' show Component, Library, Version;
 
-main(List<String> args) async {
+Future<void> main(List<String> args) async {
   // Fix default/max major and minor version so we can test it.
   // This config sets it to 2.8.
   TestConfigWithLanguageVersion cfeConfig =
@@ -45,7 +43,7 @@ main(List<String> args) async {
 }
 
 // Ugly hack.
-CompilerOptions stashedOptions;
+late CompilerOptions stashedOptions;
 
 class TestConfigWithLanguageVersion extends TestConfig {
   TestConfigWithLanguageVersion(String marker, String name)
@@ -83,6 +81,7 @@ class Tags {
 class LanguageVersioningDataComputer extends DataComputer<Features> {
   const LanguageVersioningDataComputer();
 
+  @override
   Future<void> inspectComponent(Component component) async {
     for (Library library in component.libraries) {
       if (library.importUri.scheme == "dart") continue;
@@ -103,12 +102,13 @@ Language version API (import URI): ${lvImportUri}
     }
   }
 
+  @override
   void computeLibraryData(
       TestConfig config,
       InternalCompilerResult compilerResult,
       Library library,
       Map<Id, ActualData<Features>> actualMap,
-      {bool verbose}) {
+      {bool? verbose}) {
     new LanguageVersioningDataExtractor(compilerResult, actualMap)
         .computeForLibrary(library);
   }
@@ -116,6 +116,7 @@ Language version API (import URI): ${lvImportUri}
   @override
   bool get supportsErrors => true;
 
+  @override
   Features computeErrorData(TestConfig config, InternalCompilerResult compiler,
       Id id, List<FormattedMessage> errors) {
     Features features = new Features();
@@ -138,7 +139,7 @@ class LanguageVersioningDataExtractor extends CfeDataExtractor<Features> {
     Features features = new Features();
     features[Tags.languageVersion] =
         "${library.languageVersion.major}.${library.languageVersion.minor}";
-    LibraryBuilder libraryBuilder =
+    LibraryBuilder? libraryBuilder =
         lookupLibraryBuilder(compilerResult, library);
     if (libraryBuilder is SourceLibraryBuilder &&
         libraryBuilder.packageUriForTesting != null) {

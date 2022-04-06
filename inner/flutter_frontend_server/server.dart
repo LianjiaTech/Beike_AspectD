@@ -88,9 +88,10 @@ class _FlutterFrontendCompiler implements frontend.CompilerInterface {
       List<String> typeDefinitions,
       String libraryUri,
       String klass,
+      String method,
       bool isStatic) {
-    return _compiler.compileExpression(
-        expression, definitions, typeDefinitions, libraryUri, klass, isStatic);
+    return _compiler.compileExpression(expression, definitions, typeDefinitions,
+        libraryUri, klass, method, isStatic);
   }
 
   @override

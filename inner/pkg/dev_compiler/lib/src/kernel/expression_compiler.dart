@@ -10,10 +10,6 @@ import 'package:_fe_analyzer_shared/src/messages/codes.dart'
     show Code, Message, PlainAndColorizedString;
 import 'package:_fe_analyzer_shared/src/messages/diagnostic_message.dart'
     show DiagnosticMessage, DiagnosticMessageHandler;
-import 'package:dev_compiler/dev_compiler.dart';
-import 'package:dev_compiler/src/compiler/js_names.dart' as js_ast;
-import 'package:dev_compiler/src/compiler/module_builder.dart';
-import 'package:dev_compiler/src/js_ast/js_ast.dart' as js_ast;
 import 'package:front_end/src/api_unstable/ddc.dart';
 import 'package:kernel/ast.dart'
     show
@@ -36,9 +32,14 @@ import 'package:kernel/ast.dart'
         VisitorNullMixin,
         VisitorVoidMixin;
 
+import '../../dev_compiler.dart';
+import '../compiler/js_names.dart' as js_ast;
+import '../compiler/module_builder.dart';
+import '../js_ast/js_ast.dart' as js_ast;
+
 DiagnosticMessage _createInternalError(Uri uri, int line, int col, String msg) {
   return Message(Code<String>('Expression Compiler Internal error'),
-          message: msg)
+          problemMessage: msg)
       .withLocation(uri, 0, 0)
       .withFormatting(PlainAndColorizedString.plainOnly('Internal error: $msg'),
           line, col, Severity.internalProblem, []);
@@ -309,7 +310,7 @@ class ExpressionCompiler {
 
       _log('Compiling expression \n$expression');
 
-      var dartScope = await _findScopeAt(Uri.parse(libraryUri), line, column);
+      var dartScope = _findScopeAt(Uri.parse(libraryUri), line, column);
       if (dartScope == null) {
         _log('Scope not found at $libraryUri:$line:$column');
         return null;
@@ -388,14 +389,14 @@ class ExpressionCompiler {
     }
   }
 
-  Future<DartScope> _findScopeAt(Uri libraryUri, int line, int column) async {
+  DartScope _findScopeAt(Uri libraryUri, int line, int column) {
     if (line < 0) {
       onDiagnostic(_createInternalError(
           libraryUri, line, column, 'Invalid source location'));
       return null;
     }
 
-    var library = await _getLibrary(libraryUri);
+    var library = _getLibrary(libraryUri);
     if (library == null) {
       onDiagnostic(_createInternalError(
           libraryUri, line, column, 'Dart library not found for location'));
@@ -414,19 +415,8 @@ class ExpressionCompiler {
     return scope;
   }
 
-  Future<Library> _getLibrary(Uri libraryUri) async {
-    return await _compiler.context.runInContext((_) async {
-      var builder = _compiler.userCode.loader.builders[libraryUri];
-      if (builder != null) {
-        var library =
-            _compiler.userCode.loader.read(libraryUri, -1, accessor: builder);
-
-        return library.library;
-      }
-
-      _log('Loaded library for expression');
-      return null;
-    });
+  Library _getLibrary(Uri libraryUri) {
+    return _compiler.lookupLibrary(libraryUri);
   }
 
   /// Return a JS function that returns the evaluated results when called.
@@ -440,8 +430,8 @@ class ExpressionCompiler {
         scope.typeParameters,
         debugProcedureName,
         scope.library.importUri,
-        scope.cls?.name,
-        scope.isStatic);
+        className: scope.cls?.name,
+        isStatic: scope.isStatic);
 
     _log('Compiled expression to kernel');
 
@@ -453,7 +443,7 @@ class ExpressionCompiler {
 
     var imports = <js_ast.ModuleItem>[];
     var jsFun = _kernel2jsCompiler.emitFunctionIncremental(imports,
-        scope.library, scope.cls, procedure.function, '$debugProcedureName');
+        scope.library, scope.cls, procedure.function, debugProcedureName);
 
     _log('Generated JavaScript for expression');
 

@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 /// Test to ensure that desugaring APIs used by clients like dart2js are
 /// always up to date.
 ///
@@ -23,7 +21,7 @@ import 'package:front_end/src/testing/compiler_common.dart';
 import 'package:kernel/ast.dart' as ir;
 import 'package:kernel/binary/ast_from_binary.dart' show BinaryBuilder;
 
-main() async {
+Future<void> main() async {
   await asyncTest(() async {
     await testRedirectingFactoryDirect();
     await testRedirectingFactorySerialized();
@@ -31,15 +29,15 @@ main() async {
   });
 }
 
-testRedirectingFactoryDirect() async {
+Future<void> testRedirectingFactoryDirect() async {
   var component = await compileUnit(['a.dart'], {'a.dart': aSource});
-  checkIsRedirectingFactory(component, 'a.dart', 'A', 'foo');
+  checkIsRedirectingFactory(component!, 'a.dart', 'A', 'foo');
   checkIsRedirectingFactory(component, 'core', 'Uri', 'file');
 }
 
-testRedirectingFactorySerialized() async {
+Future<void> testRedirectingFactorySerialized() async {
   var component = await compileUnit(['a.dart'], {'a.dart': aSource});
-  var bytes = serializeComponent(component);
+  var bytes = serializeComponent(component!);
   component = new ir.Component();
   new BinaryBuilder(bytes).readComponent(component);
   checkIsRedirectingFactory(component, 'a.dart', 'A', 'foo');
@@ -48,7 +46,7 @@ testRedirectingFactorySerialized() async {
 
 // regression test: redirecting factories from patch files don't have the
 // redirecting-factory flag stored in kernel.
-testRedirectingFactoryPatchFile() async {
+Future<void> testRedirectingFactoryPatchFile() async {
   var componentUri =
       computePlatformBinariesLocation().resolve('dart2js_platform.dill');
   var component = new ir.Component();
@@ -62,8 +60,8 @@ void checkIsRedirectingFactory(ir.Component component, String uriPath,
   var lib =
       component.libraries.firstWhere((l) => l.importUri.path.endsWith(uriPath));
   var cls = lib.classes.firstWhere((c) => c.name == className);
-  ir.Procedure member =
-      cls.members.firstWhere((m) => m.name.text == constructorName);
+  ir.Procedure member = cls.members
+      .firstWhere((m) => m.name.text == constructorName) as ir.Procedure;
   Expect.isTrue(
       member.kind == ir.ProcedureKind.Factory, "$member is not a factory");
   Expect.isTrue(api.isRedirectingFactory(member));

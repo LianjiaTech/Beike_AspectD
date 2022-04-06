@@ -27,7 +27,7 @@ external int testJsInteropMethod();
 
 @JS()
 class JsInteropClass {
-  /*member: JsInteropClass.:static=[JavaScriptObject.(0)]*/
+  /*member: JsInteropClass.:static=[LegacyJavaScriptObject.(0)]*/
   external JsInteropClass();
 
   /*member: JsInteropClass.method:
@@ -43,22 +43,21 @@ class JsInteropClass {
     native:OverconstrainedError,
     native:PositionError,
     native:SensorErrorEvent,
-    native:SpeechRecognitionError,
-    native:SqlError]
+    native:SpeechRecognitionError]
   */
   @JS()
   external double method();
 }
 
 /*member: testJsInteropClass:
- dynamic=[JavaScriptObject.method(0)],
+ dynamic=[LegacyJavaScriptObject.method(0)],
  static=[JsInteropClass.(0)]
 */
 testJsInteropClass() => new JsInteropClass().method();
 
 typedef void Callback<T>(T value);
 
-/*member: GenericClass.:static=[JavaScriptObject.(0)]*/
+/*member: GenericClass.:static=[LegacyJavaScriptObject.(0)]*/
 @JS()
 class GenericClass<T> {
   /*member: GenericClass.method:
@@ -114,7 +113,7 @@ class GenericClass<T> {
 }
 
 /*member: testOptionalGenericFunctionTypeArgument:
- dynamic=[JavaScriptObject.method(0)],
+ dynamic=[LegacyJavaScriptObject.method(0)],
  static=[GenericClass.(0)]
 */
 testOptionalGenericFunctionTypeArgument() => new GenericClass().method();

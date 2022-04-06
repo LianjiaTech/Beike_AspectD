@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'dart:io' show Directory, Platform;
 import 'package:_fe_analyzer_shared/src/testing/id.dart' show ActualData, Id;
 import 'package:_fe_analyzer_shared/src/testing/id_testing.dart';
@@ -14,7 +12,7 @@ import 'package:front_end/src/fasta/type_inference/type_inference_engine.dart';
 import 'package:front_end/src/testing/id_testing_utils.dart';
 import 'package:kernel/ast.dart' hide Variance;
 
-main(List<String> args) async {
+Future<void> main(List<String> args) async {
   Directory dataDir = new Directory.fromUri(Platform.script.resolve(
       '../../../_fe_analyzer_shared/test/flow_analysis/definite_assignment/'
       'data'));
@@ -35,16 +33,17 @@ class DefiniteAssignmentDataComputer extends DataComputer<String> {
   /// Function that computes a data mapping for [member].
   ///
   /// Fills [actualMap] with the data.
+  @override
   void computeMemberData(
       TestConfig config,
       InternalCompilerResult compilerResult,
       Member member,
       Map<Id, ActualData<String>> actualMap,
-      {bool verbose}) {
+      {bool? verbose}) {
     MemberBuilderImpl memberBuilder =
-        lookupMemberBuilder(compilerResult, member);
+        lookupMemberBuilder(compilerResult, member) as MemberBuilderImpl;
     member.accept(new DefiniteAssignmentDataExtractor(compilerResult, actualMap,
-        memberBuilder.dataForTesting.inferenceData.flowAnalysisResult));
+        memberBuilder.dataForTesting!.inferenceData.flowAnalysisResult));
   }
 
   /// Errors are supported for testing erroneous code. The reported errors are
@@ -60,11 +59,11 @@ class DefiniteAssignmentDataExtractor extends CfeDataExtractor<String> {
   DefiniteAssignmentDataExtractor(InternalCompilerResult compilerResult,
       Map<Id, ActualData<String>> actualMap, this._flowResult)
       : _sourceLoaderDataForTesting =
-            compilerResult.kernelTargetForTesting.loader.dataForTesting,
+            compilerResult.kernelTargetForTesting!.loader.dataForTesting!,
         super(compilerResult, actualMap);
 
   @override
-  String computeNodeValue(Id id, TreeNode node) {
+  String? computeNodeValue(Id id, TreeNode node) {
     if (node is VariableGet) {
       TreeNode alias = _sourceLoaderDataForTesting.toOriginal(node);
       if (_flowResult.potentiallyUnassignedNodes.contains(alias)) {

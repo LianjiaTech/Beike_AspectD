@@ -17,9 +17,10 @@ import '../../base/instrumentation.dart' show Instrumentation;
 import '../builder/constructor_builder.dart';
 
 import '../kernel/forest.dart';
+import '../kernel/implicit_field_type.dart';
 import '../kernel/internal_ast.dart';
-import '../kernel/kernel_builder.dart'
-    show ClassHierarchyBuilder, ImplicitFieldType;
+import '../kernel/hierarchy/hierarchy_builder.dart' show ClassHierarchyBuilder;
+import '../kernel/hierarchy/members_builder.dart' show ClassMembersBuilder;
 import '../kernel/kernel_helper.dart';
 
 import '../source/source_library_builder.dart' show SourceLibraryBuilder;
@@ -102,6 +103,8 @@ abstract class TypeInferenceEngine {
   late ClassHierarchy classHierarchy;
 
   late ClassHierarchyBuilder hierarchyBuilder;
+
+  late ClassMembersBuilder membersBuilder;
 
   late CoreTypes coreTypes;
 
@@ -310,6 +313,9 @@ class TypeOperationsCfe extends TypeOperations<VariableDeclaration, DartType> {
     }
     return variable.type;
   }
+
+  @override
+  bool isTypeParameterType(DartType type) => type is TypeParameterType;
 
   @override
   DartType tryPromoteToType(DartType to, DartType from) {

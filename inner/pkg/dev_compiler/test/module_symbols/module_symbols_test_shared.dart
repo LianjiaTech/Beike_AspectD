@@ -21,19 +21,24 @@ class TestCompiler {
     // Initialize incremental compiler and create component.
     setup.options.packagesFileUri = packages;
     var compiler = DevelopmentIncrementalCompiler(setup.options, input);
-    var component = await compiler.computeDelta();
+    var compilerResult = await compiler.computeDelta();
+    var component = compilerResult.component;
     component.computeCanonicalNames();
+    var errors = setup.errors.where((e) => e.contains('Error'));
+    if (errors.isNotEmpty) {
+      throw Exception('Compilation failed: \n${errors.join('\n')}');
+    }
 
     // Initialize DDC.
     var moduleName = 'foo.dart';
-    var classHierarchy = compiler.getClassHierarchy();
+    var classHierarchy = compilerResult.classHierarchy;
     var compilerOptions = SharedCompilerOptions(
         replCompile: true,
         moduleName: moduleName,
         soundNullSafety: setup.soundNullSafety,
         moduleFormats: [setup.moduleFormat],
         emitDebugSymbols: true);
-    var coreTypes = compiler.getCoreTypes();
+    var coreTypes = compilerResult.coreTypes;
 
     final importToSummary = Map<Library, Component>.identity();
     final summaryToModule = Map<Component, String>.identity();
@@ -93,6 +98,7 @@ class TestDriver {
 
   void cleanUp() {
     tempDir.delete(recursive: true);
+    options.errors.clear();
   }
 }
 

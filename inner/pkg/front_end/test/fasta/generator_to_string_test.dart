@@ -2,14 +2,13 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 /// Test of toString on generators.
 
 import 'package:_fe_analyzer_shared/src/scanner/scanner.dart'
     show Token, scanString;
 
 import 'package:expect/expect.dart' show Expect;
+import 'package:front_end/src/fasta/kernel/expression_generator_helper.dart';
 import 'package:front_end/src/fasta/scope.dart';
 import 'package:front_end/src/fasta/type_inference/type_inference_engine.dart';
 import 'package:front_end/src/fasta/uri_translator.dart';
@@ -31,7 +30,8 @@ import 'package:kernel/ast.dart'
         VariableDeclaration,
         VariableGet,
         VoidType,
-        defaultLanguageVersion;
+        defaultLanguageVersion,
+        dummyLibraryDependency;
 import 'package:kernel/class_hierarchy.dart';
 import 'package:kernel/core_types.dart';
 
@@ -45,8 +45,7 @@ import 'package:front_end/src/fasta/compiler_context.dart' show CompilerContext;
 
 import 'package:front_end/src/fasta/dill/dill_target.dart' show DillTarget;
 
-import 'package:front_end/src/fasta/kernel/kernel_builder.dart'
-    show LoadLibraryBuilder;
+import 'package:front_end/src/fasta/kernel/load_library_builder.dart';
 
 import 'package:front_end/src/fasta/kernel/kernel_target.dart'
     show KernelTarget;
@@ -61,11 +60,13 @@ import 'package:front_end/src/fasta/kernel/body_builder.dart' show BodyBuilder;
 import 'package:front_end/src/fasta/source/source_library_builder.dart'
     show ImplicitLanguageVersion, SourceLibraryBuilder;
 
-void check(String expected, Generator generator) {
+import '../mock_file_system.dart';
+
+void check(String expected, Object generator) {
   Expect.stringEquals(expected, "$generator");
 }
 
-main() async {
+Future<void> main() async {
   await CompilerContext.runWithDefaultOptions((CompilerContext c) async {
     Token token = scanString("    myToken").tokens;
     Uri uri = Uri.parse("org-dartlang-test:my_library.dart");
@@ -83,21 +84,20 @@ main() async {
     Expression index = new VariableGet(new VariableDeclaration("index"));
     UriTranslator uriTranslator = await c.options.getUriTranslator();
     SourceLibraryBuilder libraryBuilder = new SourceLibraryBuilder(
-        uri,
-        uri,
-        /*packageUri*/ null,
-        new ImplicitLanguageVersion(defaultLanguageVersion),
-        new KernelTarget(
-                null,
+        importUri: uri,
+        fileUri: uri,
+        packageLanguageVersion:
+            new ImplicitLanguageVersion(defaultLanguageVersion),
+        loader: new KernelTarget(
+                const MockFileSystem(),
                 false,
                 new DillTarget(c.options.ticker, uriTranslator,
                     new NoneTarget(new TargetFlags())),
                 uriTranslator)
-            .loader,
-        null);
+            .loader);
     libraryBuilder.markLanguageVersionFinal();
     LoadLibraryBuilder loadLibraryBuilder =
-        new LoadLibraryBuilder(libraryBuilder, null, -1);
+        new LoadLibraryBuilder(libraryBuilder, dummyLibraryDependency, -1);
     Procedure getter = new Procedure(
         new Name("myGetter"), ProcedureKind.Getter, new FunctionNode(null),
         fileUri: uri);
@@ -197,10 +197,10 @@ main() async {
         new ThisAccessGenerator(helper, token, false, false, false));
     check("IncompleteErrorGenerator(offset: 4, message: Unspecified)",
         new IncompleteErrorGenerator(helper, token, message));
-    check("SendAccessGenerator(offset: 4, name: bar, arguments: (\"arg\"))",
-        new SendAccessGenerator(helper, token, name, null, arguments));
-    check("IncompletePropertyAccessGenerator(offset: 4, name: bar)",
-        new IncompletePropertyAccessGenerator(helper, token, name));
+    check("InvocationSelector(offset: 4, name: bar, arguments: (\"arg\"))",
+        new InvocationSelector(helper, token, name, null, arguments));
+    check("PropertySelector(offset: 4, name: bar)",
+        new PropertySelector(helper, token, name));
     check(
         "DeferredAccessGenerator(offset: 4,"
         " prefixGenerator: PrefixUseGenerator("
@@ -222,8 +222,10 @@ main() async {
         new ParenthesizedExpressionGenerator(helper, token, expression));
     check("TypeUseGenerator(offset: 4, declaration: T, plainNameForRead: foo)",
         new TypeUseGenerator(helper, token, declaration, "foo"));
-    check("UnresolvedNameGenerator(offset: 4, name: bar)",
-        new UnresolvedNameGenerator.internal(helper, token, name));
+    check(
+        "UnresolvedNameGenerator(offset: 4, name: bar)",
+        new UnresolvedNameGenerator.internal(
+            helper, token, name, UnresolvedKind.Unknown));
     check("PrefixUseGenerator(offset: 4, prefix: myPrefix, deferred: false)",
         prefixUseGenerator);
     check(

@@ -6,11 +6,11 @@ import '../js/js.dart' as js;
 import '../universe/side_effects.dart' show SideEffects;
 import 'behavior.dart';
 
-class HasCapturedPlaceholders extends js.BaseVisitor {
+class HasCapturedPlaceholders extends js.BaseVisitorVoid {
   HasCapturedPlaceholders._();
 
   static bool check(js.Node node) {
-    HasCapturedPlaceholders visitor = new HasCapturedPlaceholders._();
+    HasCapturedPlaceholders visitor = HasCapturedPlaceholders._();
     node.accept(visitor);
     return visitor.found;
   }
@@ -19,21 +19,21 @@ class HasCapturedPlaceholders extends js.BaseVisitor {
   bool found = false;
 
   @override
-  visitFunctionExpression(js.FunctionExpression node) {
+  void visitFunctionExpression(js.FunctionExpression node) {
     ++enclosingFunctions;
     node.visitChildren(this);
     --enclosingFunctions;
   }
 
   @override
-  visitInterpolatedNode(js.InterpolatedNode node) {
+  void visitInterpolatedNode(js.InterpolatedNode node) {
     if (enclosingFunctions > 0) {
       found = true;
     }
   }
 }
 
-class SideEffectsVisitor extends js.BaseVisitor {
+class SideEffectsVisitor extends js.BaseVisitorVoid {
   final SideEffects sideEffects;
   SideEffectsVisitor(this.sideEffects);
 
@@ -164,6 +164,11 @@ class ThrowBehaviorVisitor extends js.BaseVisitor<NativeThrowBehavior> {
   @override
   NativeThrowBehavior visitNode(js.Node node) {
     return NativeThrowBehavior.MAY;
+  }
+
+  @override
+  NativeThrowBehavior visitComment(js.Comment node) {
+    return NativeThrowBehavior.NEVER;
   }
 
   @override

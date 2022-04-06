@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'dart:io' show File, Platform;
 
 import 'package:kernel/target/targets.dart' show NoneTarget, TargetFlags;
@@ -14,7 +12,7 @@ import 'incremental_suite.dart' show getOptions, normalCompileToBytes;
 
 import 'utils/io_utils.dart' show computeRepoDir;
 
-main() async {
+Future<void> main() async {
   await testDart2jsCompile();
 }
 

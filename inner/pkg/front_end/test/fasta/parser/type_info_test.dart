@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'package:_fe_analyzer_shared/src/parser/parser.dart';
 import 'package:_fe_analyzer_shared/src/parser/type_info.dart';
 import 'package:_fe_analyzer_shared/src/parser/type_info_impl.dart';
@@ -11,10 +9,11 @@ import 'package:_fe_analyzer_shared/src/scanner/scanner.dart' hide scanString;
 import 'package:_fe_analyzer_shared/src/scanner/scanner.dart' as scanner;
 import 'package:_fe_analyzer_shared/src/scanner/token.dart';
 import 'package:front_end/src/fasta/messages.dart';
+import 'package:front_end/src/fasta/source/diet_parser.dart';
 import 'package:test/test.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 
-main() {
+void main() {
   defineReflectiveSuite(() {
     defineReflectiveTests(NoTypeInfoTest);
     defineReflectiveTests(PrefixedTypeInfoTest);
@@ -67,6 +66,7 @@ class NoTypeInfoTest {
     expectInfo(noType, 'C*', required: false);
     expectInfo(noType, 'C do', required: false);
 
+    expectInfo(noType, 'C.a', required: false);
     expectInfo(noType, 'C.a;', required: false);
     expectInfo(noType, 'C.a(', required: false);
     expectInfo(noType, 'C.a<', required: false);
@@ -74,6 +74,7 @@ class NoTypeInfoTest {
     expectInfo(noType, 'C.a*', required: false);
     expectInfo(noType, 'C.a do', required: false);
 
+    expectInfo(noType, 'C<T>', required: false);
     expectInfo(noType, 'C<T>;', required: false);
     expectInfo(noType, 'C<T>(', required: false);
     expectInfo(noType, 'C<T> do', required: false);
@@ -96,6 +97,7 @@ class NoTypeInfoTest {
     expectInfo(noType, 'C<T>>= operator', required: false);
     expectInfo(noType, 'C<T>>= Function', required: false);
 
+    expectInfo(noType, 'C.a<T>', required: false);
     expectInfo(noType, 'C<S,T>=', required: false);
     expectInfo(noType, 'C<S<T>>=', required: false);
     expectInfo(noType, 'C.a<T>=', required: false);
@@ -108,7 +110,12 @@ class NoTypeInfoTest {
     final Token start = scanString('before ;').tokens;
     final TypeInfoListener listener = new TypeInfoListener();
 
-    expect(noType.ensureTypeNotVoid(start, new Parser(listener)),
+    expect(
+        noType.ensureTypeNotVoid(
+            start,
+            new Parser(listener,
+                useImplicitCreationExpression:
+                    useImplicitCreationExpressionInCfe)),
         const TypeMatcher<SyntheticStringToken>());
     expect(listener.calls, [
       'handleIdentifier  typeReference',
@@ -122,7 +129,12 @@ class NoTypeInfoTest {
     final Token start = scanString('before ;').tokens;
     final TypeInfoListener listener = new TypeInfoListener();
 
-    expect(noType.ensureTypeOrVoid(start, new Parser(listener)),
+    expect(
+        noType.ensureTypeOrVoid(
+            start,
+            new Parser(listener,
+                useImplicitCreationExpression:
+                    useImplicitCreationExpressionInCfe)),
         const TypeMatcher<SyntheticStringToken>());
     expect(listener.calls, [
       'handleIdentifier  typeReference',
@@ -136,7 +148,13 @@ class NoTypeInfoTest {
     final Token start = scanString('before ;').tokens;
     final TypeInfoListener listener = new TypeInfoListener();
 
-    expect(noType.parseType(start, new Parser(listener)), start);
+    expect(
+        noType.parseType(
+            start,
+            new Parser(listener,
+                useImplicitCreationExpression:
+                    useImplicitCreationExpressionInCfe)),
+        start);
     expect(listener.calls, ['handleNoType before']);
     expect(listener.errors, isNull);
   }
@@ -145,7 +163,13 @@ class NoTypeInfoTest {
     final Token start = scanString('before ;').tokens;
     final TypeInfoListener listener = new TypeInfoListener();
 
-    expect(noType.parseTypeNotVoid(start, new Parser(listener)), start);
+    expect(
+        noType.parseTypeNotVoid(
+            start,
+            new Parser(listener,
+                useImplicitCreationExpression:
+                    useImplicitCreationExpressionInCfe)),
+        start);
     expect(listener.calls, ['handleNoType before']);
     expect(listener.errors, isNull);
   }
@@ -187,7 +211,13 @@ class VoidTypeInfoTest {
     final Token start = scanString('before void ;').tokens;
     final TypeInfoListener listener = new TypeInfoListener();
 
-    expect(voidType.ensureTypeNotVoid(start, new Parser(listener)), start.next);
+    expect(
+        voidType.ensureTypeNotVoid(
+            start,
+            new Parser(listener,
+                useImplicitCreationExpression:
+                    useImplicitCreationExpressionInCfe)),
+        start.next);
     expect(listener.calls, [
       'handleIdentifier void typeReference',
       'handleNoTypeArguments ;',
@@ -200,7 +230,13 @@ class VoidTypeInfoTest {
     final Token start = scanString('before void ;').tokens;
     final TypeInfoListener listener = new TypeInfoListener();
 
-    expect(voidType.parseType(start, new Parser(listener)), start.next);
+    expect(
+        voidType.parseType(
+            start,
+            new Parser(listener,
+                useImplicitCreationExpression:
+                    useImplicitCreationExpressionInCfe)),
+        start.next);
     expect(listener.calls, ['handleVoidKeyword void']);
     expect(listener.errors, isNull);
   }
@@ -209,7 +245,13 @@ class VoidTypeInfoTest {
     final Token start = scanString('before void ;').tokens;
     final TypeInfoListener listener = new TypeInfoListener();
 
-    expect(voidType.parseType(start, new Parser(listener)), start.next);
+    expect(
+        voidType.parseType(
+            start,
+            new Parser(listener,
+                useImplicitCreationExpression:
+                    useImplicitCreationExpressionInCfe)),
+        start.next);
     expect(listener.calls, ['handleVoidKeyword void']);
     expect(listener.errors, isNull);
   }
@@ -218,7 +260,13 @@ class VoidTypeInfoTest {
     final Token start = scanString('before void ;').tokens;
     final TypeInfoListener listener = new TypeInfoListener();
 
-    expect(voidType.parseTypeNotVoid(start, new Parser(listener)), start.next);
+    expect(
+        voidType.parseTypeNotVoid(
+            start,
+            new Parser(listener,
+                useImplicitCreationExpression:
+                    useImplicitCreationExpressionInCfe)),
+        start.next);
     expect(listener.calls, [
       'handleIdentifier void typeReference',
       'handleNoTypeArguments ;',
@@ -231,7 +279,7 @@ class VoidTypeInfoTest {
 @reflectiveTest
 class PrefixedTypeInfoTest {
   void test_compute() {
-    expectInfo(prefixedType, 'C.a', required: null /* i.e. both */);
+    expectInfo(prefixedType, 'C.a', required: true);
     expectInfo(prefixedType, 'C.a;', required: true);
     expectInfo(prefixedType, 'C.a(', required: true);
     expectInfo(prefixedType, 'C.a<', required: true);
@@ -248,13 +296,13 @@ class PrefixedTypeInfoTest {
 
   void test_prefixedTypeInfo() {
     final Token start = scanString('before C.a ;').tokens;
-    final Token expectedEnd = start.next.next.next;
+    final Token expectedEnd = start.next!.next!.next!;
 
     expect(prefixedType.skipType(start), expectedEnd);
     expect(prefixedType.couldBeExpression, isTrue);
 
-    TypeInfoListener listener;
-    assertResult(Token actualEnd) {
+    late TypeInfoListener listener;
+    void assertResult(Token actualEnd) {
       expect(actualEnd, expectedEnd);
       expect(listener.calls, [
         'handleIdentifier C prefixedTypeReference',
@@ -267,16 +315,32 @@ class PrefixedTypeInfoTest {
     }
 
     listener = new TypeInfoListener();
-    assertResult(prefixedType.ensureTypeNotVoid(start, new Parser(listener)));
+    assertResult(prefixedType.ensureTypeNotVoid(
+        start,
+        new Parser(listener,
+            useImplicitCreationExpression:
+                useImplicitCreationExpressionInCfe)));
 
     listener = new TypeInfoListener();
-    assertResult(prefixedType.ensureTypeOrVoid(start, new Parser(listener)));
+    assertResult(prefixedType.ensureTypeOrVoid(
+        start,
+        new Parser(listener,
+            useImplicitCreationExpression:
+                useImplicitCreationExpressionInCfe)));
 
     listener = new TypeInfoListener();
-    assertResult(prefixedType.parseTypeNotVoid(start, new Parser(listener)));
+    assertResult(prefixedType.parseTypeNotVoid(
+        start,
+        new Parser(listener,
+            useImplicitCreationExpression:
+                useImplicitCreationExpressionInCfe)));
 
     listener = new TypeInfoListener();
-    assertResult(prefixedType.parseType(start, new Parser(listener)));
+    assertResult(prefixedType.parseType(
+        start,
+        new Parser(listener,
+            useImplicitCreationExpression:
+                useImplicitCreationExpressionInCfe)));
   }
 }
 
@@ -308,13 +372,13 @@ class SimpleNullableTypeTest {
 
   void test_simpleNullableType() {
     final Token start = scanString('before C? ;').tokens;
-    final Token expectedEnd = start.next.next;
+    final Token expectedEnd = start.next!.next!;
 
     expect(simpleNullableType.skipType(start), expectedEnd);
     expect(simpleNullableType.couldBeExpression, isTrue);
 
-    TypeInfoListener listener;
-    assertResult(Token actualEnd) {
+    late TypeInfoListener listener;
+    void assertResult(Token actualEnd) {
       expect(actualEnd, expectedEnd);
       expect(listener.calls, [
         'handleIdentifier C typeReference',
@@ -358,14 +422,14 @@ class SimpleNullableTypeWith1ArgumentTest {
 
   void test_gt_questionMark() {
     final Token start = scanString('before C<T>? ;').tokens;
-    final Token expectedEnd = start.next.next.next.next.next;
+    final Token expectedEnd = start.next!.next!.next!.next!.next!;
     expect(expectedEnd.lexeme, '?');
 
     expect(simpleNullableTypeWith1Argument.skipType(start), expectedEnd);
     expect(simpleNullableTypeWith1Argument.couldBeExpression, isFalse);
 
-    TypeInfoListener listener;
-    assertResult(Token actualEnd) {
+    late TypeInfoListener listener;
+    void assertResult(Token actualEnd) {
       expect(actualEnd, expectedEnd);
       expect(listener.calls, [
         'handleIdentifier C typeReference',
@@ -429,13 +493,13 @@ class SimpleTypeTest {
 
   void test_simpleType() {
     final Token start = scanString('before C ;').tokens;
-    final Token expectedEnd = start.next;
+    final Token expectedEnd = start.next!;
 
     expect(simpleType.skipType(start), expectedEnd);
     expect(simpleType.couldBeExpression, isTrue);
 
-    TypeInfoListener listener;
-    assertResult(Token actualEnd) {
+    late TypeInfoListener listener;
+    void assertResult(Token actualEnd) {
       expect(actualEnd, expectedEnd);
       expect(listener.calls, [
         'handleIdentifier C typeReference',
@@ -462,7 +526,7 @@ class SimpleTypeTest {
 @reflectiveTest
 class SimpleTypeWith1ArgumentTest {
   void test_compute_gt() {
-    expectInfo(simpleTypeWith1Argument, 'C<T>', required: null /* i.e. both */);
+    expectInfo(simpleTypeWith1Argument, 'C<T>', required: true);
     expectInfo(simpleTypeWith1Argument, 'C<T>;', required: true);
     expectInfo(simpleTypeWith1Argument, 'C<T>(', required: true);
     expectInfo(simpleTypeWith1Argument, 'C<T> do', required: true);
@@ -502,14 +566,14 @@ class SimpleTypeWith1ArgumentTest {
 
   void test_gt() {
     final Token start = scanString('before C<T> ;').tokens;
-    final Token expectedEnd = start.next.next.next.next;
+    final Token expectedEnd = start.next!.next!.next!.next!;
     expect(expectedEnd.lexeme, '>');
 
     expect(simpleTypeWith1Argument.skipType(start), expectedEnd);
     expect(simpleTypeWith1Argument.couldBeExpression, isFalse);
 
-    TypeInfoListener listener;
-    assertResult(Token actualEnd) {
+    late TypeInfoListener listener;
+    void assertResult(Token actualEnd) {
       expect(actualEnd, expectedEnd);
       expect(listener.calls, [
         'handleIdentifier C typeReference',
@@ -542,21 +606,21 @@ class SimpleTypeWith1ArgumentTest {
 
   void test_gt_eq() {
     final Token start = scanString('before C<T>= ;').tokens;
-    final Token t = start.next.next.next;
-    final Token semicolon = t.next.next;
+    final Token t = start.next!.next!.next!;
+    final Token semicolon = t.next!.next!;
     expect(semicolon.lexeme, ';');
 
     Token skip = simpleTypeWith1ArgumentGtEq.skipType(start);
     expect(skip.lexeme, '>');
-    expect(skip.next.lexeme, '=');
-    expect(skip.next.next, semicolon);
+    expect(skip.next!.lexeme, '=');
+    expect(skip.next!.next, semicolon);
     expect(simpleTypeWith1ArgumentGtEq.couldBeExpression, isFalse);
 
-    TypeInfoListener listener;
-    assertResult(Token actualEnd) {
+    late TypeInfoListener listener;
+    void assertResult(Token actualEnd) {
       expect(actualEnd.lexeme, '>');
-      expect(actualEnd.next.lexeme, '=');
-      expect(actualEnd.next.next, semicolon);
+      expect(actualEnd.next!.lexeme, '=');
+      expect(actualEnd.next!.next, semicolon);
       expect(listener.calls, [
         'handleIdentifier C typeReference',
         'beginTypeArguments <',
@@ -588,20 +652,20 @@ class SimpleTypeWith1ArgumentTest {
 
   void test_gt_gt() {
     final Token start = scanString('before C<T>> ;').tokens;
-    final Token semicolon = start.next.next.next.next.next;
+    final Token semicolon = start.next!.next!.next!.next!.next!;
     expect(semicolon.lexeme, ';');
 
     Token skip = simpleTypeWith1ArgumentGtGt.skipType(start);
     expect(skip.lexeme, '>');
-    expect(skip.next.lexeme, '>');
-    expect(skip.next.next, semicolon);
+    expect(skip.next!.lexeme, '>');
+    expect(skip.next!.next, semicolon);
     expect(simpleTypeWith1ArgumentGtGt.couldBeExpression, isFalse);
 
-    TypeInfoListener listener;
-    assertResult(Token actualEnd) {
+    late TypeInfoListener listener;
+    void assertResult(Token actualEnd) {
       expect(actualEnd.lexeme, '>');
-      expect(actualEnd.next.lexeme, '>');
-      expect(actualEnd.next.next, semicolon);
+      expect(actualEnd.next!.lexeme, '>');
+      expect(actualEnd.next!.next, semicolon);
       expect(listener.calls, [
         'handleIdentifier C typeReference',
         'beginTypeArguments <',
@@ -1340,7 +1404,7 @@ class TypeInfoTest {
   }
 
   void test_computeType_prefixedTypeArg() {
-    expectComplexInfo('C.a<T>', required: null /* i.e. both */, expectedCalls: [
+    expectComplexInfo('C.a<T>', required: true, expectedCalls: [
       'handleIdentifier C prefixedTypeReference',
       'handleIdentifier a typeReferenceContinuation',
       'handleQualified .',
@@ -1489,7 +1553,13 @@ class NoTypeParamOrArgTest {
     final Token start = scanString('before after').tokens;
     final TypeInfoListener listener = new TypeInfoListener();
 
-    expect(noTypeParamOrArg.parseArguments(start, new Parser(listener)), start);
+    expect(
+        noTypeParamOrArg.parseArguments(
+            start,
+            new Parser(listener,
+                useImplicitCreationExpression:
+                    useImplicitCreationExpressionInCfe)),
+        start);
     validateTokens(start);
     expect(listener.calls, ['handleNoTypeArguments after']);
     expect(listener.errors, isNull);
@@ -1499,7 +1569,13 @@ class NoTypeParamOrArgTest {
     final Token start = scanString('before after').tokens;
     final TypeInfoListener listener = new TypeInfoListener();
 
-    expect(noTypeParamOrArg.parseVariables(start, new Parser(listener)), start);
+    expect(
+        noTypeParamOrArg.parseVariables(
+            start,
+            new Parser(listener,
+                useImplicitCreationExpression:
+                    useImplicitCreationExpressionInCfe)),
+        start);
     validateTokens(start);
     expect(listener.calls, ['handleNoTypeVariables after']);
     expect(listener.errors, isNull);
@@ -1514,7 +1590,7 @@ class SimpleTypeParamOrArgTest {
     expect(simpleTypeArgument1.typeInfo, simpleTypeWith1Argument);
 
     final Token start = scanString('before <T> after').tokens;
-    final Token gt = start.next.next.next;
+    final Token gt = start.next!.next!.next!;
     expect(gt.lexeme, '>');
 
     Token skip = simpleTypeArgument1.skip(start);
@@ -1528,14 +1604,14 @@ class SimpleTypeParamOrArgTest {
     expect(simpleTypeArgument1GtEq.typeInfo, simpleTypeWith1ArgumentGtEq);
 
     final Token start = scanString('before <T>= after').tokens;
-    Token t = start.next.next;
-    expect(t.next.lexeme, '>=');
+    Token t = start.next!.next!;
+    expect(t.next!.lexeme, '>=');
 
     Token skip = simpleTypeArgument1GtEq.skip(start);
     validateTokens(start);
     expect(skip.lexeme, '>');
-    expect(skip.next.lexeme, '=');
-    expect(skip.next.next, t.next.next);
+    expect(skip.next!.lexeme, '=');
+    expect(skip.next!.next, t.next!.next);
   }
 
   void test_basic_gt_gt() {
@@ -1543,17 +1619,17 @@ class SimpleTypeParamOrArgTest {
     expect(simpleTypeArgument1GtGt.typeArgumentCount, 1);
     expect(simpleTypeArgument1GtGt.typeInfo, simpleTypeWith1ArgumentGtGt);
 
-    final Token start = scanString('before <S<T>> after').tokens.next.next;
-    var gtgt = start.next.next.next;
+    final Token start = scanString('before <S<T>> after').tokens.next!.next!;
+    var gtgt = start.next!.next!.next!;
     expect(gtgt.lexeme, '>>');
-    Token after = gtgt.next;
+    Token after = gtgt.next!;
     expect(after.lexeme, 'after');
 
     Token skip = simpleTypeArgument1GtGt.skip(start);
     validateTokens(start);
     expect(skip.lexeme, '>');
-    expect(skip.next.lexeme, '>');
-    expect(skip.next.next, after);
+    expect(skip.next!.lexeme, '>');
+    expect(skip.next!.next, after);
   }
 
   void test_compute_gt() {
@@ -1566,9 +1642,9 @@ class SimpleTypeParamOrArgTest {
 
   void test_compute_gt_gt() {
     String source = '<C<T>>';
-    Token start = scan(source).next.next;
+    Token start = scan(source).next!.next!;
     expect(start.lexeme, 'C');
-    Token gtgt = start.next.next.next;
+    Token gtgt = start.next!.next!.next!;
     expect(gtgt.lexeme, '>>');
 
     expect(computeTypeParamOrArg(start, false), simpleTypeArgument1GtGt);
@@ -1576,19 +1652,22 @@ class SimpleTypeParamOrArgTest {
   }
 
   void testParseArguments(TypeParamOrArgInfo typeArg, String source,
-      [String next]) {
+      [String? next]) {
     final Token start = scanString('before $source after').tokens;
-    final Token after = start.next.next.next.next;
+    final Token after = start.next!.next!.next!.next!;
     expect(after.lexeme, 'after');
     final TypeInfoListener listener = new TypeInfoListener();
 
-    var token = typeArg.parseArguments(start, new Parser(listener));
+    var token = typeArg.parseArguments(
+        start,
+        new Parser(listener,
+            useImplicitCreationExpression: useImplicitCreationExpressionInCfe));
     validateTokens(start);
     expect(token.lexeme, '>');
-    token = token.next;
+    token = token.next!;
     if (next != null) {
       expect(token.lexeme, next);
-      token = token.next;
+      token = token.next!;
     }
     expect(token, after);
     expect(listener.calls, [
@@ -1614,19 +1693,22 @@ class SimpleTypeParamOrArgTest {
   }
 
   void testParseVariables(TypeParamOrArgInfo typeParam, String source,
-      [String next]) {
+      [String? next]) {
     final Token start = scanString('before $source after').tokens;
-    final Token after = start.next.next.next.next;
+    final Token after = start.next!.next!.next!.next!;
     expect(after.lexeme, 'after');
     final TypeInfoListener listener = new TypeInfoListener();
 
-    Token token = typeParam.parseVariables(start, new Parser(listener));
+    Token token = typeParam.parseVariables(
+        start,
+        new Parser(listener,
+            useImplicitCreationExpression: useImplicitCreationExpressionInCfe));
     validateTokens(start);
     expect(token.lexeme, '>');
-    token = token.next;
+    token = token.next!;
     if (next != null) {
       expect(token.lexeme, next);
-      token = token.next;
+      token = token.next!;
     }
     expect(token, after);
     expect(listener.calls, [
@@ -2504,7 +2586,7 @@ class CouldBeExpressionTest {
   }
 }
 
-void expectInfo(expectedInfo, String source, {bool required}) {
+void expectInfo(expectedInfo, String source, {bool? required}) {
   if (required == null) {
     compute(expectedInfo, source, scan(source), true);
     compute(expectedInfo, source, scan(source), false);
@@ -2516,12 +2598,12 @@ void expectInfo(expectedInfo, String source, {bool required}) {
 /// Note that if [required] is null it is run both with required [true] and
 /// [false] and expect the same in both situations.
 void expectComplexInfo(String source,
-    {bool required,
+    {bool? required,
     bool inDeclaration = false,
     bool couldBeExpression = false,
-    String expectedAfter,
-    List<String> expectedCalls,
-    List<ExpectedError> expectedErrors}) {
+    String? expectedAfter,
+    List<String>? expectedCalls,
+    List<ExpectedError>? expectedErrors}) {
   if (required == null) {
     computeComplex(source, scan(source), true, inDeclaration, couldBeExpression,
         expectedAfter, expectedCalls, expectedErrors);
@@ -2535,7 +2617,7 @@ void expectComplexInfo(String source,
 
 void expectNestedInfo(expectedInfo, String source) {
   expect(source.startsWith('<'), isTrue);
-  Token start = scan(source).next;
+  Token start = scan(source).next!;
   compute(expectedInfo, source, start, true);
 }
 
@@ -2559,13 +2641,13 @@ ComplexTypeInfo computeComplex(
     bool required,
     bool inDeclaration,
     bool couldBeExpression,
-    String expectedAfter,
-    List<String> expectedCalls,
-    List<ExpectedError> expectedErrors) {
+    String? expectedAfter,
+    List<String>? expectedCalls,
+    List<ExpectedError>? expectedErrors) {
   int expectedGtGtAndNullEndCount = countGtGtAndNullEnd(start);
   ComplexTypeInfo typeInfo = compute(
       const TypeMatcher<ComplexTypeInfo>(), source, start, required,
-      inDeclaration: inDeclaration);
+      inDeclaration: inDeclaration) as ComplexTypeInfo;
   expect(typeInfo.start, start.next, reason: source);
   expect(typeInfo.couldBeExpression, couldBeExpression);
   expectEnd(expectedAfter, typeInfo.skipType(start));
@@ -2573,7 +2655,10 @@ ComplexTypeInfo computeComplex(
       reason: 'TypeInfo.skipType should not modify the token stream');
 
   TypeInfoListener listener = new TypeInfoListener();
-  Token actualEnd = typeInfo.parseType(start, new Parser(listener));
+  Token actualEnd = typeInfo.parseType(
+      start,
+      new Parser(listener,
+          useImplicitCreationExpression: useImplicitCreationExpressionInCfe));
 
   expectEnd(expectedAfter, actualEnd);
   if (expectedCalls != null) {
@@ -2586,16 +2671,16 @@ ComplexTypeInfo computeComplex(
 void expectComplexTypeArg(String source,
     {bool inDeclaration = false,
     int typeArgumentCount = -1,
-    String expectedAfter,
-    List<String> expectedCalls,
-    List<ExpectedError> expectedErrors}) {
+    String? expectedAfter,
+    List<String>? expectedCalls,
+    List<ExpectedError>? expectedErrors}) {
   Token start = scan(source);
   int expectedGtGtAndNullEndCount = countGtGtAndNullEnd(start);
   ComplexTypeParamOrArgInfo typeVarInfo = computeVar(
       const TypeMatcher<ComplexTypeParamOrArgInfo>(),
       source,
       start,
-      inDeclaration);
+      inDeclaration) as ComplexTypeParamOrArgInfo;
 
   expect(typeVarInfo.start, start.next, reason: source);
   expectEnd(expectedAfter, typeVarInfo.skip(start));
@@ -2606,7 +2691,8 @@ void expectComplexTypeArg(String source,
   expect(typeVarInfo.typeArgumentCount, typeArgumentCount);
 
   TypeInfoListener listener = new TypeInfoListener();
-  Parser parser = new Parser(listener);
+  Parser parser = new Parser(listener,
+      useImplicitCreationExpression: useImplicitCreationExpressionInCfe);
   Token actualEnd = typeVarInfo.parseArguments(start, parser);
   validateTokens(start);
   expectEnd(expectedAfter, actualEnd);
@@ -2620,16 +2706,16 @@ void expectComplexTypeArg(String source,
 void expectComplexTypeParam(String source,
     {bool inDeclaration = false,
     int typeArgumentCount = -1,
-    String expectedAfter,
-    List<String> expectedCalls,
-    List<ExpectedError> expectedErrors}) {
+    String? expectedAfter,
+    List<String>? expectedCalls,
+    List<ExpectedError>? expectedErrors}) {
   Token start = scan(source);
   int expectedGtGtAndNullEndCount = countGtGtAndNullEnd(start);
   ComplexTypeParamOrArgInfo typeVarInfo = computeVar(
       const TypeMatcher<ComplexTypeParamOrArgInfo>(),
       source,
       start,
-      inDeclaration);
+      inDeclaration) as ComplexTypeParamOrArgInfo;
 
   expect(typeVarInfo.start, start.next, reason: source);
   expectEnd(expectedAfter, typeVarInfo.skip(start));
@@ -2641,7 +2727,8 @@ void expectComplexTypeParam(String source,
 
   TypeInfoListener listener =
       new TypeInfoListener(firstToken: start, metadataAllowed: true);
-  Parser parser = new Parser(listener);
+  Parser parser = new Parser(listener,
+      useImplicitCreationExpression: useImplicitCreationExpressionInCfe);
   Token actualEnd = typeVarInfo.parseVariables(start, parser);
   validateTokens(start);
   expectEnd(expectedAfter, actualEnd);
@@ -2654,9 +2741,9 @@ void expectComplexTypeParam(String source,
 
 void expectTypeParamOrArg(expectedInfo, String source,
     {bool inDeclaration = false,
-    String expectedAfter,
-    List<String> expectedCalls,
-    List<ExpectedError> expectedErrors}) {
+    String? expectedAfter,
+    List<String>? expectedCalls,
+    List<ExpectedError>? expectedErrors}) {
   Token start = scan(source);
   computeVar(expectedInfo, source, start, inDeclaration);
 }
@@ -2672,21 +2759,21 @@ TypeParamOrArgInfo computeVar(
   return typeVarInfo;
 }
 
-void expectEnd(String tokenAfter, Token end) {
+void expectEnd(String? tokenAfter, Token end) {
   if (tokenAfter == null) {
     expect(end.isEof, isFalse);
-    if (!end.next.isEof) {
+    if (!end.next!.isEof) {
       fail('Expected EOF after $end but found ${end.next}');
     }
   } else {
-    expect(end.next.lexeme, tokenAfter);
+    expect(end.next!.lexeme, tokenAfter);
   }
 }
 
 Token scan(String source) {
   Token start = scanString(source).tokens;
   while (start is ErrorToken) {
-    start = start.next;
+    start = start.next!;
   }
   return new SyntheticToken(TokenType.EOF, -1)..setNext(start);
 }
@@ -2698,18 +2785,18 @@ int countGtGtAndNullEnd(Token token) {
         optional('>>', token)) {
       ++count;
     }
-    token = token.next;
+    token = token.next!;
   }
   return count;
 }
 
 void validateTokens(Token token) {
   int count = 0;
-  if (token.isEof && !token.next.isEof) {
-    token = token.next;
+  if (token.isEof && !token.next!.isEof) {
+    token = token.next!;
   }
   while (!token.isEof) {
-    Token next = token.next;
+    Token next = token.next!;
     expect(token.charOffset, lessThanOrEqualTo(next.charOffset));
     expect(next.previous, token, reason: next.type.toString());
     if (next is SyntheticToken) {
@@ -2724,12 +2811,12 @@ void validateTokens(Token token) {
 class TypeInfoListener implements Listener {
   final bool metadataAllowed;
   List<String> calls = <String>[];
-  List<ExpectedError> errors;
-  Token firstToken;
+  List<ExpectedError>? errors;
+  Token? firstToken;
 
   TypeInfoListener({this.firstToken, this.metadataAllowed: false}) {
-    if (firstToken != null && firstToken.isEof) {
-      firstToken = firstToken.next;
+    if (firstToken != null && firstToken!.isEof) {
+      firstToken = firstToken!.next;
     }
   }
 
@@ -2743,8 +2830,8 @@ class TypeInfoListener implements Listener {
   }
 
   @override
-  void beginFormalParameter(Token token, MemberKind kind, Token requiredToken,
-      Token covariantToken, Token varFinalOrConst) {
+  void beginFormalParameter(Token token, MemberKind kind, Token? requiredToken,
+      Token? covariantToken, Token? varFinalOrConst) {
     // TODO(danrubel): Update tests to include required and covariant
     calls.add('beginFormalParameter $token $kind');
   }
@@ -2805,24 +2892,25 @@ class TypeInfoListener implements Listener {
 
   @override
   void endFormalParameter(
-      Token thisKeyword,
-      Token periodAfterThis,
+      Token? thisKeyword,
+      Token? superKeyword,
+      Token? periodAfterThisOrSuper,
       Token nameToken,
-      Token initializerStart,
-      Token initializerEnd,
+      Token? initializerStart,
+      Token? initializerEnd,
       FormalParameterKind kind,
       MemberKind memberKind) {
-    calls.add('endFormalParameter $thisKeyword $periodAfterThis '
+    calls.add('endFormalParameter $thisKeyword $periodAfterThisOrSuper '
         '$nameToken $kind $memberKind');
   }
 
   @override
-  void endFunctionType(Token functionToken, Token questionMark) {
+  void endFunctionType(Token functionToken, Token? questionMark) {
     calls.add('endFunctionType $functionToken $questionMark');
   }
 
   @override
-  void endMetadata(Token beginToken, Token periodBeforeName, Token endToken) {
+  void endMetadata(Token beginToken, Token? periodBeforeName, Token endToken) {
     if (metadataAllowed) {
       calls.add('endMetadata $beginToken $periodBeforeName $endToken');
     } else {
@@ -2844,7 +2932,7 @@ class TypeInfoListener implements Listener {
 
   @override
   void endTypeVariable(
-      Token token, int index, Token extendsOrSuper, Token variance) {
+      Token token, int index, Token? extendsOrSuper, Token? variance) {
     calls.add('endTypeVariable $token $index $extendsOrSuper $variance');
     assertTokenInStream(token);
     assertTokenInStream(extendsOrSuper);
@@ -2899,9 +2987,9 @@ class TypeInfoListener implements Listener {
   @override
   void handleRecoverableError(
       Message message, Token startToken, Token endToken) {
-    errors ??= <ExpectedError>[];
     int offset = startToken.charOffset;
-    errors.add(error(message.code, offset, endToken.charEnd - offset));
+    (errors ??= <ExpectedError>[])
+        .add(error(message.code, offset, endToken.charEnd - offset));
   }
 
   @override
@@ -2910,7 +2998,7 @@ class TypeInfoListener implements Listener {
   }
 
   @override
-  void handleType(Token beginToken, Token questionMark) {
+  void handleType(Token beginToken, Token? questionMark) {
     calls.add('handleType $beginToken $questionMark');
   }
 
@@ -2929,24 +3017,25 @@ class TypeInfoListener implements Listener {
     calls.add('handleVoidKeywordWithTypeArguments $token');
   }
 
-  noSuchMethod(Invocation invocation) {
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
     throw '${invocation.memberName} should not be called.';
   }
 
-  assertTokenInStream(Token match) {
+  void assertTokenInStream(Token? match) {
     if (firstToken != null && match != null && !match.isEof) {
-      Token token = firstToken;
+      Token token = firstToken!;
       while (!token.isEof) {
         if (identical(token, match)) {
           return;
         }
-        token = token.next;
+        token = token.next!;
       }
       final msg = new StringBuffer();
       msg.writeln('Expected $match in token stream, but found');
       while (!token.isEof) {
         msg.write(' $token');
-        token = token.next;
+        token = token.next!;
       }
       fail(msg.toString());
     }

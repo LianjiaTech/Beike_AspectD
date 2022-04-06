@@ -2,14 +2,12 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'package:testing/testing.dart'
     show Chain, ChainContext, Result, Step, TestDescription, runMe;
 
 import '../tool/dart_doctest_impl.dart';
 
-main([List<String> arguments = const []]) =>
+void main([List<String> arguments = const []]) =>
     runMe(arguments, createContext, configurationPath: "../testing.json");
 
 Future<Context> createContext(
@@ -22,6 +20,7 @@ class Context extends ChainContext {
 
   Context(this.suiteName);
 
+  @override
   final List<Step> steps = const <Step>[
     const DartDocTestStep(),
   ];
@@ -33,6 +32,7 @@ class Context extends ChainContext {
     return result;
   }
 
+  @override
   Stream<DartDocTestTestDescription> list(Chain suite) async* {
     await for (TestDescription entry in super.list(suite)) {
       List<Test> tests = await dartDocTest.extractTestsFromUri(entry.uri);
@@ -45,7 +45,9 @@ class Context extends ChainContext {
 }
 
 class DartDocTestTestDescription extends TestDescription {
+  @override
   final String shortName;
+  @override
   final Uri uri;
   final List<Test> tests;
 
@@ -56,8 +58,10 @@ class DartDocTestStep extends Step<DartDocTestTestDescription,
     DartDocTestTestDescription, Context> {
   const DartDocTestStep();
 
+  @override
   String get name => "DartDocTest";
 
+  @override
   Future<Result<DartDocTestTestDescription>> run(
       DartDocTestTestDescription description, Context context) async {
     List<TestResult> result = await context.dartDocTest

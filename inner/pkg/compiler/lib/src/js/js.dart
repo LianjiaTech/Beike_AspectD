@@ -16,18 +16,17 @@ export 'package:js_ast/js_ast.dart';
 export 'js_debug.dart';
 
 String prettyPrint(Node node,
-    {bool enableMinification: false,
-    bool allowVariableMinification: true,
-    bool preferSemicolonToNewlineInMinifiedOutput: false}) {
+    {bool enableMinification = false,
+    bool allowVariableMinification = true,
+    bool preferSemicolonToNewlineInMinifiedOutput = false}) {
   // TODO(johnniwinther): Do we need all the options here?
-  JavaScriptPrintingOptions options = new JavaScriptPrintingOptions(
+  JavaScriptPrintingOptions options = JavaScriptPrintingOptions(
       shouldCompressOutput: enableMinification,
       minifyLocalVariables: allowVariableMinification,
       preferSemicolonToNewlineInMinifiedOutput:
           preferSemicolonToNewlineInMinifiedOutput);
-  SimpleJavaScriptPrintingContext context =
-      new SimpleJavaScriptPrintingContext();
-  Printer printer = new Printer(options, context);
+  SimpleJavaScriptPrintingContext context = SimpleJavaScriptPrintingContext();
+  Printer printer = Printer(options, context);
   printer.visit(node);
   return context.getText();
 }
@@ -35,20 +34,18 @@ String prettyPrint(Node node,
 CodeBuffer createCodeBuffer(Node node, CompilerOptions compilerOptions,
     JavaScriptSourceInformationStrategy sourceInformationStrategy,
     {DumpInfoTask monitor,
-    bool allowVariableMinification: true,
-    List<CodeOutputListener> listeners: const []}) {
-  JavaScriptPrintingOptions options = new JavaScriptPrintingOptions(
+    bool allowVariableMinification = true,
+    List<CodeOutputListener> listeners = const []}) {
+  JavaScriptPrintingOptions options = JavaScriptPrintingOptions(
       shouldCompressOutput: compilerOptions.enableMinification,
       minifyLocalVariables: allowVariableMinification);
-  CodeBuffer outBuffer = new CodeBuffer(listeners);
+  CodeBuffer outBuffer = CodeBuffer(listeners);
   SourceInformationProcessor sourceInformationProcessor =
       sourceInformationStrategy.createProcessor(
-          new SourceMapperProviderImpl(outBuffer),
-          const SourceInformationReader());
-  Dart2JSJavaScriptPrintingContext context =
-      new Dart2JSJavaScriptPrintingContext(
-          monitor, outBuffer, sourceInformationProcessor);
-  Printer printer = new Printer(options, context);
+          SourceMapperProviderImpl(outBuffer), const SourceInformationReader());
+  Dart2JSJavaScriptPrintingContext context = Dart2JSJavaScriptPrintingContext(
+      monitor, outBuffer, sourceInformationProcessor);
+  Printer printer = Printer(options, context);
   printer.visit(node);
   sourceInformationProcessor.process(node, outBuffer);
   return outBuffer;
@@ -86,6 +83,9 @@ class Dart2JSJavaScriptPrintingContext implements JavaScriptPrintingContext {
     codePositionListener.onPositions(
         node, startPosition, endPosition, closingPosition);
   }
+
+  @override
+  bool get isDebugContext => false;
 }
 
 /// Interface for ast nodes that encapsulate an ast that needs to be
@@ -101,9 +101,9 @@ abstract class TokenFinalizer {
 }
 
 /// Implements reference counting for instances of [ReferenceCountedAstNode]
-class TokenCounter extends BaseVisitor {
+class TokenCounter extends BaseVisitorVoid {
   @override
-  visitNode(Node node) {
+  void visitNode(Node node) {
     if (node is AstContainer) {
       for (Node element in node.containedNodes) {
         element.accept(this);

@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'dart:io' show Directory, Platform;
 import 'package:_fe_analyzer_shared/src/testing/id.dart';
 import 'package:_fe_analyzer_shared/src/testing/id_testing.dart';
@@ -12,7 +10,7 @@ import 'package:front_end/src/testing/id_testing_utils.dart';
 import 'package:kernel/ast.dart';
 import 'package:kernel/type_environment.dart';
 
-main(List<String> args) async {
+Future<void> main(List<String> args) async {
   Directory dataDir = new Directory.fromUri(Platform.script.resolve('data'));
   await runTests<String>(dataDir,
       args: args,
@@ -40,12 +38,13 @@ class StaticTypeDataComputer extends DataComputer<String> {
   /// Function that computes a data mapping for [library].
   ///
   /// Fills [actualMap] with the data.
+  @override
   void computeLibraryData(
       TestConfig config,
       InternalCompilerResult compilerResult,
       Library library,
       Map<Id, ActualData<String>> actualMap,
-      {bool verbose}) {
+      {bool? verbose}) {
     new StaticTypeDataExtractor(compilerResult, actualMap)
         .computeForLibrary(library);
   }
@@ -56,7 +55,7 @@ class StaticTypeDataComputer extends DataComputer<String> {
       InternalCompilerResult compilerResult,
       Member member,
       Map<Id, ActualData<String>> actualMap,
-      {bool verbose}) {
+      {bool? verbose}) {
     member.accept(new StaticTypeDataExtractor(compilerResult, actualMap));
   }
 
@@ -66,30 +65,30 @@ class StaticTypeDataComputer extends DataComputer<String> {
 
 class StaticTypeDataExtractor extends CfeDataExtractor<String> {
   final TypeEnvironment _environment;
-  StaticTypeContext _staticTypeContext;
+  StaticTypeContext? _staticTypeContext;
 
   StaticTypeDataExtractor(InternalCompilerResult compilerResult,
       Map<Id, ActualData<String>> actualMap)
       : _environment = new TypeEnvironment(
-            compilerResult.coreTypes, compilerResult.classHierarchy),
+            compilerResult.coreTypes!, compilerResult.classHierarchy!),
         super(compilerResult, actualMap);
 
   @override
-  visitField(Field node) {
+  void visitField(Field node) {
     _staticTypeContext = new StaticTypeContext(node, _environment);
     super.visitField(node);
     _staticTypeContext = null;
   }
 
   @override
-  visitConstructor(Constructor node) {
+  void visitConstructor(Constructor node) {
     _staticTypeContext = new StaticTypeContext(node, _environment);
     super.visitConstructor(node);
     _staticTypeContext = null;
   }
 
   @override
-  visitProcedure(Procedure node) {
+  void visitProcedure(Procedure node) {
     _staticTypeContext = new StaticTypeContext(node, _environment);
     super.visitProcedure(node);
     _staticTypeContext = null;
@@ -101,23 +100,23 @@ class StaticTypeDataExtractor extends CfeDataExtractor<String> {
   }
 
   @override
-  String computeMemberValue(Id id, Member node) {
+  String? computeMemberValue(Id id, Member node) {
     if (node is Procedure && node.function.futureValueType != null) {
-      return 'futureValueType=${typeToText(node.function.futureValueType)}';
+      return 'futureValueType=${typeToText(node.function.futureValueType!)}';
     }
     return null;
   }
 
   @override
-  String computeNodeValue(Id id, TreeNode node) {
+  String? computeNodeValue(Id id, TreeNode node) {
     if (isSkippedExpression(node)) {
       return null;
     }
     if (node is Expression) {
-      DartType type = node.getStaticType(_staticTypeContext);
+      DartType type = node.getStaticType(_staticTypeContext!);
       if (node is FunctionExpression && node.function.futureValueType != null) {
         return '${typeToText(type)},'
-            'futureValueType=${typeToText(node.function.futureValueType)}';
+            'futureValueType=${typeToText(node.function.futureValueType!)}';
       }
       return typeToText(type);
     } else if (node is Arguments) {
@@ -126,13 +125,13 @@ class StaticTypeDataExtractor extends CfeDataExtractor<String> {
       }
     } else if (node is ForInStatement) {
       if (id.kind == IdKind.current) {
-        DartType type = _staticTypeContext.typeEnvironment.forInElementType(
-            node, node.iterable.getStaticType(_staticTypeContext));
+        DartType type = _staticTypeContext!.typeEnvironment.forInElementType(
+            node, node.iterable.getStaticType(_staticTypeContext!));
         return typeToText(type);
       }
     } else if (node is FunctionDeclaration) {
       if (node.function.futureValueType != null) {
-        return 'futureValueType=${typeToText(node.function.futureValueType)}';
+        return 'futureValueType=${typeToText(node.function.futureValueType!)}';
       }
     }
     return null;
@@ -150,7 +149,7 @@ class StaticTypeDataExtractor extends CfeDataExtractor<String> {
 
   bool isNewReachabilityErrorArgument(object) {
     return object is StringLiteral &&
-        isNewReachabilityError(object.parent.parent);
+        isNewReachabilityError(object.parent!.parent);
   }
 
   bool isThrowReachabilityError(object) {
@@ -169,6 +168,7 @@ class StaticTypeDataExtractor extends CfeDataExtractor<String> {
       isNewReachabilityErrorArgument(object) ||
       isNewReachabilityError(object);
 
+  @override
   ActualData<String> mergeData(
       ActualData<String> value1, ActualData<String> value2) {
     if (value1.object is NullLiteral && value2.object is! NullLiteral) {

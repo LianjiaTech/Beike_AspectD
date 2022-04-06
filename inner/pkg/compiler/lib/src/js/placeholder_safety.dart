@@ -6,7 +6,7 @@ library js.safety;
 
 import "js.dart" as js;
 
-typedef bool PositionPredicate(int position);
+typedef PositionPredicate = bool Function(int position);
 
 /// PlaceholderSafetyAnalysis determines which placeholders in a JavaScript
 /// template may be replaced with an arbitrary expression. Placeholders may be
@@ -40,7 +40,7 @@ class PlaceholderSafetyAnalysis extends js.BaseVisitor<int> {
   /// `false` if the value is never null.
   static int analyze(js.Node node, PositionPredicate isNullableInput) {
     PlaceholderSafetyAnalysis analysis =
-        new PlaceholderSafetyAnalysis._(isNullableInput);
+        PlaceholderSafetyAnalysis._(isNullableInput);
     analysis.visit(node);
     return analysis.maxSafePosition + 1;
   }
@@ -63,7 +63,12 @@ class PlaceholderSafetyAnalysis extends js.BaseVisitor<int> {
   @override
   int visitNode(js.Node node) {
     safe = false;
-    super.visitNode(node);
+    node.visitChildren(this);
+    return UNKNOWN_VALUE;
+  }
+
+  @override
+  int visitComment(js.Comment node) {
     return UNKNOWN_VALUE;
   }
 

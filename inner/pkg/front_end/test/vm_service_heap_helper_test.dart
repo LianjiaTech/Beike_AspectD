@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
@@ -49,7 +47,7 @@ Future<void> main(List<String> args) async {
     throwOnPossibleLeak: false,
   );
 
-  heapHelper.start(
+  await heapHelper.start(
     [
       "--enable-asserts",
       Platform.script.toString(),
@@ -139,33 +137,38 @@ class LeakMe2 {
 
 class LeakFinderTest extends helper.VMServiceHeapHelperSpecificExactLeakFinder {
   List<String> leakData = [];
+  @override
   int iterationNumber = -1;
   Completer<List<String>> completer = new Completer<List<String>>();
 
   LeakFinderTest({
-    List<helper.Interest> interests,
-    List<helper.Interest> prettyPrints,
-    bool throwOnPossibleLeak,
+    required List<helper.Interest> interests,
+    required List<helper.Interest> prettyPrints,
+    required bool throwOnPossibleLeak,
   }) : super(
             interests: interests,
             prettyPrints: prettyPrints,
             throwOnPossibleLeak: throwOnPossibleLeak);
 
+  @override
   void processExited(int exitCode) {
     print("Process exited!");
     leakData.sort();
     completer.complete(leakData);
   }
 
+  @override
   void leakDetected(String duplicate, int count, List<String> prettyPrints) {
     prettyPrints.sort();
     leakData.add("$iterationNumber: $count: $prettyPrints");
   }
 
+  @override
   void noLeakDetected() {
     leakData.add("$iterationNumber: no leak");
   }
 
+  @override
   bool shouldDoAnotherIteration(int iterationNumber) {
     this.iterationNumber = iterationNumber;
     return iterationNumber <= 6;

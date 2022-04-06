@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'dart:io' show Directory, Platform;
 import 'package:_fe_analyzer_shared/src/testing/id.dart';
 import 'package:_fe_analyzer_shared/src/testing/id_testing.dart';
@@ -64,7 +62,7 @@ AstTextStrategy getStrategy(String marker) {
   throw new UnsupportedError("Unexpected marker '${marker}'.");
 }
 
-main(List<String> args) async {
+Future<void> main(List<String> args) async {
   Directory dataDir = new Directory.fromUri(Platform.script.resolve('data'));
   await runTests<String>(dataDir,
       args: args,
@@ -86,6 +84,7 @@ class TextRepresentationConfig extends TestConfig {
             },
             nnbdMode: NnbdMode.Strong);
 
+  @override
   void customizeCompilerOptions(CompilerOptions options, TestData testData) {
     if (testData.name.endsWith('_opt_out.dart')) {
       options.nnbdMode = NnbdMode.Weak;
@@ -96,12 +95,13 @@ class TextRepresentationConfig extends TestConfig {
 class TextRepresentationDataComputer extends DataComputer<String> {
   const TextRepresentationDataComputer();
 
+  @override
   void computeLibraryData(
       TestConfig config,
       InternalCompilerResult compilerResult,
       Library library,
       Map<Id, ActualData<String>> actualMap,
-      {bool verbose}) {
+      {bool? verbose}) {
     new TextRepresentationDataExtractor(
             compilerResult, actualMap, getStrategy(config.marker))
         .computeForLibrary(library);
@@ -113,7 +113,7 @@ class TextRepresentationDataComputer extends DataComputer<String> {
       InternalCompilerResult compilerResult,
       Member member,
       Map<Id, ActualData<String>> actualMap,
-      {bool verbose}) {
+      {bool? verbose}) {
     member.accept(new TextRepresentationDataExtractor(
         compilerResult, actualMap, getStrategy(config.marker)));
   }
@@ -135,7 +135,7 @@ class TextRepresentationDataExtractor extends CfeDataExtractor<String> {
   }
 
   @override
-  visitProcedure(Procedure node) {
+  void visitProcedure(Procedure node) {
     if (!node.name.text.startsWith(expressionMarker) &&
         !node.name.text.startsWith(statementMarker)) {
       node.function.accept(this);
@@ -144,7 +144,7 @@ class TextRepresentationDataExtractor extends CfeDataExtractor<String> {
   }
 
   @override
-  visitField(Field node) {
+  void visitField(Field node) {
     if (!node.name.text.startsWith(expressionMarker) &&
         !node.name.text.startsWith(statementMarker)) {
       node.initializer?.accept(this);
@@ -153,22 +153,22 @@ class TextRepresentationDataExtractor extends CfeDataExtractor<String> {
   }
 
   @override
-  String computeMemberValue(Id id, Member node) {
+  String? computeMemberValue(Id id, Member node) {
     if (node.name.text == 'stmtVariableDeclarationMulti') {
       print(node);
     }
     if (node.name.text.startsWith(expressionMarker)) {
       if (node is Procedure) {
-        Statement body = node.function.body;
+        Statement? body = node.function.body;
         if (body is ReturnStatement) {
-          return body.expression.toText(strategy);
+          return body.expression!.toText(strategy);
         }
       } else if (node is Field && node.initializer != null) {
-        return node.initializer.toText(strategy);
+        return node.initializer!.toText(strategy);
       }
     } else if (node.name.text.startsWith(statementMarker)) {
       if (node is Procedure) {
-        Statement body = node.function.body;
+        Statement? body = node.function.body;
         if (body is Block && body.statements.length == 1) {
           // Prefix with newline to make multiline text representations more
           // readable.
@@ -180,13 +180,13 @@ class TextRepresentationDataExtractor extends CfeDataExtractor<String> {
   }
 
   @override
-  String computeNodeValue(Id id, TreeNode node) {
+  String? computeNodeValue(Id id, TreeNode node) {
     if (node is ConstantExpression) {
       return node.constant.toText(strategy);
     } else if (node is VariableDeclaration) {
       DartType type = node.type;
       if (type is FunctionType && type.typedefType != null) {
-        return type.typedefType.toText(strategy);
+        return type.typedefType!.toText(strategy);
       } else {
         return type.toText(strategy);
       }

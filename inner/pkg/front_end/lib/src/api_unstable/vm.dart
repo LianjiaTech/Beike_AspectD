@@ -24,10 +24,16 @@ export '../api_prototype/file_system.dart'
 export '../api_prototype/front_end.dart' show CompilerResult;
 
 export '../api_prototype/incremental_kernel_generator.dart'
-    show IncrementalKernelGenerator, IncrementalSerializer, isLegalIdentifier;
+    show
+        IncrementalCompilerResult,
+        IncrementalKernelGenerator,
+        IncrementalSerializer,
+        isLegalIdentifier;
 
 export '../api_prototype/kernel_generator.dart'
     show kernelForModule, kernelForProgram;
+
+export '../api_prototype/lowering_predicates.dart' show isExtensionThisName;
 
 export '../api_prototype/memory_file_system.dart' show MemoryFileSystem;
 
@@ -48,12 +54,15 @@ export '../fasta/compiler_context.dart' show CompilerContext;
 export '../fasta/fasta_codes.dart'
     show
         LocatedMessage,
+        messageFfiAbiSpecificIntegerInvalid,
+        messageFfiAbiSpecificIntegerMappingInvalid,
         messageFfiExceptionalReturnNull,
         messageFfiExpectedConstant,
         messageFfiLeafCallMustNotReturnHandle,
         messageFfiLeafCallMustNotTakeHandle,
+        messageFfiNativeMustBeExternal,
+        messageFfiNativeOnlyNativeFieldWrapperClassCanBePointer,
         messageFfiPackedAnnotationAlignment,
-        messageFfiNativeAnnotationMustAnnotateStatic,
         messageNonPositiveArrayDimensions,
         noLength,
         templateFfiDartTypeMismatch,
@@ -67,6 +76,8 @@ export '../fasta/fasta_codes.dart'
         templateFfiFieldInitializer,
         templateFfiFieldNoAnnotation,
         templateFfiFieldNull,
+        templateFfiNativeUnexpectedNumberOfParameters,
+        templateFfiNativeUnexpectedNumberOfParametersWithReceiver,
         templateFfiNotStatic,
         templateFfiPackedAnnotation,
         templateFfiPackedNestingNonPacked,
@@ -87,4 +98,7 @@ export '../fasta/kernel/utils.dart'
         serializeComponent,
         serializeProcedure;
 
-export '../fasta/resolve_input_uri.dart' show resolveInputUri;
+export 'package:_fe_analyzer_shared/src/util/options.dart';
+
+export 'package:_fe_analyzer_shared/src/util/resolve_input_uri.dart'
+    show resolveInputUri;

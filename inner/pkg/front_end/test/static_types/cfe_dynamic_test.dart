@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'analysis_helper.dart';
 
 /// Filter function used to only analysis cfe source code.
@@ -21,7 +19,7 @@ bool cfeOnly(Uri uri) {
   return false;
 }
 
-main(List<String> args) async {
+Future<void> main(List<String> args) async {
   await run(Uri.base.resolve('pkg/front_end/tool/_fasta/compile.dart'),
       'pkg/front_end/test/static_types/cfe_allowed.json',
       analyzedUrisFilter: cfeOnly,

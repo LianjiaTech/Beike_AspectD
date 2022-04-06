@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import "package:expect/expect.dart" show Expect;
 
 import "package:kernel/ast.dart" show Component, DartType, Library;
@@ -114,7 +112,7 @@ Component parseSdk(Uri uri, TypeParserEnvironment environment) {
   return new Component(libraries: <Library>[library]);
 }
 
-main() {
+void main() {
   Uri uri = Uri.parse("dart:core");
   TypeParserEnvironment environment = new TypeParserEnvironment(uri, uri);
   Component component = parseSdk(uri, environment);
@@ -135,16 +133,19 @@ class KernelSubtypeTest extends SubtypeTest<DartType, TypeParserEnvironment> {
   @override
   bool get skipFutureOrPromotion => true;
 
+  @override
   DartType toType(String text, TypeParserEnvironment environment) {
     return environment.parseType(text);
   }
 
+  @override
   IsSubtypeOf isSubtypeImpl(DartType subtype, DartType supertype) {
     return new TypeEnvironment(coreTypes, hierarchy)
         .performNullabilityAwareSubtypeCheck(subtype, supertype);
   }
 
-  TypeParserEnvironment extend(String typeParameters) {
+  @override
+  TypeParserEnvironment extend(String? typeParameters) {
     return environment.extendWithTypeParameters(typeParameters);
   }
 }

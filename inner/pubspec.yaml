@@ -16,21 +16,6 @@ dependency_overrides:
 
   package_config: 1.9.3
 
-#  meta:
-#    path: ../../../SDK/dart-sdk/2.5.3/pkg/meta
-#
-#  frontend_server:
-#    path: ../../../SDK/dart-sdk/2.5.3/pkg/frontend_server
-#
-#  _fe_analyzer_shared:
-#    path: ../../../SDK/dart-sdk/2.5.3/pkg/_fe_analyzer_shared
-
-#  vm:
-#    path: ../../sdk/pkg/vm
-#
-#  kernel:
-#    path: ../../sdk/pkg/kernel
-
   meta:
     path: pkg/meta
 

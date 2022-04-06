@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'package:testing/testing.dart' show Chain, runMe;
 
 import 'spelling_test_base.dart';
@@ -12,7 +10,7 @@ import 'spell_checking_utils.dart' as spell;
 
 import 'testing_utils.dart' show checkEnvironment;
 
-main([List<String> arguments = const []]) =>
+void main([List<String> arguments = const []]) =>
     runMe(arguments, createContext, configurationPath: "../testing.json");
 
 Future<SpellContext> createContext(
@@ -26,7 +24,7 @@ Future<SpellContext> createContext(
 }
 
 class SpellContextSource extends SpellContext {
-  SpellContextSource({bool interactive, bool onlyInGit})
+  SpellContextSource({required bool interactive, required bool onlyInGit})
       : super(interactive: interactive, onlyInGit: onlyInGit);
 
   @override

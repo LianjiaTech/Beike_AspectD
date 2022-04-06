@@ -2,11 +2,10 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'dart:io' show exitCode, File, stdout;
 
 import 'package:front_end/src/api_prototype/compiler_options.dart';
+import 'package:front_end/src/api_prototype/incremental_kernel_generator.dart';
 import 'package:front_end/src/api_prototype/memory_file_system.dart';
 import 'package:front_end/src/compute_platform_binaries_location.dart';
 import 'package:front_end/src/fasta/kernel/utils.dart';
@@ -17,7 +16,7 @@ import 'package:kernel/kernel.dart' show Component;
 
 import 'incremental_suite.dart' as helper;
 
-main() async {
+Future<void> main() async {
   CompilerAndOptions compilerAndOptions = TestCompiler.initialize();
   TestCompiler compiler = compilerAndOptions.compiler;
   bool hasNewline = true;
@@ -66,7 +65,6 @@ main() async {
 const Set<Code> ignoredCodes = {
   codeInvalidAssignmentError,
   codeTypeVariableInStaticContext,
-  codeNonInstanceTypeVariableUse,
   codeExtensionDeclaresInstanceField,
   codeExtraneousModifier,
 };
@@ -93,7 +91,9 @@ class TestCompiler {
     StringBuffer sb = new StringBuffer();
     fs.entityForUri(testUri).writeAsStringSync(src);
     compiler.invalidate(testUri);
-    Component result = await compiler.computeDelta(entryPoints: [testUri]);
+    IncrementalCompilerResult compilerResult =
+        await compiler.computeDelta(entryPoints: [testUri]);
+    Component result = compilerResult.component;
     Iterator<Code> codeIterator = formattedWarningsCodes.iterator;
     for (String warning in formattedWarnings) {
       codeIterator.moveNext();

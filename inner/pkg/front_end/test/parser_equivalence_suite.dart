@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'dart:io';
 
 import "package:yaml/yaml.dart" show YamlMap, loadYamlNode;
@@ -16,7 +14,7 @@ import 'testing_utils.dart' show checkEnvironment;
 import 'parser_suite.dart'
     show ListenerStep, ParserTestListenerWithMessageFormatting;
 
-main([List<String> arguments = const []]) => runMe(
+void main([List<String> arguments = const []]) => runMe(
       arguments,
       createContext,
       configurationPath: "../testing.json",
@@ -35,6 +33,7 @@ class Context extends ChainContext {
 
   Context(this.suiteName);
 
+  @override
   final List<Step> steps = const <Step>[
     const ListenerCompareStep(),
   ];
@@ -44,19 +43,21 @@ class ListenerCompareStep
     extends Step<TestDescription, TestDescription, Context> {
   const ListenerCompareStep();
 
+  @override
   String get name => "listenerCompare";
 
+  @override
   Future<Result<TestDescription>> run(
       TestDescription description, Context context) {
     Uri uri = description.uri;
     String contents = new File.fromUri(uri).readAsStringSync();
-    YamlMap yaml = loadYamlNode(contents, sourceUrl: uri);
+    YamlMap yaml = loadYamlNode(contents, sourceUrl: uri) as YamlMap;
     List<Uri> files =
         (yaml["files"] as List).map((s) => uri.resolve(s)).toList();
     Set<String> filters = new Set<String>.from(yaml["filters"] ?? []);
     Set<String> ignored = new Set<String>.from(yaml["ignored"] ?? []);
 
-    ParserTestListenerWithMessageFormatting parserTestListenerFirst =
+    ParserTestListenerWithMessageFormatting? parserTestListenerFirst =
         ListenerStep.doListenerParsing(
       files[0],
       context.suiteName,
@@ -67,7 +68,7 @@ class ListenerCompareStep
     }
 
     for (int i = 1; i < files.length; i++) {
-      ParserTestListenerWithMessageFormatting parserTestListener =
+      ParserTestListenerWithMessageFormatting? parserTestListener =
           ListenerStep.doListenerParsing(
         files[i],
         context.suiteName,
@@ -76,7 +77,7 @@ class ListenerCompareStep
       if (parserTestListener == null) {
         return Future.value(crash(description, StackTrace.current));
       }
-      String compareResult = compare(
+      String? compareResult = compare(
           parserTestListenerFirst, parserTestListener, filters, ignored);
       if (compareResult != null) {
         return Future.value(
@@ -87,7 +88,7 @@ class ListenerCompareStep
     return new Future.value(new Result<TestDescription>.pass(description));
   }
 
-  String compare(
+  String? compare(
       ParserTestListenerWithMessageFormatting a,
       ParserTestListenerWithMessageFormatting b,
       Set<String> filters,

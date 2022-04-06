@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import "package:async_helper/async_helper.dart" show asyncTest;
 
 import "package:front_end/src/testing/compiler_common.dart" show compileUnit;
@@ -11,7 +9,7 @@ import "package:front_end/src/testing/compiler_common.dart" show compileUnit;
 import "package:front_end/src/api_prototype/front_end.dart"
     show CompilerOptions;
 
-main() {
+void main() {
   asyncTest(() async {
     var sources = <String, dynamic>{
       "a.dart": """

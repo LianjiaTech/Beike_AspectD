@@ -2,7 +2,7 @@
   "": "Copyright (c) 2016, the Dart project authors. Please see the AUTHORS file",
   "": "for details. All rights reserved. Use of this source code is governed by a",
   "": "BSD-style license that can be found in the LICENSE.md file.",
-  "packages": "../../.packages",
+  "packages": "../../.dart_tool/package_config.json",
   "suites": [
     {
       "name": "messages",
@@ -128,6 +128,23 @@
       ]
     },
     {
+      "name": "modular",
+      "kind": "Chain",
+      "source": "test/fasta/modular_suite.dart",
+      "path": "testcases/",
+      "status": "testcases/modular.status",
+      "pattern": [
+        "\\.dart$",
+        "\\.crash_dart$"
+      ],
+      "exclude": [
+        "/testcases/.*_part[0-9]*\\.dart$",
+        "/testcases/.*_lib[0-9]*\\.dart$",
+        "/testcases/dartino/",
+        "/testcases/expression/"
+      ]
+    },
+    {
       "name": "weak",
       "kind": "Chain",
       "source": "test/fasta/weak_suite.dart",
@@ -229,6 +246,17 @@
       "exclude": []
     },
     {
+      "name": "outline_extractor",
+      "kind": "Chain",
+      "source": "test/outline_extractor_suite.dart",
+      "path": "outline_extraction_testcases/",
+      "status": "outline_extraction_testcases/outline_extractor.status",
+      "pattern": [
+        "main\\.dart$"
+      ],
+      "exclude": []
+    },
+    {
       "name": "parser_equivalence",
       "kind": "Chain",
       "source": "test/parser_equivalence_suite.dart",
@@ -248,7 +276,7 @@
       "pattern": [
         "pkg/front_end/.*\\.dart$",
         "pkg/front_end/.*\\.crash_dart$",
-        "tests/.*\\.dart$"
+        "/tests/.*\\.dart$"
       ],
       "exclude": []
     },
@@ -392,7 +420,7 @@
       "kind": "test_dart",
       "arch": "x64",
       "mode": "release",
-      "common": "--dart2js-batch --time -pcolor --report -ax64 -mrelease --write-result-log",
+      "common": "--time -pcolor --report -ax64 -mrelease --write-result-log",
       "command-lines": [
         "--checked dart2js",
         "-cdart2js -rd8 --exclude-suite=observatory_ui",
@@ -418,7 +446,7 @@
       "kind": "test_dart",
       "arch": "x64",
       "mode": "release",
-      "common": "--dart2js-batch --time -pcolor --report -ax64 -mrelease --write-result-log",
+      "common": "--time -pcolor --report -ax64 -mrelease --write-result-log",
       "command-lines": [
         "-t240 --checked pkg/(kernel|front_end|fasta) dart2js",
         "-cdartk -rvm",
@@ -432,7 +460,7 @@
       "kind": "test_dart",
       "arch": "x64",
       "mode": "release",
-      "common": "--dart2js-batch --time -pcolor --report -ax64 -mrelease --write-result-log",
+      "common": "--time -pcolor --report -ax64 -mrelease --write-result-log",
       "command-lines": [
         "-cdart2js -rd8 --use-sdk --minified language language_2 web_2 corelib corelib_2"
       ]
@@ -466,6 +494,7 @@
       "test/extensions/data/",
       "test/id_testing/data/",
       "test/language_versioning/data/",
+      "test/macros/data/",
       "test/patching/data",
       "test/predicates/data",
       "test/static_types/data/",

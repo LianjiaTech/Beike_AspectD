@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'dart:io' show Directory, File, Platform, Process, ProcessResult;
 
 import 'dart:typed_data' show Uint8List;
@@ -22,7 +20,7 @@ import 'incremental_suite.dart' show getOptions, normalCompileToComponent;
 
 import 'utils/io_utils.dart' show computeRepoDir;
 
-main() async {
+Future<void> main() async {
   final Uri dart2jsUrl = Uri.base.resolve("pkg/compiler/bin/dart2js.dart");
   Stopwatch stopwatch = new Stopwatch()..start();
   Component component = await normalCompileToComponent(dart2jsUrl,

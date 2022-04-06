@@ -76,18 +76,19 @@ class TestCompiler {
     // initialize incremental compiler and create component
     setup.options.packagesFileUri = packages;
     var compiler = DevelopmentIncrementalCompiler(setup.options, input);
-    var component = await compiler.computeDelta();
+    var compilerResult = await compiler.computeDelta();
+    var component = compilerResult.component;
     component.computeCanonicalNames();
 
     // initialize ddc
     var moduleName = 'foo.dart';
-    var classHierarchy = compiler.getClassHierarchy();
+    var classHierarchy = compilerResult.classHierarchy;
     var compilerOptions = SharedCompilerOptions(
         replCompile: true,
         moduleName: moduleName,
         soundNullSafety: setup.soundNullSafety,
         moduleFormats: [setup.moduleFormat]);
-    var coreTypes = compiler.getCoreTypes();
+    var coreTypes = compilerResult.coreTypes;
 
     final importToSummary = Map<Library, Component>.identity();
     final summaryToModule = Map<Component, String>.identity();
@@ -218,7 +219,7 @@ class TestDriver {
   String _normalize(String text) {
     return text
         .replaceAll(RegExp('\'.*foo.dart\''), '\'foo.dart\'')
-        .replaceAll(RegExp('\".*foo.dart\"'), '\'foo.dart\'');
+        .replaceAll(RegExp('".*foo.dart"'), '\'foo.dart\'');
   }
 
   Matcher _matches(String text) {
@@ -281,7 +282,7 @@ void main() {
                 expression: 'Directory.systemTemp',
                 expectedResult: '''
             (function() {
-              const dart_sdk = ${options.loadModule}(\'dart_sdk\');
+              const dart_sdk = ${options.loadModule}('dart_sdk');
               const io = dart_sdk.io;
               return io.Directory.systemTemp;
             }(
@@ -296,7 +297,7 @@ void main() {
                 expression: 'p.Directory.systemTemp',
                 expectedResult: '''
             (function() {
-              const dart_sdk = ${options.loadModule}(\'dart_sdk\');
+              const dart_sdk = ${options.loadModule}('dart_sdk');
               const io = dart_sdk.io;
               return io.Directory.systemTemp;
             }(
@@ -313,7 +314,7 @@ void main() {
                 expression: 'p.utf8.decoder',
                 expectedResult: '''
             (function() {
-              const dart_sdk = ${options.loadModule}(\'dart_sdk\');
+              const dart_sdk = ${options.loadModule}('dart_sdk');
               const convert = dart_sdk.convert;
               return convert.utf8.decoder;
             }(
@@ -543,7 +544,7 @@ void main() {
                 expression: 'Directory.systemTemp',
                 expectedResult: '''
             (function() {
-              const dart_sdk = ${options.loadModule}(\'dart_sdk\');
+              const dart_sdk = ${options.loadModule}('dart_sdk');
               const io = dart_sdk.io;
               return io.Directory.systemTemp;
             }(
@@ -558,7 +559,7 @@ void main() {
                 expression: 'p.Directory.systemTemp',
                 expectedResult: '''
             (function() {
-              const dart_sdk = ${options.loadModule}(\'dart_sdk\');
+              const dart_sdk = ${options.loadModule}('dart_sdk');
               const io = dart_sdk.io;
               return io.Directory.systemTemp;
             }(
@@ -575,7 +576,7 @@ void main() {
                 expression: 'p.utf8.decoder',
                 expectedResult: '''
             (function() {
-              const dart_sdk = ${options.loadModule}(\'dart_sdk\');
+              const dart_sdk = ${options.loadModule}('dart_sdk');
               const convert = dart_sdk.convert;
               return convert.utf8.decoder;
             }(

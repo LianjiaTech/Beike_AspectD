@@ -104,6 +104,9 @@ abstract class _Invocation extends _DependencyTracker
 
   _Invocation(this.selector, this.args);
 
+  /// Initialize invocation before it is cached and processed.
+  void init() {}
+
   Type process(TypeFlowAnalysis typeFlowAnalysis);
 
   /// Returns result of this invocation if its available without
@@ -186,21 +189,29 @@ abstract class _Invocation extends _DependencyTracker
 
 class _DirectInvocation extends _Invocation {
   _DirectInvocation(DirectSelector selector, Args<Type> args)
-      : super(selector, args) {
+      : super(selector, args);
+
+  @override
+  void init() {
     // We don't emit [TypeCheck] statements for bounds checks of type
     // parameters, so if there are any type parameters, we must assume
     // they could fail bounds checks.
     //
     // TODO(sjindel): Use [TypeCheck] to avoid bounds checks.
-    final function = selector.member.function;
+    final function = selector.member!.function;
     if (function != null) {
-      typeChecksNeeded =
-          function.typeParameters.any((t) => t.isGenericCovariantImpl);
+      for (TypeParameter tp in function.typeParameters) {
+        if (tp.isCovariantByClass) {
+          typeChecksNeeded = true;
+        }
+      }
     } else {
       Field field = selector.member as Field;
       if (selector.callKind == CallKind.PropertySet) {
         // TODO(dartbug.com/40615): Use TFA results to improve this criterion.
-        typeChecksNeeded = field.isGenericCovariantImpl;
+        if (field.isCovariantByClass) {
+          typeChecksNeeded = true;
+        }
       }
     }
   }
@@ -550,8 +561,7 @@ class _DispatchableInvocation extends _Invocation {
       TypeFlowAnalysis typeFlowAnalysis) {
     final TFClass cls = receiver.cls;
 
-    Member? target =
-        (cls as _TFClassImpl).getDispatchTarget(selector, typeFlowAnalysis);
+    Member? target = (cls as _TFClassImpl).getDispatchTarget(selector);
 
     if (target != null) {
       if (kPrintTrace) {
@@ -754,6 +764,16 @@ class _SelectorApproximation {
   /// different arguments reaches this limit.
   static const int maxInvocationsPerSelector = 5000;
 
+  /// [_DirectInvocation] can be approximated with raw arguments
+  /// if number of operations in its summary exceeds this threshold.
+  static const int largeSummarySize = 300;
+
+  /// If summary exceeds [largeSummarySize] and number of
+  /// [_DirectInvocation] objects with same selector but
+  /// different arguments exceeds this limit, then approximate
+  /// [_DirectInvocation] with raw arguments is created and used.
+  static const int maxDirectInvocationsPerSelector = 10;
+
   int count = 0;
   _Invocation? approximation;
 }
@@ -763,14 +783,19 @@ class _SelectorApproximation {
 class _InvocationsCache {
   final TypeFlowAnalysis _typeFlowAnalysis;
   final Set<_Invocation> _invocations = new Set<_Invocation>();
-  final Map<Selector, _SelectorApproximation> _approximations =
-      <Selector, _SelectorApproximation>{};
+  final Map<InterfaceSelector, _SelectorApproximation>
+      _interfaceSelectorApproximations =
+      <InterfaceSelector, _SelectorApproximation>{};
+  final Map<DirectSelector, _SelectorApproximation>
+      _directSelectorApproximations =
+      <DirectSelector, _SelectorApproximation>{};
 
   _InvocationsCache(this._typeFlowAnalysis);
 
   _Invocation getInvocation(Selector selector, Args<Type> args) {
     ++Statistics.invocationsQueriedInCache;
-    _Invocation invocation = (selector is DirectSelector)
+    final bool isDirectSelector = (selector is DirectSelector);
+    _Invocation invocation = isDirectSelector
         ? new _DirectInvocation(selector, args)
         : new _DispatchableInvocation(selector, args);
     _Invocation? result = _invocations.lookup(invocation);
@@ -778,12 +803,36 @@ class _InvocationsCache {
       return result;
     }
 
-    if (selector is InterfaceSelector) {
+    if (isDirectSelector) {
+      // If there is a selector approximation (meaning the summary is large)
+      // then number of distinct invocations per selector should be limited
+      // in order to bound analysis time.
+
+      final sa = _directSelectorApproximations[selector];
+      if (sa != null) {
+        if (sa.count >=
+            _SelectorApproximation.maxDirectInvocationsPerSelector) {
+          _Invocation? approximation = sa.approximation;
+          if (approximation == null) {
+            final rawArgs =
+                _typeFlowAnalysis.summaryCollector.rawArguments(selector);
+            sa.approximation =
+                approximation = _DirectInvocation(selector, rawArgs);
+            approximation.init();
+            Statistics.approximateDirectInvocationsCreated++;
+          }
+          Statistics.approximateDirectInvocationsUsed++;
+          return approximation;
+        }
+        ++sa.count;
+      }
+    } else if (selector is InterfaceSelector) {
       // Detect if there are too many invocations per selector. In such case,
       // approximate extra invocations with a single invocation with raw
       // arguments.
 
-      final sa = (_approximations[selector] ??= new _SelectorApproximation());
+      final sa = (_interfaceSelectorApproximations[selector] ??=
+          new _SelectorApproximation());
 
       if (sa.count >= _SelectorApproximation.maxInvocationsPerSelector) {
         _Invocation? approximation = sa.approximation;
@@ -792,9 +841,10 @@ class _InvocationsCache {
               _typeFlowAnalysis.summaryCollector.rawArguments(selector);
           sa.approximation =
               approximation = _DispatchableInvocation(selector, rawArgs);
-          Statistics.approximateInvocationsCreated++;
+          approximation.init();
+          Statistics.approximateInterfaceInvocationsCreated++;
         }
-        Statistics.approximateInvocationsUsed++;
+        Statistics.approximateInterfaceInvocationsUsed++;
         return approximation;
       }
 
@@ -803,10 +853,15 @@ class _InvocationsCache {
           max(Statistics.maxInvocationsCachedPerSelector, sa.count);
     }
 
+    invocation.init();
     bool added = _invocations.add(invocation);
     assert(added);
     ++Statistics.invocationsAddedToCache;
     return invocation;
+  }
+
+  void addDirectSelectorApproximation(DirectSelector selector) {
+    _directSelectorApproximations[selector] ??= new _SelectorApproximation();
   }
 }
 
@@ -948,9 +1003,13 @@ class _TFClassImpl extends TFClass {
   /// exceeds this constant, then WideConeType approximation is used.
   static const int maxAllocatedTypesInSetSpecializations = 128;
 
+  final _TFClassImpl? superclass;
   final Set<_TFClassImpl> supertypes; // List of super-types including this.
   final Set<_TFClassImpl> _allocatedSubtypes = new Set<_TFClassImpl>();
-  final Map<Selector, Member> _dispatchTargets = <Selector, Member>{};
+  late final Map<Name, Member> _dispatchTargetsSetters =
+      _initDispatchTargets(true);
+  late final Map<Name, Member> _dispatchTargetsNonSetters =
+      _initDispatchTargets(false);
   final _DependencyTracker dependencyTracker = new _DependencyTracker();
 
   /// Flag indicating if this class has a noSuchMethod() method not inherited
@@ -958,7 +1017,7 @@ class _TFClassImpl extends TFClass {
   /// Lazy initialized by ClassHierarchyCache.hasNonTrivialNoSuchMethod().
   bool? hasNonTrivialNoSuchMethod;
 
-  _TFClassImpl(int id, Class classNode, this.supertypes)
+  _TFClassImpl(int id, Class classNode, this.superclass, this.supertypes)
       : super(id, classNode) {
     supertypes.add(this);
   }
@@ -1001,18 +1060,37 @@ class _TFClassImpl extends TFClass {
     _specializedConeType = null; // Reset cached specialization.
   }
 
-  Member? getDispatchTarget(
-      Selector selector, TypeFlowAnalysis typeFlowAnalysis) {
-    Member? target = _dispatchTargets[selector];
-    if (target == null) {
-      target = typeFlowAnalysis.hierarchyCache.hierarchy.getDispatchTarget(
-          classNode, selector.name,
-          setter: selector.isSetter);
-      if (target != null) {
-        _dispatchTargets[selector] = target;
+  Map<Name, Member> _initDispatchTargets(bool setters) {
+    Map<Name, Member> targets;
+    final superclass = this.superclass;
+    if (superclass != null) {
+      targets = Map.from(setters
+          ? superclass._dispatchTargetsSetters
+          : superclass._dispatchTargetsNonSetters);
+    } else {
+      targets = {};
+    }
+    for (Field f in classNode.fields) {
+      if (!f.isStatic && !f.isAbstract) {
+        if (!setters || f.hasSetter) {
+          targets[f.name] = f;
+        }
       }
     }
-    return target;
+    for (Procedure p in classNode.procedures) {
+      if (!p.isStatic && !p.isAbstract) {
+        if (p.isSetter == setters) {
+          targets[p.name] = p;
+        }
+      }
+    }
+    return targets;
+  }
+
+  Member? getDispatchTarget(Selector selector) {
+    return (selector.isSetter
+        ? _dispatchTargetsSetters
+        : _dispatchTargetsNonSetters)[selector.name];
   }
 
   String dump() => "$this {supers: $supertypes}";
@@ -1126,7 +1204,10 @@ class _ClassHierarchyCache extends TypeHierarchy {
     for (var sup in c.supers) {
       supertypes.addAll(getTFClass(sup.classNode).supertypes);
     }
-    return new _TFClassImpl(++_classIdCounter, c, supertypes);
+    Class? superclassNode = c.superclass;
+    _TFClassImpl? superclass =
+        superclassNode != null ? getTFClass(superclassNode) : null;
+    return new _TFClassImpl(++_classIdCounter, c, superclass, supertypes);
   }
 
   ConcreteType addAllocatedClass(Class cl) {
@@ -1492,14 +1573,24 @@ class TypeFlowAnalysis implements EntryPointsListener, CallHandler {
   _Invocation get currentInvocation => workList.callStack.last;
 
   Summary getSummary(Member member) {
-    return _summaries[member] ??= summaryCollector.createSummary(member);
+    Summary? summary = _summaries[member];
+    if (summary == null) {
+      _summaries[member] = summary = summaryCollector.createSummary(member);
+      if (summary.statements.length >=
+          _SelectorApproximation.largeSummarySize) {
+        final DirectSelector selector =
+            currentInvocation.selector as DirectSelector;
+        _invocationsCache.addDirectSelectorApproximation(selector);
+      }
+    }
+    return summary;
   }
 
   _FieldValue getFieldValue(Field field) {
     _FieldValue? fieldValue = _fieldValues[field];
     if (fieldValue == null) {
       Summary? typeGuardSummary = null;
-      if (field.isGenericCovariantImpl) {
+      if (field.isCovariantByClass) {
         typeGuardSummary = summaryCollector.createSummary(field,
             fieldSummaryType: FieldSummaryType.kFieldGuard);
       }

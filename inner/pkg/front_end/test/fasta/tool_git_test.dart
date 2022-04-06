@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 /// Tests the tool `pkg/front_end/tool/fasta`.
 
 import "dart:io";
@@ -47,14 +45,14 @@ const List<String> unsafeTools = const <String>[
   "testing",
 ];
 
-main() {
+void main() {
   if (!Platform.isMacOS && !Platform.isLinux) {
     // The tool is a shell script and only works on Mac and Linux.
     return;
   }
   Set<String> testedSubtools = new Set<String>.from(subtools)
       .difference(new Set<String>.from(unsafeTools));
-  String usage = messageFastaUsageShort.message;
+  String usage = messageFastaUsageShort.problemMessage;
   Map expectations = {
     "abcompile": {
       "exitCode": 1,

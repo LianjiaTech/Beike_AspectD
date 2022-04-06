@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'dart:io' show Directory, File, FileSystemEntity;
 
 import 'dart:typed_data' show Uint8List;
@@ -15,13 +13,13 @@ import 'package:_fe_analyzer_shared/src/parser/listener.dart' show Listener;
 
 import 'package:_fe_analyzer_shared/src/scanner/token.dart' show Token;
 
-import 'package:_fe_analyzer_shared/src/scanner/token.dart';
-
 import 'package:_fe_analyzer_shared/src/scanner/utf8_bytes_scanner.dart'
     show Utf8BytesScanner;
 
 import 'package:front_end/src/fasta/command_line_reporting.dart'
     as command_line_reporting;
+import 'package:front_end/src/fasta/source/diet_parser.dart'
+    show useImplicitCreationExpressionInCfe;
 
 import 'package:kernel/kernel.dart';
 
@@ -32,7 +30,7 @@ import 'package:testing/testing.dart'
 
 import 'testing_utils.dart' show checkEnvironment, getGitFiles;
 
-main([List<String> arguments = const []]) =>
+void main([List<String> arguments = const []]) =>
     runMe(arguments, createContext, configurationPath: "../testing.json");
 
 Future<Context> createContext(
@@ -45,7 +43,9 @@ Future<Context> createContext(
 }
 
 class LintTestDescription extends TestDescription {
+  @override
   final String shortName;
+  @override
   final Uri uri;
   final LintTestCache cache;
   final LintListener listener;
@@ -56,10 +56,10 @@ class LintTestDescription extends TestDescription {
   }
 
   String getErrorMessage(int offset, int squigglyLength, String message) {
-    cache.source ??= new Source(cache.lineStarts, cache.rawBytes, uri, uri);
-    Location location = cache.source.getLocation(uri, offset);
+    cache.source ??= new Source(cache.lineStarts, cache.rawBytes!, uri, uri);
+    Location location = cache.source!.getLocation(uri, offset);
     return command_line_reporting.formatErrorMessage(
-        cache.source.getTextLine(location.line),
+        cache.source!.getTextLine(location.line),
         location,
         squigglyLength,
         uri.toString(),
@@ -68,17 +68,18 @@ class LintTestDescription extends TestDescription {
 }
 
 class LintTestCache {
-  List<int> rawBytes;
-  List<int> lineStarts;
-  Source source;
-  Token firstToken;
-  PackageConfig packages;
+  List<int>? rawBytes;
+  late List<int> lineStarts;
+  Source? source;
+  Token? firstToken;
+  PackageConfig? packages;
 }
 
 class Context extends ChainContext {
   final bool onlyInGit;
-  Context({this.onlyInGit});
+  Context({required this.onlyInGit});
 
+  @override
   final List<Step> steps = const <Step>[
     const LintStep(),
   ];
@@ -90,8 +91,9 @@ class Context extends ChainContext {
     return result;
   }
 
+  @override
   Stream<LintTestDescription> list(Chain suite) async* {
-    Set<Uri> gitFiles;
+    late Set<Uri> gitFiles;
     if (onlyInGit) {
       gitFiles = await getGitFiles(suite.uri);
     }
@@ -146,24 +148,27 @@ class Context extends ChainContext {
 class LintStep extends Step<LintTestDescription, LintTestDescription, Context> {
   const LintStep();
 
+  @override
   String get name => "lint";
 
+  @override
   Future<Result<LintTestDescription>> run(
       LintTestDescription description, Context context) async {
     if (description.cache.rawBytes == null) {
       File f = new File.fromUri(description.uri);
       description.cache.rawBytes = f.readAsBytesSync();
 
-      Uint8List bytes = new Uint8List(description.cache.rawBytes.length + 1);
+      Uint8List bytes = new Uint8List(description.cache.rawBytes!.length + 1);
       bytes.setRange(
-          0, description.cache.rawBytes.length, description.cache.rawBytes);
+          0, description.cache.rawBytes!.length, description.cache.rawBytes!);
 
       Utf8BytesScanner scanner =
           new Utf8BytesScanner(bytes, includeComments: true);
       description.cache.firstToken = scanner.tokenize();
       description.cache.lineStarts = scanner.lineStarts;
 
-      Uri dotPackages = description.uri.resolve(".packages");
+      Uri dotPackages =
+          description.uri.resolve(".dart_tool/package_config.json");
       while (true) {
         if (new File.fromUri(dotPackages).existsSync()) {
           break;
@@ -172,7 +177,8 @@ class LintStep extends Step<LintTestDescription, LintTestDescription, Context> {
         if (dotPackages.pathSegments.length < Uri.base.pathSegments.length) {
           break;
         }
-        dotPackages = dotPackages.resolve("../.packages");
+        dotPackages =
+            dotPackages.resolve("../../.dart_tool/package_config.json");
       }
 
       File dotPackagesFile = new File.fromUri(dotPackages);
@@ -185,8 +191,9 @@ class LintStep extends Step<LintTestDescription, LintTestDescription, Context> {
       return crash(description, StackTrace.current);
     }
 
-    Parser parser = new Parser(description.listener);
-    parser.parseUnit(description.cache.firstToken);
+    Parser parser = new Parser(description.listener,
+        useImplicitCreationExpression: useImplicitCreationExpressionInCfe);
+    parser.parseUnit(description.cache.firstToken!);
 
     if (description.listener.problems.isEmpty) {
       return pass(description);
@@ -197,10 +204,11 @@ class LintStep extends Step<LintTestDescription, LintTestDescription, Context> {
 
 class LintListener extends Listener {
   List<String> problems = <String>[];
-  LintTestDescription description;
-  Uri uri;
+  late final LintTestDescription description;
+  @override
+  late final Uri uri;
 
-  onProblem(int offset, int squigglyLength, String message) {
+  void onProblem(int offset, int squigglyLength, String message) {
     problems.add(description.getErrorMessage(offset, squigglyLength, message));
   }
 }
@@ -210,15 +218,15 @@ class ExplicitTypeLintListener extends LintListener {
 
   @override
   void beginVariablesDeclaration(
-      Token token, Token lateToken, Token varFinalOrConst) {
+      Token token, Token? lateToken, Token? varFinalOrConst) {
     if (!_latestTypes.last.type) {
       onProblem(
-          varFinalOrConst.offset, varFinalOrConst.length, "No explicit type.");
+          varFinalOrConst!.offset, varFinalOrConst.length, "No explicit type.");
     }
   }
 
   @override
-  void handleType(Token beginToken, Token questionMark) {
+  void handleType(Token beginToken, Token? questionMark) {
     _latestTypes.add(new LatestType(beginToken, true));
   }
 
@@ -228,16 +236,17 @@ class ExplicitTypeLintListener extends LintListener {
   }
 
   @override
-  void endFunctionType(Token functionToken, Token questionMark) {
+  void endFunctionType(Token functionToken, Token? questionMark) {
     _latestTypes.add(new LatestType(functionToken, true));
   }
 
+  @override
   void endTopLevelFields(
-      Token externalToken,
-      Token staticToken,
-      Token covariantToken,
-      Token lateToken,
-      Token varFinalOrConst,
+      Token? externalToken,
+      Token? staticToken,
+      Token? covariantToken,
+      Token? lateToken,
+      Token? varFinalOrConst,
       int count,
       Token beginToken,
       Token endToken) {
@@ -247,29 +256,32 @@ class ExplicitTypeLintListener extends LintListener {
     _latestTypes.removeLast();
   }
 
+  @override
   void endClassFields(
-      Token abstractToken,
-      Token externalToken,
-      Token staticToken,
-      Token covariantToken,
-      Token lateToken,
-      Token varFinalOrConst,
+      Token? abstractToken,
+      Token? externalToken,
+      Token? staticToken,
+      Token? covariantToken,
+      Token? lateToken,
+      Token? varFinalOrConst,
       int count,
       Token beginToken,
       Token endToken) {
     if (!_latestTypes.last.type) {
       onProblem(
-          varFinalOrConst.offset, varFinalOrConst.length, "No explicit type.");
+          varFinalOrConst!.offset, varFinalOrConst.length, "No explicit type.");
     }
     _latestTypes.removeLast();
   }
 
+  @override
   void endFormalParameter(
-      Token thisKeyword,
-      Token periodAfterThis,
+      Token? thisKeyword,
+      Token? superKeyword,
+      Token? periodAfterThisOrSuper,
       Token nameToken,
-      Token initializerStart,
-      Token initializerEnd,
+      Token? initializerStart,
+      Token? initializerEnd,
       FormalParameterKind kind,
       MemberKind memberKind) {
     _latestTypes.removeLast();
@@ -286,8 +298,9 @@ class LatestType {
 class ImportsTwiceLintListener extends LintListener {
   Set<Uri> seenImports = new Set<Uri>();
 
-  void endImport(Token importKeyword, Token semicolon) {
-    Token importUriToken = importKeyword.next;
+  @override
+  void endImport(Token importKeyword, Token? semicolon) {
+    Token importUriToken = importKeyword.next!;
     String importUri = importUriToken.lexeme;
     if (importUri.startsWith("r")) {
       importUri = importUri.substring(2, importUri.length - 1);
@@ -297,7 +310,7 @@ class ImportsTwiceLintListener extends LintListener {
     Uri resolved = uri.resolve(importUri);
     if (resolved.scheme == "package") {
       if (description.cache.packages != null) {
-        resolved = description.cache.packages.resolve(resolved);
+        resolved = description.cache.packages!.resolve(resolved)!;
       }
     }
     if (!seenImports.add(resolved)) {
@@ -308,8 +321,9 @@ class ImportsTwiceLintListener extends LintListener {
 }
 
 class ExportsLintListener extends LintListener {
+  @override
   void endExport(Token exportKeyword, Token semicolon) {
-    Token exportUriToken = exportKeyword.next;
+    Token exportUriToken = exportKeyword.next!;
     String exportUri = exportUriToken.lexeme;
     if (exportUri.startsWith("r")) {
       exportUri = exportUri.substring(2, exportUri.length - 1);
@@ -319,7 +333,7 @@ class ExportsLintListener extends LintListener {
     Uri resolved = uri.resolve(exportUri);
     if (resolved.scheme == "package") {
       if (description.cache.packages != null) {
-        resolved = description.cache.packages.resolve(resolved);
+        resolved = description.cache.packages!.resolve(resolved)!;
       }
     }
     onProblem(exportUriToken.offset, exportUriToken.lexeme.length,

@@ -102,6 +102,8 @@ ConstEvalDeferredLibrary/example: Fail
 ConstEvalDuplicateElement/example: Fail
 ConstEvalDuplicateKey/example: Fail
 ConstEvalElementImplementsEqual/example: Fail
+ConstEvalError/analyzerCode: Fail
+ConstEvalError/example: Fail
 ConstEvalExtension/example: Fail
 ConstEvalExternalConstructor/analyzerCode: Fail
 ConstEvalExternalConstructor/example: Fail
@@ -150,6 +152,7 @@ ConstEvalZeroDivisor/example: Fail
 ConstFieldWithoutInitializer/example: Fail
 ConstructorNotFound/example: Fail
 ConstructorNotSync/example: Fail
+ConstructorTearOffWithTypeArguments/analyzerCode: Fail
 ContinueLabelNotTarget/example: Fail
 ContinueOutsideOfLoop/part_wrapped_script1: Fail
 ContinueOutsideOfLoop/script1: Fail
@@ -169,6 +172,8 @@ CyclicClassHierarchy/part_wrapped_script1: Fail
 CyclicClassHierarchy/part_wrapped_script2: Fail
 CyclicClassHierarchy/script1: Fail # We report an error for each class involved in the cycle.
 CyclicClassHierarchy/script2: Fail # We report an error for each class involved in the cycle.
+CyclicRedirectingFactoryConstructors/part_wrapped_script: Fail # Error is reported for each factory involved in the cycle.
+CyclicRedirectingFactoryConstructors/script: Fail # Error is reported for each factory involved in the cycle.
 CyclicTypedef/example: Fail
 DefaultListConstructorError/analyzerCode: Fail
 DefaultListConstructorError/example: Fail
@@ -179,8 +184,6 @@ DeferredExtensionImport/analyzerCode: Fail
 DeferredExtensionImport/part_wrapped_script: Fail
 DeferredPrefixDuplicated/example: Fail
 DeferredTypeAnnotation/example: Fail
-DeprecateDartExt/analyzerCode: Fail
-DeprecateDartExt/part_wrapped_script: Fail # Example uses import declaration.
 DillOutlineSummary/analyzerCode: Fail
 DillOutlineSummary/example: Fail
 DirectiveAfterDeclaration/part_wrapped_script1: Fail
@@ -209,6 +212,8 @@ DuplicatedNamedArgument/example: Fail
 DuplicatedParameterName/example: Fail
 Encoding/analyzerCode: Fail
 EnumConstantSameNameAsEnclosing/example: Fail
+EnumDeclaresFactory/analyzerCode: Fail
+EnumDeclaresFactory/example: Fail
 EnumInstantiation/example: Fail
 EqualityCannotBeEqualityOperand/part_wrapped_script1: Fail
 EqualityCannotBeEqualityOperand/part_wrapped_script2: Fail
@@ -329,6 +334,8 @@ FastaUsageLong/analyzerCode: Fail
 FastaUsageLong/example: Fail
 FastaUsageShort/analyzerCode: Fail
 FastaUsageShort/example: Fail
+FfiAbiSpecificIntegerInvalid/analyzerCode: Fail
+FfiAbiSpecificIntegerMappingInvalid/analyzerCode: Fail
 FfiDartTypeMismatch/analyzerCode: Fail
 FfiEmptyStruct/analyzerCode: Fail
 FfiExceptionalReturnNull/analyzerCode: Fail
@@ -344,7 +351,10 @@ FfiFieldNoAnnotation/analyzerCode: Fail
 FfiFieldNull/analyzerCode: Fail
 FfiLeafCallMustNotReturnHandle/analyzerCode: Fail
 FfiLeafCallMustNotTakeHandle/analyzerCode: Fail
-FfiNativeAnnotationMustAnnotateStatic/analyzerCode: Fail
+FfiNativeMustBeExternal/analyzerCode: Fail
+FfiNativeOnlyNativeFieldWrapperClassCanBePointer/analyzerCode: Fail
+FfiNativeUnexpectedNumberOfParameters/analyzerCode: Fail
+FfiNativeUnexpectedNumberOfParametersWithReceiver/analyzerCode: Fail
 FfiNotStatic/analyzerCode: Fail
 FfiPackedAnnotation/analyzerCode: Fail
 FfiPackedAnnotationAlignment/analyzerCode: Fail
@@ -416,7 +426,6 @@ ImplementsNever/analyzerCode: Fail # Feature not yet in analyzer.
 ImplementsNever/example: Fail # Feature not yet enabled by default.
 ImplementsVoid/analyzerCode: Fail # Feature not yet in analyzer.
 ImplementsVoid/example: Fail # Feature not yet enabled by default.
-ImplicitCallOfNonMethod/example: Fail
 ImplicitMixinOverride/analyzerCode: Fail
 ImplicitMixinOverride/example: Fail
 ImplicitReturnNull/analyzerCode: Fail
@@ -530,6 +539,10 @@ JsInteropNonExternalConstructor/analyzerCode: Fail # Web compiler specific
 JsInteropNonExternalConstructor/example: Fail # Web compiler specific
 JsInteropNonExternalMember/analyzerCode: Fail # Web compiler specific
 JsInteropNonExternalMember/example: Fail # Web compiler specific
+JsInteropStaticInteropWithInstanceMembers/analyzerCode: Fail # Web compiler specific
+JsInteropStaticInteropWithInstanceMembers/example: Fail # Web compiler specific
+JsInteropStaticInteropWithNonStaticSupertype/analyzerCode: Fail # Web compiler specific
+JsInteropStaticInteropWithNonStaticSupertype/example: Fail # Web compiler specific
 LanguageVersionInvalidInDotPackages/analyzerCode: Fail
 LanguageVersionMismatchInPart/analyzerCode: Fail
 LanguageVersionMismatchInPart/part_wrapped_script: Fail # Part in (now) part.
@@ -559,6 +572,7 @@ MainWrongParameterType/analyzerCode: Fail
 MainWrongParameterTypeExported/analyzerCode: Fail
 MainWrongParameterTypeExported/part_wrapped_script: Fail
 MapLiteralTypeArgumentMismatch/example: Fail
+MemberNotFound/example: Fail
 MetadataTypeArguments/example: Fail
 MethodNotFound/example: Fail
 MissingArgumentList/analyzerCode: Fail
@@ -587,6 +601,7 @@ MultipleOnClauses/script: Fail
 MultipleVarianceModifiers/example: Fail # All trigger multiple errors for variance experiment
 MultipleWith/part_wrapped_script: Fail
 MultipleWith/script: Fail
+NameNotFound/example: Fail
 NamedFunctionExpression/example: Fail
 NamedMixinOverride/analyzerCode: Fail
 NamedMixinOverride/example: Fail
@@ -599,6 +614,7 @@ NeverValueError/analyzerCode: Fail
 NeverValueError/example: Fail
 NeverValueWarning/analyzerCode: Fail
 NeverValueWarning/example: Fail
+NewAsSelector/analyzerCode: Fail
 NoFormals/example: Fail
 NoSuchNamedParameter/example: Fail
 NoUnnamedConstructorInObject/analyzerCode: Fail
@@ -711,6 +727,8 @@ PatchNonExternal/analyzerCode: Fail
 PatchNonExternal/example: Fail
 PlatformPrivateLibraryAccess/example: Fail
 PositionalAfterNamedArgument/example: Fail
+PositionalSuperParametersAndArguments/analyzerCode: Fail
+PositionalSuperParametersAndArguments/example: Fail
 PrefixAfterCombinator/example: Fail
 PreviousUseOfName/analyzerCode: Fail
 PreviousUseOfName/example: Fail
@@ -751,6 +769,7 @@ SourceOutlineSummary/example: Fail
 SpreadMapEntryTypeMismatch/analyzerCode: Fail # There's no analyzer code for that error yet.
 SpreadTypeMismatch/analyzerCode: Fail # There's no analyzer code for that error yet.
 StackOverflow/example: Fail
+StaticTearOffFromInstantiatedClass/analyzerCode: Fail
 StrongModeNNBDButOptOut/analyzerCode: Fail
 StrongModeNNBDButOptOut/example: Fail
 StrongModeNNBDPackageOptOut/analyzerCode: Fail
@@ -763,6 +782,7 @@ SuperAsIdentifier/example: Fail
 SuperNullAware/example: Fail
 SuperclassHasNoDefaultConstructor/example: Fail
 SuperclassHasNoGetter/example: Fail
+SuperclassHasNoMember/example: Fail
 SuperclassHasNoMethod/example: Fail
 SuperclassHasNoSetter/example: Fail
 SuperclassMethodArgumentMismatch/analyzerCode: Fail
@@ -814,6 +834,8 @@ UnmatchedToken/script1: Fail
 UnmatchedToken/script3: Fail
 Unspecified/analyzerCode: Fail
 Unspecified/example: Fail
+UnsupportedDartExt/analyzerCode: Fail
+UnsupportedDartExt/part_wrapped_script: Fail # Example uses import declaration.
 UnterminatedString/part_wrapped_script2: Fail
 UnterminatedString/part_wrapped_script4: Fail
 UnterminatedString/part_wrapped_script5: Fail

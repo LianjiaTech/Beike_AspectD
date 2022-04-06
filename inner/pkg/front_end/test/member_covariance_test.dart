@@ -2,13 +2,11 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'package:expect/expect.dart';
 import 'package:kernel/ast.dart';
 import 'package:front_end/src/fasta/kernel/member_covariance.dart';
 
-main() {
+void main() {
   void checkEquals(Covariance a, Covariance b) {
     Expect.equals(a, b);
     Expect.equals(a.hashCode, b.hashCode);

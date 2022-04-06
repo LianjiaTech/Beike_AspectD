@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'dart:io' show Platform, Process, ProcessResult;
 
 import 'package:front_end/src/api_prototype/compiler_options.dart';
@@ -16,7 +14,7 @@ final String repoDir = computeRepoDir();
 
 String get dartVm => Platform.executable;
 
-main(List<String> args) async {
+Future<void> main(List<String> args) async {
   ProcessResult result = await Process.run(
       "python3", ["tools/make_version.py", "--no_git", "-q"],
       workingDirectory: repoDir);
@@ -35,8 +33,8 @@ main(List<String> args) async {
   // E.g. "2.6.0-edge" (without the quotes).
   String versionString = stdout.split("\n")[0];
   List<String> dotSeparatedParts = versionString.split(".");
-  int major = int.tryParse(dotSeparatedParts[0]);
-  int minor = int.tryParse(dotSeparatedParts[1]);
+  int major = int.parse(dotSeparatedParts[0]);
+  int minor = int.parse(dotSeparatedParts[1]);
   kernel.Version version = new kernel.Version(major, minor);
 
   if (kernel.defaultLanguageVersion != version) {
@@ -51,8 +49,8 @@ main(List<String> args) async {
 
   List<String> dotSeparatedPartsFromOptions =
       compilerOptions.currentSdkVersion.split(".");
-  int majorFromOptions = int.tryParse(dotSeparatedPartsFromOptions[0]);
-  int minorFromOptions = int.tryParse(dotSeparatedPartsFromOptions[1]);
+  int majorFromOptions = int.parse(dotSeparatedPartsFromOptions[0]);
+  int minorFromOptions = int.parse(dotSeparatedPartsFromOptions[1]);
   if (majorFromOptions != major || minorFromOptions != minor) {
     throw "CompilerOptions defaults "
         "${majorFromOptions}.${minorFromOptions}"

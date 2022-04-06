@@ -20,6 +20,7 @@ import 'analysis.dart';
 import 'calls.dart';
 import 'signature_shaking.dart';
 import 'protobuf_handler.dart' show ProtobufHandler;
+import 'rta.dart' show RapidTypeAnalysis;
 import 'summary.dart';
 import 'table_selector_assigner.dart';
 import 'types.dart';
@@ -44,7 +45,8 @@ Component transformComponent(
     {PragmaAnnotationParser? matcher,
     bool treeShakeSignatures: true,
     bool treeShakeWriteOnlyFields: true,
-    bool treeShakeProtobufs: false}) {
+    bool treeShakeProtobufs: false,
+    bool useRapidTypeAnalysis: true}) {
   void ignoreAmbiguousSupertypes(Class cls, Supertype a, Supertype b) {}
   final hierarchy = new ClassHierarchy(component, coreTypes,
           onAmbiguousSupertypes: ignoreAmbiguousSupertypes)
@@ -58,6 +60,25 @@ Component transformComponent(
       : null;
 
   Statistics.reset();
+
+  CleanupAnnotations(coreTypes, libraryIndex, protobufHandler)
+      .visitComponent(component);
+
+  Stopwatch? rtaStopWatch;
+  RapidTypeAnalysis? rta;
+  if (useRapidTypeAnalysis) {
+    // Rapid type analysis (RTA) is used to quickly calculate
+    // the set of allocated classes to make the subsequent
+    // type flow analysis converge much faster.
+    rtaStopWatch = new Stopwatch()..start();
+    final protobufHandlerRta = treeShakeProtobufs
+        ? ProtobufHandler.forComponent(component, coreTypes)
+        : null;
+    rta = RapidTypeAnalysis(
+        component, coreTypes, hierarchy, libraryIndex, protobufHandlerRta);
+    rtaStopWatch.stop();
+  }
+
   final analysisStopWatch = new Stopwatch()..start();
 
   MoveFieldInitializers().transformComponent(component);
@@ -81,8 +102,11 @@ Component transformComponent(
     typeFlowAnalysis.addRawCall(mainSelector);
   }
 
-  CleanupAnnotations(coreTypes, libraryIndex, protobufHandler)
-      .visitComponent(component);
+  if (useRapidTypeAnalysis) {
+    for (Class c in rta!.allocatedClasses) {
+      typeFlowAnalysis.addAllocatedClass(c);
+    }
+  }
 
   typeFlowAnalysis.process();
 
@@ -119,6 +143,9 @@ Component transformComponent(
 
   transformsStopWatch.stop();
 
+  if (useRapidTypeAnalysis) {
+    statPrint("RTA took ${rtaStopWatch!.elapsedMilliseconds}ms");
+  }
   statPrint("TF analysis took ${analysisStopWatch.elapsedMilliseconds}ms");
   statPrint("TF transforms took ${transformsStopWatch.elapsedMilliseconds}ms");
 
@@ -160,7 +187,7 @@ class MoveFieldInitializers {
         if (!_isRedirectingConstructor(c)) c
     ];
 
-    assert(constructors.isNotEmpty);
+    assert(constructors.isNotEmpty || cls.isMixinDeclaration);
 
     // Move field initializers to constructors.
     // Clone AST for all constructors except the first.
@@ -317,7 +344,7 @@ class AnnotateKernel extends RecursiveVisitor {
 
     final nullable = type is NullableType;
     if (nullable) {
-      type = (type as NullableType).baseType;
+      type = type.baseType;
     }
 
     if (nullable && type == const EmptyType()) {
@@ -874,8 +901,8 @@ class FieldMorpher {
     if (isSetter) {
       final isAbstract = !shaker.isFieldSetterReachable(field);
       final parameter = new VariableDeclaration('value', type: field.type)
-        ..isCovariant = field.isCovariant
-        ..isGenericCovariantImpl = field.isGenericCovariantImpl
+        ..isCovariantByDeclaration = field.isCovariantByDeclaration
+        ..isCovariantByClass = field.isCovariantByClass
         ..fileOffset = field.fileOffset;
       accessor = new Procedure(
           field.name,
@@ -979,6 +1006,7 @@ class _TreeShakerTypeVisitor extends RecursiveVisitor {
     if (parent is Class) {
       shaker.addClassUsedInType(parent);
     }
+    node.visitChildren(this);
   }
 }
 
@@ -1391,9 +1419,8 @@ class _TreeShakerPass1 extends RemovingTransformer {
       return _makeUnreachableCall([]);
     } else {
       if (!shaker.isMemberBodyReachable(node.target)) {
-        // Annotations could contain references to constant fields.
-        assert((node.target is Field) && (node.target as Field).isConst);
-        shaker.addUsedMember(node.target);
+        throw '${node.runtimeType} "$node" uses unreachable member '
+            '${node.target} at ${node.location}';
       }
       return node;
     }
@@ -1429,9 +1456,8 @@ class _TreeShakerPass1 extends RemovingTransformer {
       return _makeUnreachableCall(_flattenArguments(node.arguments));
     } else {
       if (!shaker.isMemberBodyReachable(node.target)) {
-        // Annotations could contain references to const constructors.
-        assert(node.isConst);
-        shaker.addUsedMember(node.target);
+        throw '${node.runtimeType} "$node" uses unreachable member '
+            '${node.target} at ${node.location}';
       }
       return node;
     }
@@ -1753,6 +1779,11 @@ class _TreeShakerPass2 extends RemovingTransformer {
       // write a dangling reference to the deleted member.
       if (node is Field) {
         assert(
+            node.fieldReference.node == node,
+            "Trying to remove canonical name from field reference on $node "
+            "which has been repurposed for ${node.fieldReference.node}.");
+        node.fieldReference.canonicalName?.unbind();
+        assert(
             node.getterReference.node == node,
             "Trying to remove canonical name from getter reference on $node "
             "which has been repurposed for ${node.getterReference.node}.");
@@ -1900,6 +1931,13 @@ class _TreeShakerConstantVisitor extends ConstantVisitor<Null> {
   visitDoubleConstant(DoubleConstant constant) {}
 
   @override
+  visitSetConstant(SetConstant constant) {
+    for (final entry in constant.entries) {
+      analyzeConstant(entry);
+    }
+  }
+
+  @override
   visitStringConstant(StringConstant constant) {}
 
   @override
@@ -1908,8 +1946,11 @@ class _TreeShakerConstantVisitor extends ConstantVisitor<Null> {
   }
 
   @override
-  visitMapConstant(MapConstant node) {
-    throw 'The kernel2kernel constants transformation desugars const maps!';
+  visitMapConstant(MapConstant constant) {
+    for (final entry in constant.entries) {
+      analyzeConstant(entry.key);
+      analyzeConstant(entry.value);
+    }
   }
 
   @override
@@ -1940,6 +1981,12 @@ class _TreeShakerConstantVisitor extends ConstantVisitor<Null> {
 
   @override
   visitConstructorTearOffConstant(ConstructorTearOffConstant constant) {
+    shaker.addUsedMember(constant.target);
+  }
+
+  @override
+  visitRedirectingFactoryTearOffConstant(
+      RedirectingFactoryTearOffConstant constant) {
     shaker.addUsedMember(constant.target);
   }
 

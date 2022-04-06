@@ -62,10 +62,13 @@ void main() async {
           test('has scriptId', () async {
             expect(variableSymbol.location.scriptId, endsWith('/foo.dart'));
           });
-          test('only start token', () async {
+          test('start token position', () async {
             expect(variableSymbol.location.tokenPos,
-                47 + options.dartLangComment.length);
-            expect(variableSymbol.location.endTokenPos, null);
+                source.indexOf('globalVariable'));
+          });
+          test('end token position', () async {
+            expect(
+                variableSymbol.location.endTokenPos, source.lastIndexOf(';'));
           });
         });
       });
@@ -96,7 +99,9 @@ void main() async {
         final source = '''
           ${options.dartLangComment}
 
-          class A {}
+          class A {
+            const A();
+          }
           const localVariable = A();
           ''';
         setUpAll(() async {

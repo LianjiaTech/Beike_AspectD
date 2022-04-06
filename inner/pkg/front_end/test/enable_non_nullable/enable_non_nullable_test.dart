@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE.md file.
 
-// @dart = 2.9
-
 import 'dart:io';
 
 import 'package:expect/expect.dart';
@@ -12,7 +10,6 @@ import 'package:front_end/src/api_prototype/experimental_flags.dart';
 import 'package:front_end/src/api_prototype/kernel_generator.dart';
 import 'package:front_end/src/api_prototype/language_version.dart';
 import 'package:front_end/src/compute_platform_binaries_location.dart';
-import 'package:front_end/src/fasta/source/source_library_builder.dart';
 import 'package:kernel/ast.dart';
 
 /// The version used in this test as the experiment release version.
@@ -21,7 +18,7 @@ const Version experimentReleaseVersion = const Version(2, 9);
 /// The version used in this test as the experiment enabled version.
 const Version experimentEnabledVersion = const Version(2, 10);
 
-main() async {
+Future<void> main() async {
   print('--------------------------------------------------------------------');
   print('Test off-by-default with command-line flag');
   print('--------------------------------------------------------------------');
@@ -59,11 +56,11 @@ main() async {
       versionOptsInAllowed: experimentReleaseVersion);
 }
 
-test(
-    {bool enableNonNullableByDefault,
-    bool enableNonNullableExplicitly,
-    Version versionImpliesOptIn,
-    Version versionOptsInAllowed}) async {
+Future<void> test(
+    {required bool enableNonNullableByDefault,
+    required bool enableNonNullableExplicitly,
+    required Version versionImpliesOptIn,
+    required Version versionOptsInAllowed}) async {
   CompilerOptions options = new CompilerOptions();
   if (enableNonNullableByDefault) {
     // Pretend non-nullable is on by default.
@@ -113,12 +110,12 @@ test(
 
   Directory directory = new Directory.fromUri(
       Uri.base.resolve('pkg/front_end/test/enable_non_nullable/data/'));
-  CompilerResult result = await kernelForProgramInternal(
+  CompilerResult result = (await kernelForProgramInternal(
       directory.uri.resolve('main.dart'), options,
-      retainDataForTesting: true);
+      retainDataForTesting: true))!;
   Expect.isFalse(
       hadDiagnostic, "Compilation had diagnostics (errors, warnings)!");
-  for (Library library in result.component.libraries) {
+  for (Library library in result.component!.libraries) {
     if (library.importUri.scheme != 'dart') {
       bool usesLegacy =
           await uriUsesLegacyLanguageVersion(library.fileUri, options);
@@ -142,8 +139,7 @@ test(
           " (package) uri=${versionAndPackageUri.packageUri}");
       Expect.isTrue(
           library.languageVersion < versionImpliesOptIn ||
-              library.isNonNullableByDefault ||
-              SourceLibraryBuilder.isOptOutTest(library.fileUri),
+              library.isNonNullableByDefault,
           "Expected library ${library.importUri} with version "
           "${library.languageVersion} to be opted in.");
       Expect.isTrue(
@@ -151,8 +147,7 @@ test(
               !versionAndPackageUri.packageUri.path
                   .startsWith('allowed_package') ||
               library.languageVersion < versionOptsInAllowed ||
-              library.isNonNullableByDefault ||
-              SourceLibraryBuilder.isOptOutTest(library.fileUri),
+              library.isNonNullableByDefault,
           "Expected allowed library ${library.importUri} with version "
           "${library.languageVersion} to be opted in.");
     }

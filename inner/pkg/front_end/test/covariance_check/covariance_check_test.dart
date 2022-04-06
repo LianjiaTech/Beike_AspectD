@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'dart:io' show Directory, Platform;
 import 'package:_fe_analyzer_shared/src/testing/id.dart';
 import 'package:_fe_analyzer_shared/src/testing/id_testing.dart';
@@ -11,7 +9,7 @@ import 'package:front_end/src/testing/id_testing_helper.dart';
 import 'package:front_end/src/testing/id_testing_utils.dart';
 import 'package:kernel/ast.dart';
 
-main(List<String> args) async {
+Future<void> main(List<String> args) async {
   Directory dataDir = new Directory.fromUri(Platform.script.resolve('data'));
   await runTests<String>(dataDir,
       args: args,
@@ -27,12 +25,13 @@ class CovarianceCheckDataComputer extends DataComputer<String> {
   /// Function that computes a data mapping for [library].
   ///
   /// Fills [actualMap] with the data.
+  @override
   void computeLibraryData(
       TestConfig config,
       InternalCompilerResult compilerResult,
       Library library,
       Map<Id, ActualData<String>> actualMap,
-      {bool verbose}) {
+      {bool? verbose}) {
     new CovarianceCheckDataExtractor(compilerResult, actualMap)
         .computeForLibrary(library);
   }
@@ -43,7 +42,7 @@ class CovarianceCheckDataComputer extends DataComputer<String> {
       InternalCompilerResult compilerResult,
       Member member,
       Map<Id, ActualData<String>> actualMap,
-      {bool verbose}) {
+      {bool? verbose}) {
     member.accept(new CovarianceCheckDataExtractor(compilerResult, actualMap));
   }
 
@@ -57,7 +56,7 @@ class CovarianceCheckDataExtractor extends CfeDataExtractor<String> {
       : super(compilerResult, actualMap);
 
   @override
-  String computeNodeValue(Id id, TreeNode node) {
+  String? computeNodeValue(Id id, TreeNode node) {
     if (node is AsExpression && node.isCovarianceCheck) {
       return typeToText(node.type);
     }

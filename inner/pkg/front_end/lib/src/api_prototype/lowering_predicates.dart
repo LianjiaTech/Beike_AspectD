@@ -5,6 +5,11 @@
 import 'package:kernel/ast.dart';
 import '../fasta/kernel/late_lowering.dart';
 import '../fasta/source/source_extension_builder.dart' show extensionThisName;
+export '../fasta/kernel/constructor_tearoff_lowering.dart'
+    show
+        isConstructorTearOffLowering,
+        isTearOffLowering,
+        isTypedefTearOffLowering;
 
 /// Returns `true` if [node] is the field holding the value of a lowered late
 /// field.
@@ -660,8 +665,8 @@ String extractLocalNameFromLateLoweredSetter(String name) {
 ///
 /// where '#this' is the synthetic "extension this" parameter.
 bool isExtensionThis(VariableDeclaration node) {
-  assert(
-      node.isLowered || node.name == null || !isExtensionThisName(node.name));
+  assert(node.isLowered || node.name == null || !isExtensionThisName(node.name),
+      "$node has name ${node.name} and node.isLowered = ${node.isLowered}");
   return node.isLowered && isExtensionThisName(node.name);
 }
 

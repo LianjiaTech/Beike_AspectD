@@ -31,13 +31,13 @@ import '../type_inference/type_schema.dart' show UnknownType;
 import 'redirecting_factory_body.dart'
     show
         RedirectingFactoryBody,
-        getRedirectingFactoryBody,
-        isRedirectingFactory;
+        isRedirectingFactory,
+        isRedirectingFactoryField;
 
 List<LocatedMessage> verifyComponent(Component component, Target target,
     {bool? isOutline, bool? afterConst, bool skipPlatform: false}) {
-  FastaVerifyingVisitor verifier =
-      new FastaVerifyingVisitor(target, isOutline, afterConst, skipPlatform);
+  FastaVerifyingVisitor verifier = new FastaVerifyingVisitor(target,
+      isOutline: isOutline, afterConst: afterConst, skipPlatform: skipPlatform);
   component.accept(verifier);
   return verifier.errors;
 }
@@ -50,9 +50,13 @@ class FastaVerifyingVisitor extends VerifyingVisitor {
   final List<TreeNode> treeNodeStack = <TreeNode>[];
   final bool skipPlatform;
 
-  FastaVerifyingVisitor(
-      this.target, bool? isOutline, bool? afterConst, this.skipPlatform)
-      : super(isOutline: isOutline, afterConst: afterConst);
+  FastaVerifyingVisitor(this.target,
+      {bool? isOutline, bool? afterConst, required this.skipPlatform})
+      : super(
+            isOutline: isOutline,
+            afterConst: afterConst,
+            constantsAreAlwaysInlined:
+                target.constantsBackend.alwaysInlineConstants);
 
   /// Invoked by all visit methods if the visited node is a [TreeNode].
   void enterTreeNode(TreeNode node) {
@@ -182,7 +186,7 @@ class FastaVerifyingVisitor extends VerifyingVisitor {
   }
 
   @override
-  problem(TreeNode? node, String details,
+  void problem(TreeNode? node, String details,
       {TreeNode? context, TreeNode? origin}) {
     node ??= (context ?? currentClassOrExtensionOrMember);
     int offset = node?.fileOffset ?? -1;
@@ -284,13 +288,11 @@ class FastaVerifyingVisitor extends VerifyingVisitor {
     bool hasBody = isRedirectingFactory(node) ||
         RedirectingFactoryBody.hasRedirectingFactoryBodyShape(node);
     bool hasFlag = node.isRedirectingFactory;
-    if (hasBody != hasFlag) {
-      String hasBodyString = hasBody ? "has" : "doesn't have";
-      String hasFlagString = hasFlag ? "has" : "doesn't have";
+    if (hasFlag && !hasBody) {
       problem(
           node,
-          "Procedure '${node.name}' ${hasBodyString} a body "
-          "of a redirecting factory, but ${hasFlagString} the "
+          "Procedure '${node.name}' doesn't have a body "
+          "of a redirecting factory, but has the "
           "'isRedirectingFactory' bit set.");
     }
 
@@ -429,11 +431,90 @@ class FastaVerifyingVisitor extends VerifyingVisitor {
   void visitStaticInvocation(StaticInvocation node) {
     enterTreeNode(node);
     super.visitStaticInvocation(node);
-    RedirectingFactoryBody? body = getRedirectingFactoryBody(node.target);
-    if (body != null) {
-      problem(node, "Attempt to invoke redirecting factory.");
-    }
     exitTreeNode(node);
+  }
+
+  void _checkConstructorTearOff(Node node, Member tearOffTarget) {
+    if (tearOffTarget.enclosingLibrary.importUri.scheme == 'dart') {
+      // Platform libraries are not compilation with test flags and might
+      // contain tear-offs not expected when testing lowerings.
+      return;
+    }
+    if (currentMember != null && isRedirectingFactoryField(currentMember!)) {
+      // The encoding of the redirecting factory field uses
+      // [ConstructorTearOffConstant] nodes also when lowerings are enabled.
+      return;
+    }
+    if (tearOffTarget is Constructor &&
+        target.isConstructorTearOffLoweringEnabled) {
+      problem(
+          node is TreeNode ? node : getLastSeenTreeNode(),
+          '${node.runtimeType} nodes for generative constructors should be '
+          'lowered for target "${target.name}".');
+    }
+    if (tearOffTarget is Procedure &&
+        tearOffTarget.isFactory &&
+        target.isFactoryTearOffLoweringEnabled) {
+      problem(
+          node is TreeNode ? node : getLastSeenTreeNode(),
+          '${node.runtimeType} nodes for factory constructors should be '
+          'lowered for target "${target.name}".');
+    }
+  }
+
+  @override
+  void visitConstructorTearOff(ConstructorTearOff node) {
+    _checkConstructorTearOff(node, node.target);
+    super.visitConstructorTearOff(node);
+  }
+
+  @override
+  void visitConstructorTearOffConstant(ConstructorTearOffConstant node) {
+    _checkConstructorTearOff(node, node.target);
+    super.visitConstructorTearOffConstant(node);
+  }
+
+  void _checkTypedefTearOff(Node node) {
+    if (target.isTypedefTearOffLoweringEnabled) {
+      problem(
+          node is TreeNode ? node : getLastSeenTreeNode(),
+          '${node.runtimeType} nodes for typedefs should be '
+          'lowered for target "${target.name}".');
+    }
+  }
+
+  @override
+  void visitTypedefTearOff(TypedefTearOff node) {
+    _checkTypedefTearOff(node);
+    super.visitTypedefTearOff(node);
+  }
+
+  @override
+  void visitTypedefTearOffConstant(TypedefTearOffConstant node) {
+    _checkTypedefTearOff(node);
+    super.visitTypedefTearOffConstant(node);
+  }
+
+  void _checkRedirectingFactoryTearOff(Node node) {
+    if (target.isRedirectingFactoryTearOffLoweringEnabled) {
+      problem(
+          node is TreeNode ? node : getLastSeenTreeNode(),
+          'ConstructorTearOff nodes for redirecting factories should be '
+          'lowered for target "${target.name}".');
+    }
+  }
+
+  @override
+  void visitRedirectingFactoryTearOff(RedirectingFactoryTearOff node) {
+    _checkRedirectingFactoryTearOff(node);
+    super.visitRedirectingFactoryTearOff(node);
+  }
+
+  @override
+  void visitRedirectingFactoryTearOffConstant(
+      RedirectingFactoryTearOffConstant node) {
+    _checkRedirectingFactoryTearOff(node);
+    super.visitRedirectingFactoryTearOffConstant(node);
   }
 
   @override
@@ -455,7 +536,7 @@ class FastaVerifyGetStaticType extends VerifyGetStaticType {
   FastaVerifyGetStaticType(TypeEnvironment env, this.skipPlatform) : super(env);
 
   @override
-  visitLibrary(Library node) {
+  void visitLibrary(Library node) {
     // 'dart:test' is used in the unit tests and isn't an actual part of the
     // platform.
     if (skipPlatform &&

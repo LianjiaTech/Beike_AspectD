@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE.md file.
 
-// @dart = 2.9
-
 library fasta.test.textual_outline_test;
 
 import 'dart:io';
@@ -47,15 +45,16 @@ const List<Map<String, String>> EXPECTATIONS = [
   },
 ];
 
-Future<Context> createContext(
-    Chain suite, Map<String, String> environment) async {
-  return new Context(environment["updateExpectations"] == "true");
+Future<Context> createContext(Chain suite, Map<String, String> environment) {
+  return new Future.value(
+      new Context(environment["updateExpectations"] == "true"));
 }
 
-main([List<String> arguments = const []]) =>
+void main([List<String> arguments = const []]) =>
     runMe(arguments, createContext, configurationPath: "../../testing.json");
 
 class Context extends ChainContext with MatchContext {
+  @override
   final bool updateExpectations;
 
   @override
@@ -66,10 +65,12 @@ class Context extends ChainContext with MatchContext {
 
   Context(this.updateExpectations);
 
+  @override
   final List<Step> steps = const <Step>[
     const TextualOutline(),
   ];
 
+  @override
   final ExpectationSet expectationSet =
       new ExpectationSet.fromJsonList(EXPECTATIONS);
 }
@@ -77,14 +78,16 @@ class Context extends ChainContext with MatchContext {
 class TextualOutline extends Step<TestDescription, TestDescription, Context> {
   const TextualOutline();
 
+  @override
   String get name => "TextualOutline";
 
+  @override
   Future<Result<TestDescription>> run(
       TestDescription description, Context context) async {
     List<int> bytes = new File.fromUri(description.uri).readAsBytesSync();
     for (bool modelled in [false, true]) {
       // TODO(jensj): NNBD should be configured correctly.
-      String result = textualOutline(
+      String? result = textualOutline(
         bytes,
         const ScannerConfiguration(enableExtensionMethods: true),
         throwOnUnexpected: true,
@@ -113,7 +116,7 @@ class TextualOutline extends Step<TestDescription, TestDescription, Context> {
       result = sb.toString().trim();
 
       dynamic formatterException;
-      StackTrace formatterExceptionSt;
+      StackTrace? formatterExceptionSt;
       if (!containsUnknownChunk) {
         // Try to format only if it doesn't contain the unknown chunk marker.
         try {
@@ -129,8 +132,9 @@ class TextualOutline extends Step<TestDescription, TestDescription, Context> {
         filename = ".textual_outline_modelled.expect";
       }
 
-      Result expectMatch = await context.match<TestDescription>(
-          filename, result, description.uri, description);
+      Result<TestDescription> expectMatch =
+          await context.match<TestDescription>(
+              filename, result!, description.uri, description);
       if (expectMatch.outcome != Expectation.Pass) return expectMatch;
 
       if (formatterException != null) {

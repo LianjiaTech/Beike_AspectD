@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'package:expect/expect.dart';
 import 'package:front_end/src/fasta/kernel/collections.dart';
 import 'package:front_end/src/fasta/kernel/forest.dart';
@@ -11,7 +9,8 @@ import 'package:front_end/src/fasta/kernel/internal_ast.dart';
 import 'package:kernel/ast.dart';
 import 'text_representation_test.dart';
 
-testStatement(Statement node, String normal, {String verbose, String limited}) {
+void testStatement(Statement node, String normal,
+    {String? verbose, String? limited}) {
   Expect.stringEquals(normal, node.toText(normalStrategy),
       "Unexpected normal strategy text for ${node.runtimeType}");
   Expect.stringEquals(verbose ?? normal, node.toText(verboseStrategy),
@@ -20,8 +19,8 @@ testStatement(Statement node, String normal, {String verbose, String limited}) {
       "Unexpected limited strategy text for ${node.runtimeType}");
 }
 
-testExpression(Expression node, String normal,
-    {String verbose, String limited}) {
+void testExpression(Expression node, String normal,
+    {String? verbose, String? limited}) {
   Expect.stringEquals(normal, node.toText(normalStrategy),
       "Unexpected normal strategy text for ${node.runtimeType}");
   Expect.stringEquals(verbose ?? normal, node.toText(verboseStrategy),
@@ -32,7 +31,7 @@ testExpression(Expression node, String normal,
 
 final Uri dummyUri = Uri.parse('test:dummy');
 
-main() {
+void main() {
   _testVariableDeclarations();
   _testTryStatement();
   _testForInStatementWithSynthesizedVariable();
@@ -325,7 +324,7 @@ void _testFactoryConstructorInvocationJudgment() {
   cls.addProcedure(factoryConstructor);
 
   testExpression(
-      new FactoryConstructorInvocationJudgment(
+      new FactoryConstructorInvocation(
           factoryConstructor, new ArgumentsImpl([])),
       '''
 new Class()''',
@@ -333,7 +332,7 @@ new Class()''',
 new library test:dummy::Class()''');
 
   testExpression(
-      new FactoryConstructorInvocationJudgment(
+      new FactoryConstructorInvocation(
           factoryConstructor,
           new ArgumentsImpl([new IntLiteral(0)],
               types: [const VoidType()],
@@ -345,7 +344,7 @@ new library test:dummy::Class<void>(0, bar: 1)''');
 
   factoryConstructor.name = new Name('foo');
   testExpression(
-      new FactoryConstructorInvocationJudgment(
+      new FactoryConstructorInvocation(
           factoryConstructor,
           new ArgumentsImpl([new IntLiteral(0)],
               types: [const VoidType()],
@@ -399,15 +398,13 @@ void _testInternalMethodInvocation() {
 }
 
 void _testInternalPropertyGet() {
-  testExpression(
-      new PropertyGet(new IntLiteral(0), new Name('boz')), '''
+  testExpression(new PropertyGet(new IntLiteral(0), new Name('boz')), '''
 0.boz''');
 }
 
 void _testInternalPropertySet() {
   testExpression(
-      new PropertySet(
-          new IntLiteral(0), new Name('boz'), new IntLiteral(1),
+      new PropertySet(new IntLiteral(0), new Name('boz'), new IntLiteral(1),
           forEffect: false, readOnlyReceiver: false),
       '''
 0.boz = 1''');
@@ -593,10 +590,6 @@ void _testLoadLibraryTearOff() {
   Library library = new Library(dummyUri, fileUri: dummyUri);
   LibraryDependency dependency =
       LibraryDependency.deferredImport(library, 'pre');
-
-  testExpression(new LoadLibraryTearOff(dependency, null), ''' 
-pre.loadLibrary''');
-
   Procedure procedure = new Procedure(new Name('get#loadLibrary'),
       ProcedureKind.Getter, new FunctionNode(new Block([])),
       fileUri: dummyUri);
@@ -657,9 +650,18 @@ void _testStaticPostIncDec() {}
 
 void _testSuperPostIncDec() {}
 
-void _testIndexGet() {}
+void _testIndexGet() {
+  testExpression(new IndexGet(new IntLiteral(0), new IntLiteral(1)), '''
+0[1]''');
+}
 
-void _testIndexSet() {}
+void _testIndexSet() {
+  testExpression(
+      new IndexSet(new IntLiteral(0), new IntLiteral(1), new IntLiteral(2),
+          forEffect: false),
+      '''
+0[1] = 2''');
+}
 
 void _testSuperIndexSet() {}
 

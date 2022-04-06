@@ -36,6 +36,8 @@ abstract class Builder {
 
   bool get isGetter;
 
+  bool get isExternal;
+
   /// Returns `true` if this builder is an extension declaration.
   ///
   /// For instance `B` in:
@@ -198,10 +200,6 @@ abstract class Builder {
   /// Returns the number of patches that was finished.
   int finishPatch();
 
-  /// Resolve constructors (lookup names in scope) recorded in this builder and
-  /// return the number of constructors resolved.
-  int resolveConstructors(covariant Builder? parent);
-
   /// Return `true` if this builder is a duplicate of another with the same
   /// name. This is `false` for the builder first declared amongst duplicates.
   bool get isDuplicate;
@@ -216,6 +214,7 @@ abstract class BuilderImpl implements Builder {
   @override
   Builder get origin => this;
 
+  @override
   bool get hasProblem => false;
 
   @override
@@ -276,6 +275,9 @@ abstract class BuilderImpl implements Builder {
   bool get isStatic => false;
 
   @override
+  bool get isExternal => false;
+
+  @override
   bool get isSynthetic => false;
 
   @override
@@ -297,9 +299,6 @@ abstract class BuilderImpl implements Builder {
     if (!isPatch) return 0;
     unsupported("${runtimeType}.finishPatch", charOffset, fileUri);
   }
-
-  @override
-  int resolveConstructors(covariant Builder parent) => 0;
 
   @override
   bool get isDuplicate => next != null;

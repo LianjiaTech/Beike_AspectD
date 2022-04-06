@@ -2,13 +2,11 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'package:_fe_analyzer_shared/src/messages/severity.dart' show Severity;
 
 /// Test that Severity has the expected indexes. Note that this is important
 /// and shouldn't be changed lightly because we use it in serialization!
-main() {
+void main() {
   expect(Severity.context.index, 0);
   expect(Severity.error.index, 1);
   expect(Severity.internalProblem.index, 3);

@@ -2,14 +2,12 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart=2.9
-
 import "dart:io" show File, Platform;
 import "dart:typed_data" show Uint8List;
 
-import "package:front_end/src/fasta/util/direct_parser_ast.dart" show getAST;
-import "package:front_end/src/fasta/util/direct_parser_ast_helper.dart"
-    show DirectParserASTContent, DirectParserASTType;
+import "package:front_end/src/fasta/util/parser_ast.dart" show getAST;
+import "package:front_end/src/fasta/util/parser_ast_helper.dart"
+    show ParserAstNode, ParserAstType;
 
 import "console_helper.dart";
 
@@ -19,7 +17,7 @@ void main(List<String> args) {
     uri = Uri.base.resolve(args.first);
   }
   Uint8List bytes = new File.fromUri(uri).readAsBytesSync();
-  DirectParserASTContent ast = getAST(bytes);
+  ParserAstNode ast = getAST(bytes, enableExtensionMethods: true);
 
   Widget widget = new QuitOnQWidget(
     new WithSingleLineBottomWidget(
@@ -35,9 +33,9 @@ void main(List<String> args) {
 
 class PrintedLine {
   final String text;
-  final DirectParserASTContent ast;
-  final List<PrintedLine> parentShown;
-  final int selected;
+  final ParserAstNode? ast;
+  final List<PrintedLine>? parentShown;
+  final int? selected;
 
   PrintedLine.parent(this.parentShown, this.selected)
       : text = "..",
@@ -52,30 +50,30 @@ class PrintedLine {
 }
 
 class AstWidget extends Widget {
-  List<PrintedLine> shown;
+  late List<PrintedLine> shown;
   int selected = 0;
 
-  AstWidget(DirectParserASTContent ast) {
+  AstWidget(ParserAstNode ast) {
     shown = [new PrintedLine.ast(ast, textualize(ast))];
   }
 
-  String textualize(DirectParserASTContent element,
+  String textualize(ParserAstNode element,
       {bool indent: false, bool withEndHeader: false}) {
     String header;
     switch (element.type) {
-      case DirectParserASTType.BEGIN:
+      case ParserAstType.BEGIN:
         header = "begin";
         break;
-      case DirectParserASTType.HANDLE:
+      case ParserAstType.HANDLE:
         header = "handle";
         break;
-      case DirectParserASTType.END:
+      case ParserAstType.END:
         header = withEndHeader ? "end" : "";
         break;
     }
     String extra = " ";
     if (element.children != null) {
-      extra += element.children.first.deprecatedArguments.toString();
+      extra += element.children!.first.deprecatedArguments.toString();
     }
     return "${indent ? "  " : ""}"
         "${header}${element.what} "
@@ -112,11 +110,11 @@ class AstWidget extends Widget {
     // Enter selected line.
     PrintedLine selectedElement = shown[selected];
     if (selectedElement.parentShown != null) {
-      shown = selectedElement.parentShown;
-      selected = selectedElement.selected;
+      shown = selectedElement.parentShown!;
+      selected = selectedElement.selected!;
     } else {
       shown = [new PrintedLine.parent(shown, selected)];
-      List<DirectParserASTContent> children = selectedElement.ast.children;
+      List<ParserAstNode>? children = selectedElement.ast!.children;
       if (children != null) {
         for (int i = 0; i < children.length; i++) {
           shown.add(new PrintedLine.ast(
@@ -124,7 +122,7 @@ class AstWidget extends Widget {
         }
       }
       shown.add(new PrintedLine.parentWithText(shown,
-          textualize(selectedElement.ast, withEndHeader: true), shown.length));
+          textualize(selectedElement.ast!, withEndHeader: true), shown.length));
       selected = 0;
     }
   }
@@ -160,7 +158,7 @@ class AstWidget extends Widget {
 }
 
 class StatusBarWidget extends Widget {
-  List<int> latestInput;
+  List<int>? latestInput;
 
   @override
   void print(WriteOnlyOutput output) {

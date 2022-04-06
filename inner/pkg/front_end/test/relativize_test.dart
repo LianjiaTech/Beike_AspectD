@@ -2,21 +2,19 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-// @dart = 2.9
-
 import 'package:_fe_analyzer_shared/src/util/relativize.dart';
 import 'package:test/test.dart';
 
 void main() {
   test('test relativeUri', () {
-    void c(String expected, String base, String path, bool isWindows) {
+    void c(String expected, String base, String path, bool? isWindows) {
       if (isWindows == null) {
         c(expected, base, path, true);
         c(expected, base, path, false);
         return;
       }
 
-      test(Uri base, Uri uri) {
+      void test(Uri base, Uri uri) {
         String r = relativizeUri(base, uri, isWindows);
         Uri resolved = base.resolve(r);
         expect(resolved.scheme.toLowerCase(), uri.scheme.toLowerCase());

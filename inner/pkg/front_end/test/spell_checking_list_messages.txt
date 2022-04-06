@@ -10,6 +10,8 @@
 # automatic tools might move it to the top of the file.
 
 JS
+abispecificinteger
+abispecificintegermapping
 adjusting
 api
 argument(s)
@@ -37,6 +39,7 @@ futureor
 guides
 h
 https
+interact
 interop
 intervening
 js_util
@@ -48,6 +51,7 @@ name.#name
 name.stack
 nameokempty
 native('native
+nativefieldwrapperclass
 natively
 nativetype
 nnbd
@@ -59,11 +63,14 @@ opts
 outdated
 part(s)
 patch(es)
+placing
 pubspec.yaml
 re
 sdksummary
+size
 solutions
 stacktrace
+staticinterop
 stringokempty
 struct<#name
 structs

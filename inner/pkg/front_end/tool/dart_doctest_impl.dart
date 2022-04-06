@@ -26,10 +26,9 @@ import 'package:_fe_analyzer_shared/src/scanner/token.dart';
 import 'package:_fe_analyzer_shared/src/scanner/utf8_bytes_scanner.dart'
     show Utf8BytesScanner;
 
-import 'package:_fe_analyzer_shared/src/scanner/token.dart' show Token;
-
 import 'package:front_end/src/api_prototype/compiler_options.dart';
 import 'package:front_end/src/api_prototype/file_system.dart';
+import 'package:front_end/src/api_prototype/incremental_kernel_generator.dart';
 import 'package:front_end/src/api_prototype/memory_file_system.dart';
 import 'package:front_end/src/api_prototype/standard_file_system.dart';
 import 'package:front_end/src/base/processed_options.dart';
@@ -49,8 +48,11 @@ import 'package:front_end/src/fasta/hybrid_file_system.dart';
 // ignore: import_of_legacy_library_into_null_safe
 import 'package:front_end/src/fasta/incremental_compiler.dart';
 import 'package:front_end/src/fasta/kernel/utils.dart';
+import 'package:front_end/src/fasta/source/diet_parser.dart'
+    show useImplicitCreationExpressionInCfe;
 // ignore: import_of_legacy_library_into_null_safe
 import 'package:front_end/src/fasta/source/source_library_builder.dart';
+import 'package:front_end/src/fasta/source/source_loader.dart';
 import 'package:front_end/src/fasta/uri_translator.dart';
 import 'package:kernel/kernel.dart' as kernel
     show Combinator, Component, LibraryDependency, Library, Location, Source;
@@ -159,8 +161,9 @@ class DartDocTest {
     incrementalCompiler!.invalidate(processedOpts.packagesUri);
 
     Stopwatch stopwatch = new Stopwatch()..start();
-    kernel.Component component =
+    IncrementalCompilerResult compilerResult =
         await incrementalCompiler!.computeDelta(entryPoints: [uri]);
+    kernel.Component component = compilerResult.component;
     if (errors) {
       _print("Got errors in ${stopwatch.elapsedMilliseconds} ms.");
       return [
@@ -180,8 +183,9 @@ class DartDocTest {
         .writeAsStringSync(mainFileContent);
 
     incrementalCompiler!.invalidate(dartDocMainUri);
-    kernel.Component componentMain = await incrementalCompiler!
+    IncrementalCompilerResult compilerMainResult = await incrementalCompiler!
         .computeDelta(entryPoints: [dartDocMainUri], fullComponent: true);
+    kernel.Component componentMain = compilerMainResult.component;
     if (errors) {
       _print("Got errors in ${stopwatch.elapsedMilliseconds} ms.");
       return [
@@ -472,6 +476,7 @@ class ExpectTest implements Test {
 
   ExpectTest(this.call, this.result);
 
+  @override
   bool operator ==(Object other) {
     if (other is! ExpectTest) return false;
     if (other.call != call) return false;
@@ -479,6 +484,7 @@ class ExpectTest implements Test {
     return true;
   }
 
+  @override
   String toString() {
     return "ExpectTest[$call, $result]";
   }
@@ -490,6 +496,7 @@ class TestParseError implements Test {
 
   TestParseError(this.message, this.position);
 
+  @override
   bool operator ==(Object other) {
     if (other is! TestParseError) return false;
     if (other.message != message) return false;
@@ -497,6 +504,7 @@ class TestParseError implements Test {
     return true;
   }
 
+  @override
   String toString() {
     return "TestParseError[$position, $message]";
   }
@@ -519,6 +527,7 @@ class TestResult {
 
   TestResult(this.test, this.outcome);
 
+  @override
   bool operator ==(Object other) {
     if (other is! TestResult) return false;
     if (other.test != test) return false;
@@ -527,6 +536,7 @@ class TestResult {
     return true;
   }
 
+  @override
   String toString() {
     if (message != null) {
       return "TestResult[$outcome, $test, $message]";
@@ -549,7 +559,8 @@ List<Test> extractTestsFromComment(
     final Token firstToken =
         scanRawBytes(utf8.encode(comments.substring(scanOffset)) as Uint8List);
     final ErrorListener listener = new ErrorListener();
-    final Parser parser = new Parser(listener);
+    final Parser parser = new Parser(listener,
+        useImplicitCreationExpression: useImplicitCreationExpressionInCfe);
     parser.asyncState = AsyncModifier.Async;
 
     final Token pastErrors = parser.skipErrorTokens(firstToken);
@@ -646,7 +657,7 @@ String _createParseErrorMessage(kernel.Source source, int position,
       location,
       endToken.charEnd - startToken.charOffset,
       source.importUri!.toString(),
-      message.message);
+      message.problemMessage);
 }
 
 CommentString extractComments(CommentToken comment, String rawString) {
@@ -728,6 +739,7 @@ class CommentString {
 
   CommentString(this.string, this.charOffset);
 
+  @override
   bool operator ==(Object other) {
     if (other is! CommentString) return false;
     if (other.string != string) return false;
@@ -735,6 +747,7 @@ class CommentString {
     return true;
   }
 
+  @override
   String toString() {
     return "CommentString[$charOffset, $string]";
   }
@@ -764,6 +777,7 @@ class DocTestIncrementalCompiler extends IncrementalCompiler {
       new Uri(scheme: "dartdoctest", path: "tester");
   DocTestIncrementalCompiler(CompilerContext context) : super(context);
 
+  @override
   bool dontReissueLibraryProblemsFor(Uri? uri) {
     return super.dontReissueLibraryProblemsFor(uri) || uri == dartDocTestUri;
   }
@@ -783,38 +797,39 @@ class DocTestIncrementalCompiler extends IncrementalCompiler {
 
   Future<kernel.Component> compileDartDocTestLibrary(
       String dartDocTestCode, Uri libraryUri) async {
-    assert(dillLoadedData != null && userCode != null);
+    assert(dillTargetForTesting != null && kernelTargetForTesting != null);
 
     return await context.runInContext((_) async {
-      LibraryBuilder libraryBuilder = userCode!.loader
-          .read(libraryUri, -1, accessor: userCode!.loader.first);
+      LibraryBuilder libraryBuilder =
+          kernelTargetForTesting!.loader.readAsEntryPoint(libraryUri);
 
-      userCode!.loader.resetSeenMessages();
+      kernelTargetForTesting!.loader.resetSeenMessages();
 
       _dartDocTestLibraryBuilder = libraryBuilder;
       _dartDocTestCode = dartDocTestCode;
 
       invalidate(dartDocTestUri);
-      kernel.Component result = await computeDelta(
+      IncrementalCompilerResult compilerResult = await computeDelta(
           entryPoints: [dartDocTestUri], fullComponent: true);
+      kernel.Component result = compilerResult.component;
       _dartDocTestLibraryBuilder = null;
       _dartDocTestCode = null;
 
-      userCode!.uriToSource.remove(dartDocTestUri);
-      userCode!.loader.sourceBytes.remove(dartDocTestUri);
+      kernelTargetForTesting!.uriToSource.remove(dartDocTestUri);
+      kernelTargetForTesting!.loader.sourceBytes.remove(dartDocTestUri);
 
       return result;
     });
   }
 
-  SourceLibraryBuilder createDartDocTestLibrary(LibraryBuilder libraryBuilder) {
+  SourceLibraryBuilder createDartDocTestLibrary(
+      SourceLoader loader, LibraryBuilder libraryBuilder) {
     SourceLibraryBuilder dartDocTestLibrary = new SourceLibraryBuilder(
-      dartDocTestUri,
-      dartDocTestUri,
-      /*packageUri*/ null,
-      new ImplicitLanguageVersion(libraryBuilder.library.languageVersion),
-      userCode!.loader,
-      null,
+      importUri: dartDocTestUri,
+      fileUri: dartDocTestUri,
+      packageLanguageVersion:
+          new ImplicitLanguageVersion(libraryBuilder.library.languageVersion),
+      loader: loader,
       scope: libraryBuilder.scope.createNestedScope("dartdoctest"),
       nameOrigin: libraryBuilder,
     );
@@ -824,16 +839,16 @@ class DocTestIncrementalCompiler extends IncrementalCompiler {
           in libraryBuilder.library.dependencies) {
         if (!dependency.isImport) continue;
 
-        List<Combinator>? combinators;
+        List<CombinatorBuilder>? combinators;
 
         for (kernel.Combinator combinator in dependency.combinators) {
-          combinators ??= <Combinator>[];
+          combinators ??= <CombinatorBuilder>[];
 
           combinators.add(combinator.isShow
-              ? new Combinator.show(combinator.names, combinator.fileOffset,
-                  libraryBuilder.fileUri)
-              : new Combinator.hide(combinator.names, combinator.fileOffset,
-                  libraryBuilder.fileUri));
+              ? new CombinatorBuilder.show(combinator.names,
+                  combinator.fileOffset, libraryBuilder.fileUri)
+              : new CombinatorBuilder.hide(combinator.names,
+                  combinator.fileOffset, libraryBuilder.fileUri));
         }
 
         dartDocTestLibrary.addImport(
@@ -868,24 +883,43 @@ class DocTestIncrementalKernelTarget extends IncrementalKernelTarget {
       : super(fileSystem, includeComments, dillTarget, uriTranslator);
 
   @override
-  LibraryBuilder createLibraryBuilder(
-      Uri uri,
-      Uri fileUri,
+  SourceLoader createLoader() {
+    return new DocTestSourceLoader(compiler, fileSystem, includeComments, this);
+  }
+}
+
+class DocTestSourceLoader extends SourceLoader {
+  final DocTestIncrementalCompiler compiler;
+
+  DocTestSourceLoader(this.compiler, FileSystem fileSystem,
+      bool includeComments, DocTestIncrementalKernelTarget target)
+      : super(fileSystem, includeComments, target);
+
+  @override
+  SourceLibraryBuilder createLibraryBuilder(
+      {required Uri importUri,
+      required Uri fileUri,
       Uri? packageUri,
-      LanguageVersion packageLanguageVersion,
-      SourceLibraryBuilder origin,
+      required LanguageVersion packageLanguageVersion,
+      SourceLibraryBuilder? origin,
       kernel.Library? referencesFrom,
-      bool? referenceIsPartOwner) {
-    if (uri == DocTestIncrementalCompiler.dartDocTestUri) {
-      HybridFileSystem hfs = compiler.userCode!.fileSystem as HybridFileSystem;
+      bool? referenceIsPartOwner}) {
+    if (importUri == DocTestIncrementalCompiler.dartDocTestUri) {
+      HybridFileSystem hfs = target.fileSystem as HybridFileSystem;
       MemoryFileSystem fs = hfs.memory;
       fs
           .entityForUri(DocTestIncrementalCompiler.dartDocTestUri)
           .writeAsStringSync(compiler._dartDocTestCode!);
-      return compiler
-          .createDartDocTestLibrary(compiler._dartDocTestLibraryBuilder!);
+      return compiler.createDartDocTestLibrary(
+          this, compiler._dartDocTestLibraryBuilder!);
     }
-    return super.createLibraryBuilder(uri, fileUri, packageUri,
-        packageLanguageVersion, origin, referencesFrom, referenceIsPartOwner);
+    return super.createLibraryBuilder(
+        importUri: importUri,
+        fileUri: fileUri,
+        packageUri: packageUri,
+        packageLanguageVersion: packageLanguageVersion,
+        origin: origin,
+        referencesFrom: referencesFrom,
+        referenceIsPartOwner: referenceIsPartOwner);
   }
 }

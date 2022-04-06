@@ -18,6 +18,7 @@ enum NullSafetyMode {
 }
 
 enum FeatureStatus {
+  shipped,
   shipping,
   canary,
 }
@@ -31,6 +32,10 @@ enum FeatureStatus {
 /// passed. The [isNegativeFlag] bool flips things around so while in [canary]
 /// the [FeatureOption] is enabled unless explicitly disabled, and while in
 /// [staging] it is disabled unless explicitly enabled.
+///
+/// Finally, mature features can be moved to [shipped], at which point we ignore
+/// the flag, but throw if the value of the flag is unexpected(i.e. if a
+/// positive flag is disabled, or a negative flag is enabled).
 class FeatureOption {
   final String flag;
   final bool isNegativeFlag;
@@ -68,11 +73,22 @@ class FeatureOptions {
   /// Whether to use optimized holders.
   FeatureOption newHolders = FeatureOption('new-holders');
 
+  /// Whether to generate code compliant with Content Security Policy.
+  FeatureOption useContentSecurityPolicy = FeatureOption('csp');
+
+  /// [FeatureOption]s which are shipped and cannot be toggled.
+  late final List<FeatureOption> shipped = [
+    newHolders,
+  ];
+
   /// [FeatureOption]s which default to enabled.
-  late final List<FeatureOption> shipping = [legacyJavaScript];
+  late final List<FeatureOption> shipping = [
+    legacyJavaScript,
+    useContentSecurityPolicy
+  ];
 
   /// [FeatureOption]s which default to disabled.
-  late final List<FeatureOption> canary = [newHolders];
+  late final List<FeatureOption> canary = [];
 
   /// Forces canary feature on. This must run after [Option].parse.
   void forceCanary() {
@@ -86,17 +102,21 @@ class FeatureOptions {
     bool _shouldPrint(FeatureOption feature) {
       return feature.isNegativeFlag ? feature.isDisabled : feature.isEnabled;
     }
+
     String _toString(FeatureOption feature) {
       return feature.isNegativeFlag ? 'no-${feature.flag}' : feature.flag;
     }
+
     Iterable<String> _listToString(List<FeatureOption> options) {
       return options.where(_shouldPrint).map(_toString);
     }
+
     return _listToString(shipping).followedBy(_listToString(canary)).join(', ');
   }
 
   /// Parses a [List<String>] and enables / disables features as necessary.
   void parse(List<String> options) {
+    _verifyShippedFeatures(options, shipped);
     _extractFeatures(options, shipping, FeatureStatus.shipping);
     _extractFeatures(options, canary, FeatureStatus.canary);
   }
@@ -133,11 +153,22 @@ abstract class DiagnosticOptions {
 /// as few as possible.
 class CompilerOptions implements DiagnosticOptions {
   /// The entry point of the application that is being compiled.
-  Uri? entryPoint;
+  Uri? entryUri;
+
+  /// The input dill to compile.
+  Uri? inputDillUri;
+
+  /// Returns the compilation target specified by these options.
+  Uri? get compilationTarget => inputDillUri ?? entryUri;
+
+  bool get fromDill {
+    var targetPath = compilationTarget!.path;
+    return targetPath.endsWith('.dill') ||
+        targetPath.endsWith('.gdill') ||
+        targetPath.endsWith('.mdill');
+  }
 
   /// Location of the package configuration file.
-  ///
-  /// If not null then [packageRoot] should be null.
   Uri? packageConfig;
 
   /// List of kernel files to load.
@@ -153,9 +184,18 @@ class CompilerOptions implements DiagnosticOptions {
   /// files for linking.
   List<Uri>? dillDependencies;
 
+  Uri? writeModularAnalysisUri;
+
+  /// Helper to determine if compiler is being run just for modular analysis.
+  bool get modularMode => writeModularAnalysisUri != null;
+
+  List<Uri>? modularAnalysisInputs;
+
+  bool get hasModularAnalysisInputs => modularAnalysisInputs != null;
+
   /// Location from which serialized inference data is read.
   ///
-  /// If this is set, the [entryPoint] is expected to be a .dill file and the
+  /// If this is set, the [entryUri] is expected to be a .dill file and the
   /// frontend work is skipped.
   Uri? readDataUri;
 
@@ -171,7 +211,7 @@ class CompilerOptions implements DiagnosticOptions {
 
   /// Location from which the serialized closed world is read.
   ///
-  /// If this is set, the [entryPoint] is expected to be a .dill file and the
+  /// If this is set, the [entryUri] is expected to be a .dill file and the
   /// frontend work is skipped.
   Uri? readClosedWorldUri;
 
@@ -267,6 +307,10 @@ class CompilerOptions implements DiagnosticOptions {
 
   // Whether or not to stop compilation after splitting the
   bool stopAfterProgramSplit = false;
+
+  /// Reads a program split json file and applies the parsed constraints to
+  /// deferred loading.
+  Uri? readProgramSplit;
 
   /// Diagnostic option: If `true`, warnings cause the compilation to fail.
   @override
@@ -422,9 +466,6 @@ class CompilerOptions implements DiagnosticOptions {
   /// This is an internal configuration option derived from other flags.
   late CheckPolicy defaultIndexBoundsCheckPolicy;
 
-  /// Whether to generate code compliant with content security policy (CSP).
-  bool useContentSecurityPolicy = false;
-
   /// When obfuscating for minification, whether to use the frequency of a name
   /// as an heuristic to pick shorter names.
   bool useFrequencyNamer = true;
@@ -477,10 +518,6 @@ class CompilerOptions implements DiagnosticOptions {
   /// called.
   bool experimentCallInstrumentation = false;
 
-  /// Use the dart2js lowering of late instance variables rather than the CFE
-  /// lowering.
-  bool experimentLateInstanceVariables = false;
-
   /// When null-safety is enabled, whether the compiler should emit code with
   /// unsound or sound semantics.
   ///
@@ -526,6 +563,9 @@ class CompilerOptions implements DiagnosticOptions {
   /// Verbosity level used for filtering messages during compilation.
   fe.Verbosity verbosity = fe.Verbosity.all;
 
+  // Whether or not to dump a list of unused libraries.
+  bool dumpUnusedLibraries = false;
+
   late FeatureOptions features;
 
   // -------------------------------------------------
@@ -549,6 +589,8 @@ class CompilerOptions implements DiagnosticOptions {
     // sdk with the correct flags.
     platformBinaries ??= fe.computePlatformBinariesLocation();
     return CompilerOptions()
+      ..entryUri = _extractUriOption(options, '${Flags.entryUri}=')
+      ..inputDillUri = _extractUriOption(options, '${Flags.inputDill}=')
       ..librariesSpecificationUri = librariesSpecificationUri
       ..allowMockCompilation = _hasOption(options, Flags.allowMockCompilation)
       ..benchmarkingProduction =
@@ -605,8 +647,6 @@ class CompilerOptions implements DiagnosticOptions {
           _hasOption(options, Flags.experimentUnreachableMethodsThrow)
       ..experimentCallInstrumentation =
           _hasOption(options, Flags.experimentCallInstrumentation)
-      ..experimentLateInstanceVariables =
-          _hasOption(options, Flags.experimentLateInstanceVariables)
       ..generateSourceMap = !_hasOption(options, Flags.noSourceMaps)
       ..outputUri = _extractUriOption(options, '--out=')
       ..platformBinaries = platformBinaries
@@ -618,8 +658,6 @@ class CompilerOptions implements DiagnosticOptions {
           _hasOption(options, Flags.laxRuntimeTypeToString)
       ..testMode = _hasOption(options, Flags.testMode)
       ..trustPrimitives = _hasOption(options, Flags.trustPrimitives)
-      ..useContentSecurityPolicy =
-          _hasOption(options, Flags.useContentSecurityPolicy)
       ..useFrequencyNamer =
           !_hasOption(options, Flags.noFrequencyBasedMinification)
       ..useMultiSourceInfo = _hasOption(options, Flags.useMultiSourceInfo)
@@ -631,6 +669,12 @@ class CompilerOptions implements DiagnosticOptions {
       ..showInternalProgress = _hasOption(options, Flags.progress)
       ..dillDependencies =
           _extractUriListOption(options, '${Flags.dillDependencies}')
+      ..readProgramSplit =
+          _extractUriOption(options, '${Flags.readProgramSplit}=')
+      ..writeModularAnalysisUri =
+          _extractUriOption(options, '${Flags.writeModularAnalysis}=')
+      ..modularAnalysisInputs =
+          _extractUriListOption(options, '${Flags.readModularAnalysis}')
       ..readDataUri = _extractUriOption(options, '${Flags.readData}=')
       ..writeDataUri = _extractUriOption(options, '${Flags.writeData}=')
       ..noClosedWorldInData = _hasOption(options, Flags.noClosedWorldInData)
@@ -648,6 +692,7 @@ class CompilerOptions implements DiagnosticOptions {
       .._noSoundNullSafety = _hasOption(options, Flags.noSoundNullSafety)
       .._mergeFragmentsThreshold =
           _extractIntOption(options, '${Flags.mergeFragmentsThreshold}=')
+      ..dumpUnusedLibraries = _hasOption(options, Flags.dumpUnusedLibraries)
       ..cfeInvocationModes = fe.InvocationMode.parseArguments(
           _extractStringOption(options, '${Flags.cfeInvocationModes}=', '')!,
           onError: onError)
@@ -663,18 +708,18 @@ class CompilerOptions implements DiagnosticOptions {
     // null? In unittests we use the same compiler to analyze or build multiple
     // entrypoints.
     if (librariesSpecificationUri == null) {
-      throw new ArgumentError("[librariesSpecificationUri] is null.");
+      throw ArgumentError("[librariesSpecificationUri] is null.");
     }
     if (librariesSpecificationUri!.path.endsWith('/')) {
-      throw new ArgumentError(
+      throw ArgumentError(
           "[librariesSpecificationUri] should be a file: $librariesSpecificationUri");
     }
     Map<fe.ExperimentalFlag, bool> experimentalFlags =
-        new Map.from(fe.defaultExperimentalFlags);
+        Map.from(fe.defaultExperimentalFlags);
     experimentalFlags.addAll(explicitExperimentalFlags);
     if (platformBinaries == null &&
         equalMaps(experimentalFlags, fe.defaultExperimentalFlags)) {
-      throw new ArgumentError("Missing required ${Flags.platformBinaries}");
+      throw ArgumentError("Missing required ${Flags.platformBinaries}");
     }
     if (_soundNullSafety && _noSoundNullSafety) {
       throw ArgumentError("'${Flags.soundNullSafety}' incompatible with "
@@ -694,8 +739,7 @@ class CompilerOptions implements DiagnosticOptions {
 
     if (benchmarkingExperiment) {
       // Set flags implied by '--benchmarking-x'.
-      // TODO(sra): Use this for some NNBD variant.
-      useContentSecurityPolicy = true;
+      // TODO(sra): Use this for some null safety variant.
       features.forceCanary();
     }
 
@@ -795,10 +839,10 @@ class CheckPolicy {
   /// Whether the type assertion should be emitted and checked.
   final bool isEmitted;
 
-  const CheckPolicy({this.isTrusted: false, this.isEmitted: false});
+  const CheckPolicy({this.isTrusted = false, this.isEmitted = false});
 
-  static const trusted = const CheckPolicy(isTrusted: true);
-  static const checked = const CheckPolicy(isEmitted: true);
+  static const trusted = CheckPolicy(isTrusted: true);
+  static const checked = CheckPolicy(isEmitted: true);
 
   @override
   String toString() => 'CheckPolicy(isTrusted=$isTrusted,'
@@ -858,7 +902,7 @@ Map<fe.ExperimentalFlag, bool> _extractExperiments(List<String> options,
     {void Function(String)? onError, void Function(String)? onWarning}) {
   List<String>? experiments =
       _extractOptionalCsvOption(options, Flags.enableLanguageExperiments);
-  onError ??= (String error) => throw new ArgumentError(error);
+  onError ??= (String error) => throw ArgumentError(error);
   onWarning ??= (String warning) => print(warning);
   return fe.parseExperimentalFlags(fe.parseExperimentalArguments(experiments),
       onError: onError, onWarning: onWarning);
@@ -882,6 +926,30 @@ void _extractFeatures(
         (status == FeatureStatus.shipping && !hasNoShippingFlag);
     globalEnable = feature.isNegativeFlag ? !globalEnable : globalEnable;
     feature.state = (enableFeature || globalEnable) && !disableFeature;
+  }
+}
+
+void _verifyShippedFeatures(
+    List<String> options, List<FeatureOption> features) {
+  for (var feature in features) {
+    String featureFlag = feature.flag;
+    String enableFeatureFlag = '--$featureFlag';
+    String disableFeatureFlag = '--no-$featureFlag';
+    bool enableFeature = _hasOption(options, enableFeatureFlag);
+    bool disableFeature = _hasOption(options, disableFeatureFlag);
+    if (enableFeature && disableFeature) {
+      throw ArgumentError("'$enableFeatureFlag' incompatible with "
+          "'$disableFeatureFlag'");
+    }
+    if (enableFeature && feature.isNegativeFlag) {
+      throw ArgumentError(
+          "$disableFeatureFlag has already shipped and cannot be enabled.");
+    }
+    if (disableFeature && !feature.isNegativeFlag) {
+      throw ArgumentError(
+          "$enableFeatureFlag has already shipped and cannot be disabled.");
+    }
+    feature.state = !feature.isNegativeFlag;
   }
 }
 
