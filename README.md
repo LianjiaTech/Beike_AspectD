@@ -7,7 +7,7 @@ Beike_AspectD is an aop framework for dart. AspectD has provide developers call/
 
 - ✅  Support add grammer to add function to classes.
 - ✅  Support field get grammer to exchange the field get call.
-- ✅  Support null-safety(null-safety/2.5.3 branch).
+- ✅  Support null-safety(null-safety/2.5.3 or above).
 - ✅  Support flutter web.
 
 # What can we use Beike_AspectD for?
@@ -33,7 +33,7 @@ dependencies:
    beike_aspectd:
      git:
          url: https://github.com/LianjiaTech/Beike_AspectD.git
-         ref: 2.5.3
+         ref: 2.10.4
 ```
 
 ## 3. Add aop_config.yaml to your flutter project.
@@ -110,7 +110,7 @@ Every callsites of the a field will be manipulated.
 Suppose MyApp class has a property called field, by using the the above code, when calling the property field, it will always return string 'Beike_Aspectd'.
 
 # Compatibility
-Currently Beike_Aspectd support flutter 1.22.4 ， 2.2.2 and 2.5.3.
+Currently Beike_Aspectd support flutter 1.22.4 ， 2.2.2 , 2.5.3 and 2.10.4.
 
 ## Q&A
 - How to know if my code is hooked successfully?
