@@ -24,7 +24,7 @@ Beike_AspectD是一个dart面向切面库。闲鱼的AspectD为开发者提供�
 ```shell
 cd ...path/to/flutter
 git apply --3way path-for-beike_aspectd-package/inner/flutter_tools.patch
-rm ../../bin/cache/flutter_tools.stamp
+rm bin/cache/flutter_tools.stamp
 ```
 当下次编译你的Flutter工程时，flutter tools就会重新build。
 
