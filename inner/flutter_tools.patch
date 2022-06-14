@@ -1,30 +1,27 @@
-From 1f9113c24a69cbf72d66d27e113b64545db5a737 Mon Sep 17 00:00:00 2001
+From eaf408fe6227082feb8500f60be8017a473b2845 Mon Sep 17 00:00:00 2001
 From: xiaopeng015 <xiaopeng015@ke.com>
-Date: Wed, 6 Apr 2022 17:06:33 +0800
-Subject: [PATCH] =?UTF-8?q?2.10.x=20aop=E9=80=82=E9=85=8D?=
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Date: Tue, 14 Jun 2022 21:35:29 +0800
+Subject: [PATCH] patch
 
 ---
- lib/src/aop/aop_manager.dart             | 197 +++++++++++++++++++
- lib/src/aop/aspectd.dart                 | 219 +++++++++++++++++++++
- lib/src/aop/hook_factory.dart            |  95 +++++++++
- lib/src/build_system/targets/common.dart | 192 +++++++++++--------
- lib/src/build_system/targets/web.dart    | 234 +++++++++++++----------
- lib/src/commands/build_bundle.dart       |  33 ++--
- lib/src/compile.dart                     | 184 ++++++++++--------
- 7 files changed, 874 insertions(+), 280 deletions(-)
- create mode 100644 lib/src/aop/aop_manager.dart
- create mode 100644 lib/src/aop/aspectd.dart
- create mode 100644 lib/src/aop/hook_factory.dart
+ .../lib/src/aop/aop_manager.dart              | 198 ++++++++++++
+ .../flutter_tools/lib/src/aop/aspectd.dart    | 221 +++++++++++++
+ .../lib/src/aop/hook_factory.dart             |  98 ++++++
+ .../lib/src/build_system/targets/common.dart  | 194 +++++++-----
+ .../lib/src/build_system/targets/web.dart     | 292 ++++++++++--------
+ .../lib/src/commands/build_bundle.dart        |  36 ++-
+ packages/flutter_tools/lib/src/compile.dart   | 235 ++++++++------
+ 7 files changed, 944 insertions(+), 330 deletions(-)
+ create mode 100644 packages/flutter_tools/lib/src/aop/aop_manager.dart
+ create mode 100644 packages/flutter_tools/lib/src/aop/aspectd.dart
+ create mode 100644 packages/flutter_tools/lib/src/aop/hook_factory.dart
 
-diff --git a/lib/src/aop/aop_manager.dart b/lib/src/aop/aop_manager.dart
+diff --git a/packages/flutter_tools/lib/src/aop/aop_manager.dart b/packages/flutter_tools/lib/src/aop/aop_manager.dart
 new file mode 100644
-index 0000000..ef49db8
+index 0000000000..7950860724
 --- /dev/null
-+++ b/lib/src/aop/aop_manager.dart
-@@ -0,0 +1,197 @@
++++ b/packages/flutter_tools/lib/src/aop/aop_manager.dart
+@@ -0,0 +1,198 @@
 +// @dart = 2.8
 +
 +import 'package:flutter_tools/src/aop/hook_factory.dart';
@@ -38,6 +35,7 @@ index 0000000..ef49db8
 +import '../build_info.dart';
 +import '../globals.dart';
 +
++// ignore: avoid_classes_with_only_static_members
 +/// 创建时间：2020-03-28
 +/// 作者：liujingguang
 +/// 描述：AopManager管理类
@@ -222,12 +220,12 @@ index 0000000..ef49db8
 +    return null;
 +  }
 +}
-diff --git a/lib/src/aop/aspectd.dart b/lib/src/aop/aspectd.dart
+diff --git a/packages/flutter_tools/lib/src/aop/aspectd.dart b/packages/flutter_tools/lib/src/aop/aspectd.dart
 new file mode 100644
-index 0000000..b05fe75
+index 0000000000..bb5d6ea08e
 --- /dev/null
-+++ b/lib/src/aop/aspectd.dart
-@@ -0,0 +1,219 @@
++++ b/packages/flutter_tools/lib/src/aop/aspectd.dart
+@@ -0,0 +1,221 @@
 +// Copyright 2018 The Chromium Authors. All rights reserved.
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -371,6 +369,8 @@ index 0000000..b05fe75
 +    }
 +
 +    aspectdServerFile.copySync(defaultFlutterFrontendServerSnapshot);
++
++    print('[aop]: New frontend server snapshot updated');
 +  }
 +
 +  static Future<String> getDartSdkDependency(String aspectdDir) async {
@@ -447,12 +447,12 @@ index 0000000..b05fe75
 +    globals.fs.file(aspectdDill).copySync(originalDillFile.absolute.path);
 +  }
 +}
-diff --git a/lib/src/aop/hook_factory.dart b/lib/src/aop/hook_factory.dart
+diff --git a/packages/flutter_tools/lib/src/aop/hook_factory.dart b/packages/flutter_tools/lib/src/aop/hook_factory.dart
 new file mode 100644
-index 0000000..4d1d337
+index 0000000000..3e8b794615
 --- /dev/null
-+++ b/lib/src/aop/hook_factory.dart
-@@ -0,0 +1,95 @@
++++ b/packages/flutter_tools/lib/src/aop/hook_factory.dart
+@@ -0,0 +1,98 @@
 +// @dart = 2.8
 +
 +import 'dart:io';
@@ -468,6 +468,7 @@ index 0000000..4d1d337
 +/// 描述：Hook处理工厂
 +enum CommandType4Aop { Bundle, Aot, Snapshot }
 +
++// ignore: avoid_classes_with_only_static_members
 +class HookFactory {
 +  static Future<void> hook(String productDirPath, String executorPath,
 +      BuildMode buildMode, CommandType4Aop type) async {
@@ -499,10 +500,12 @@ index 0000000..4d1d337
 +    final String outputPath =
 +        inputPath + '.${type.toString().toLowerCase()}.result.dill';
 +
++    final String engineDartPath =
++        artifacts.getHostArtifact(HostArtifact.engineDartBinary).path;
++
 +    /// 执行hook命令
 +    final List<String> command = <String>[
-+      artifacts
-+          .getArtifactPath(Artifact.frontendServerSnapshotForEngineDartSdk),
++      engineDartPath,
 +      executorPath,
 +      '--input',
 +      inputPath,
@@ -548,18 +551,18 @@ index 0000000..4d1d337
 +
 +  static String _getSnapShotInputPath(String path) => path;
 +}
-diff --git a/lib/src/build_system/targets/common.dart b/lib/src/build_system/targets/common.dart
-index 6b0ac8d..97d5379 100644
---- a/lib/src/build_system/targets/common.dart
-+++ b/lib/src/build_system/targets/common.dart
-@@ -4,6 +4,7 @@
- 
- import 'package:package_config/package_config.dart';
- 
+diff --git a/packages/flutter_tools/lib/src/build_system/targets/common.dart b/packages/flutter_tools/lib/src/build_system/targets/common.dart
+index c0e78b7398..ecfabe98f5 100644
+--- a/packages/flutter_tools/lib/src/build_system/targets/common.dart
++++ b/packages/flutter_tools/lib/src/build_system/targets/common.dart
+@@ -18,6 +18,7 @@ import 'assets.dart';
+ import 'dart_plugin_registrant.dart';
+ import 'icon_tree_shaker.dart';
+ import 'localizations.dart';
 +import '../../aop/aspectd.dart';
- import '../../artifacts.dart';
- import '../../base/build.dart';
- import '../../base/file_system.dart';
+ 
+ /// Copies the pre-built flutter bundle.
+ // This is a one-off rule for implementing build bundle in terms of assemble.
 @@ -29,23 +30,21 @@ class CopyFlutterBundle extends Target {
  
    @override
@@ -728,11 +731,20 @@ index 6b0ac8d..97d5379 100644
      final String? fileSystemScheme = environment.defines[kFileSystemScheme];
  
      TargetModel targetModel = TargetModel.flutter;
-@@ -240,6 +256,8 @@ class KernelSnapshot extends Target {
+@@ -222,7 +238,8 @@ class KernelSnapshot extends Target {
+       ),
+       aot: buildMode.isPrecompiled,
+       buildMode: buildMode,
+-      trackWidgetCreation: trackWidgetCreation && buildMode != BuildMode.release,
++      trackWidgetCreation:
++          trackWidgetCreation && buildMode != BuildMode.release,
+       targetModel: targetModel,
+       outputFilePath: environment.buildDir.childFile('app.dill').path,
+       packagesPath: packagesFile.path,
+@@ -240,6 +257,7 @@ class KernelSnapshot extends Target {
      if (output == null || output.errorCount != 0) {
        throw Exception();
      }
-+
 +    return output;
    }
  }
@@ -880,11 +892,11 @@ index 6b0ac8d..97d5379 100644
  
    @override
    Future<void> build(Environment environment) async {
-diff --git a/lib/src/build_system/targets/web.dart b/lib/src/build_system/targets/web.dart
-index 462c22f..1d4109e 100644
---- a/lib/src/build_system/targets/web.dart
-+++ b/lib/src/build_system/targets/web.dart
-@@ -22,6 +22,7 @@ import '../depfile.dart';
+diff --git a/packages/flutter_tools/lib/src/build_system/targets/web.dart b/packages/flutter_tools/lib/src/build_system/targets/web.dart
+index c38d3579c9..6a029d751b 100644
+--- a/packages/flutter_tools/lib/src/build_system/targets/web.dart
++++ b/packages/flutter_tools/lib/src/build_system/targets/web.dart
+@@ -23,6 +23,7 @@ import '../depfile.dart';
  import '../exceptions.dart';
  import 'assets.dart';
  import 'localizations.dart';
@@ -892,7 +904,7 @@ index 462c22f..1d4109e 100644
  
  /// Whether the application has web plugins.
  const String kHasWebPlugins = 'HasWebPlugins';
-@@ -54,6 +55,7 @@ enum ServiceWorkerStrategy {
+@@ -55,6 +56,7 @@ enum ServiceWorkerStrategy {
    /// Download the app shell eagerly and all other assets lazily.
    /// Prefer the offline cached version.
    offlineFirst,
@@ -900,7 +912,7 @@ index 462c22f..1d4109e 100644
    /// Do not generate a service worker,
    none,
  }
-@@ -85,13 +87,14 @@ class WebEntrypointTarget extends Target {
+@@ -86,13 +88,14 @@ class WebEntrypointTarget extends Target {
  
    @override
    List<Source> get inputs => const <Source>[
@@ -919,46 +931,103 @@ index 462c22f..1d4109e 100644
  
    @override
    Future<void> build(Environment environment) async {
-@@ -120,18 +123,20 @@ class WebEntrypointTarget extends Target {
+@@ -121,56 +124,55 @@ class WebEntrypointTarget extends Target {
      // By construction, this will only be null if the .packages file does not
      // have an entry for the user's application or if the main file is
      // outside of the lib/ directory.
--    final String mainImport = packageConfig.toPackageUri(importUri)?.toString()
+-    final String importedEntrypoint = packageConfig.toPackageUri(importUri)?.toString()
 -      ?? importUri.toString();
-+    final String mainImport =
++    final String importedEntrypoint =
 +        packageConfig.toPackageUri(importUri)?.toString() ??
 +            importUri.toString();
  
-     String contents;
-     if (hasPlugins) {
+     String? generatedImport;
+     if (hasWebPlugins) {
        final Uri generatedUri = environment.projectDir
 -        .childDirectory('lib')
 -        .childFile('generated_plugin_registrant.dart')
 -        .absolute
 -        .uri;
--      final String generatedImport = packageConfig.toPackageUri(generatedUri)?.toString()
+-      generatedImport = packageConfig.toPackageUri(generatedUri)?.toString()
 -        ?? generatedUri.toString();
 +          .childDirectory('lib')
 +          .childFile('generated_plugin_registrant.dart')
 +          .absolute
 +          .uri;
-+      final String generatedImport =
-+          packageConfig.toPackageUri(generatedUri)?.toString() ??
-+              generatedUri.toString();
-       contents = '''
- // @dart=${languageVersion.major}.${languageVersion.minor}
- 
-@@ -162,8 +167,7 @@ Future<void> main() async {
- }
- ''';
++      generatedImport = packageConfig.toPackageUri(generatedUri)?.toString() ??
++          generatedUri.toString();
      }
+ 
+     final String contents = <String>[
+-        '// @dart=${languageVersion.major}.${languageVersion.minor}',
+-        '// Flutter web bootstrap script for $importedEntrypoint.',
+-        '',
+-        "import 'dart:ui' as ui;",
+-        "import 'dart:async';",
+-        '',
+-        "import '$importedEntrypoint' as entrypoint;",
+-        if (hasWebPlugins)
+-          "import 'package:flutter_web_plugins/flutter_web_plugins.dart';",
+-        if (hasWebPlugins)
+-          "import '$generatedImport';",
+-        '',
+-        'typedef _UnaryFunction = dynamic Function(List<String> args);',
+-        'typedef _NullaryFunction = dynamic Function();',
+-        '',
+-        'Future<void> main() async {',
+-        '  await ui.webOnlyWarmupEngine(',
+-        '    runApp: () {',
+-        '      if (entrypoint.main is _UnaryFunction) {',
+-        '        return (entrypoint.main as _UnaryFunction)(<String>[]);',
+-        '      }',
+-        '      return (entrypoint.main as _NullaryFunction)();',
+-        '    },',
+-        if (hasWebPlugins) ...<String>[
++      '// @dart=${languageVersion.major}.${languageVersion.minor}',
++      '// Flutter web bootstrap script for $importedEntrypoint.',
++      '',
++      "import 'dart:ui' as ui;",
++      "import 'dart:async';",
++      '',
++      "import '$importedEntrypoint' as entrypoint;",
++      if (hasWebPlugins)
++        "import 'package:flutter_web_plugins/flutter_web_plugins.dart';",
++      if (hasWebPlugins) "import '$generatedImport';",
++      '',
++      'typedef _UnaryFunction = dynamic Function(List<String> args);',
++      'typedef _NullaryFunction = dynamic Function();',
++      '',
++      'Future<void> main() async {',
++      '  await ui.webOnlyWarmupEngine(',
++      '    runApp: () {',
++      '      if (entrypoint.main is _UnaryFunction) {',
++      '        return (entrypoint.main as _UnaryFunction)(<String>[]);',
++      '      }',
++      '      return (entrypoint.main as _NullaryFunction)();',
++      '    },',
++      if (hasWebPlugins) ...<String>[
+         '    registerPlugins: () {',
+         '      registerPlugins(webPluginRegistrar);',
+         '    },',
+-        ],
+-        '  );',
+-        '}',
+-        '',
+-      ].join('\n');
+-
 -    environment.buildDir.childFile('main.dart')
 -      .writeAsStringSync(contents);
++      ],
++      '  );',
++      '}',
++      '',
++    ].join('\n');
++
 +    environment.buildDir.childFile('main.dart').writeAsStringSync(contents);
    }
  }
  
-@@ -176,26 +180,26 @@ class Dart2JSTarget extends Target {
+@@ -183,26 +185,26 @@ class Dart2JSTarget extends Target {
  
    @override
    List<Target> get dependencies => const <Target>[
@@ -996,7 +1065,7 @@ index 462c22f..1d4109e 100644
  
    String _collectOutput(ProcessResult result) {
      final String stdout = result.stdout is List<int>
-@@ -214,31 +218,36 @@ class Dart2JSTarget extends Target {
+@@ -221,31 +223,36 @@ class Dart2JSTarget extends Target {
        throw MissingDefineException(kBuildMode, name);
      }
      final BuildMode buildMode = getBuildModeForName(buildModeEnvironment);
@@ -1042,7 +1111,7 @@ index 462c22f..1d4109e 100644
        ...sharedCommandOptions,
        '-o',
        environment.buildDir.childFile('app.dill').path,
-@@ -250,11 +259,16 @@ class Dart2JSTarget extends Target {
+@@ -257,11 +264,16 @@ class Dart2JSTarget extends Target {
        throw Exception(_collectOutput(kernelResult));
      }
  
@@ -1061,7 +1130,7 @@ index 462c22f..1d4109e 100644
        ...sharedCommandOptions,
        if (dart2jsOptimization != null) '-$dart2jsOptimization' else '-O4',
        if (buildMode == BuildMode.profile) '--no-minify',
-@@ -266,11 +280,11 @@ class Dart2JSTarget extends Target {
+@@ -273,11 +285,11 @@ class Dart2JSTarget extends Target {
      if (javaScriptResult.exitCode != 0) {
        throw Exception(_collectOutput(javaScriptResult));
      }
@@ -1077,7 +1146,7 @@ index 462c22f..1d4109e 100644
        return;
      }
      final DepfileService depfileService = DepfileService(
-@@ -297,30 +311,31 @@ class WebReleaseBundle extends Target {
+@@ -304,30 +316,31 @@ class WebReleaseBundle extends Target {
  
    @override
    List<Target> get dependencies => const <Target>[
@@ -1121,7 +1190,7 @@ index 462c22f..1d4109e 100644
        final String basename = globals.fs.path.basename(outputFile.path);
        if (!basename.contains('main.dart.js')) {
          continue;
-@@ -329,16 +344,17 @@ class WebReleaseBundle extends Target {
+@@ -336,16 +349,17 @@ class WebReleaseBundle extends Target {
        if (basename.endsWith('.deps')) {
          continue;
        }
@@ -1143,7 +1212,7 @@ index 462c22f..1d4109e 100644
      outputDirectory.createSync(recursive: true);
      final Depfile depfile = await copyAssets(
        environment,
-@@ -354,19 +370,16 @@ class WebReleaseBundle extends Target {
+@@ -361,19 +375,16 @@ class WebReleaseBundle extends Target {
        environment.buildDir.childFile('flutter_assets.d'),
      );
  
@@ -1168,7 +1237,7 @@ index 462c22f..1d4109e 100644
        if (!outputFile.parent.existsSync()) {
          outputFile.parent.createSync(recursive: true);
        }
-@@ -374,31 +387,36 @@ class WebReleaseBundle extends Target {
+@@ -381,31 +392,36 @@ class WebReleaseBundle extends Target {
        // insert a random hash into the requests for service_worker.js. This is not a content hash,
        // because it would need to be the hash for the entire bundle and not just the resource
        // in question.
@@ -1220,7 +1289,7 @@ index 462c22f..1d4109e 100644
      depfileService.writeToFile(
        resourceFile,
        environment.buildDir.childFile('web_resources.d'),
-@@ -443,10 +461,14 @@ class WebBuiltInAssets extends Target {
+@@ -450,10 +466,14 @@ class WebBuiltInAssets extends Target {
      // built as part of the engine, but fetched from CIPD, and so it won't be
      // found in ENGINE/src/out.
      final Directory flutterWebSdk = cache.getWebSdkDirectory();
@@ -1238,8 +1307,8 @@ index 462c22f..1d4109e 100644
 +          .join(environment.outputDir.path, 'canvaskit', relativePath);
        file.copySync(targetPath);
      }
-   }
-@@ -464,15 +486,15 @@ class WebServiceWorker extends Target {
+ 
+@@ -475,15 +495,15 @@ class WebServiceWorker extends Target {
  
    @override
    List<Target> get dependencies => <Target>[
@@ -1261,7 +1330,7 @@ index 462c22f..1d4109e 100644
  
    @override
    List<Source> get inputs => const <Source>[];
-@@ -483,24 +505,26 @@ class WebServiceWorker extends Target {
+@@ -494,24 +514,26 @@ class WebServiceWorker extends Target {
    @override
    Future<void> build(Environment environment) async {
      final List<File> contents = environment.outputDir
@@ -1299,7 +1368,7 @@ index 462c22f..1d4109e 100644
        final String hash = md5.convert(await file.readAsBytes()).toString();
        urlToHash[url] = hash;
        // Add an additional entry for the base URL.
-@@ -509,10 +533,11 @@ class WebServiceWorker extends Target {
+@@ -520,10 +542,11 @@ class WebServiceWorker extends Target {
        }
      }
  
@@ -1314,7 +1383,7 @@ index 462c22f..1d4109e 100644
        environment.defines[kServiceWorkerStrategy],
      );
      final String serviceWorker = generateServiceWorker(
-@@ -529,8 +554,7 @@ class WebServiceWorker extends Target {
+@@ -539,8 +562,7 @@ class WebServiceWorker extends Target {
        ],
        serviceWorkerStrategy: serviceWorkerStrategy,
      );
@@ -1324,11 +1393,11 @@ index 462c22f..1d4109e 100644
      final DepfileService depfileService = DepfileService(
        fileSystem: globals.fs,
        logger: globals.logger,
-diff --git a/lib/src/commands/build_bundle.dart b/lib/src/commands/build_bundle.dart
-index 56465a8..23b6b13 100644
---- a/lib/src/commands/build_bundle.dart
-+++ b/lib/src/commands/build_bundle.dart
-@@ -14,6 +14,7 @@ import '../project.dart';
+diff --git a/packages/flutter_tools/lib/src/commands/build_bundle.dart b/packages/flutter_tools/lib/src/commands/build_bundle.dart
+index f7f90453ed..acadf517c7 100644
+--- a/packages/flutter_tools/lib/src/commands/build_bundle.dart
++++ b/packages/flutter_tools/lib/src/commands/build_bundle.dart
+@@ -12,12 +12,14 @@ import '../project.dart';
  import '../reporting/reporting.dart';
  import '../runner/flutter_command.dart';
  import 'build.dart';
@@ -1336,7 +1405,15 @@ index 56465a8..23b6b13 100644
  
  class BuildBundleCommand extends BuildSubCommand {
    BuildBundleCommand({
-@@ -28,11 +29,11 @@ class BuildBundleCommand extends BuildSubCommand {
+     bool verboseHelp = false,
+     BundleBuilder? bundleBuilder,
+-  }) :  _bundleBuilder = bundleBuilder ?? BundleBuilder(), super(verboseHelp: verboseHelp) {
++  })  : _bundleBuilder = bundleBuilder ?? BundleBuilder(),
++        super(verboseHelp: verboseHelp) {
+     usesTargetOption();
+     usesFilesystemOptions(hide: !verboseHelp);
+     usesBuildNumberOption();
+@@ -26,11 +28,11 @@ class BuildBundleCommand extends BuildSubCommand {
      usesExtraDartFlagOptions(verboseHelp: verboseHelp);
      argParser
        ..addOption('depfile',
@@ -1353,7 +1430,7 @@ index 56465a8..23b6b13 100644
          defaultsTo: 'android-arm',
          allowed: const <String>[
            'android-arm',
-@@ -47,17 +48,20 @@ class BuildBundleCommand extends BuildSubCommand {
+@@ -45,15 +47,18 @@ class BuildBundleCommand extends BuildSubCommand {
          ],
          help: 'The architecture for which to build the application.',
        )
@@ -1369,8 +1446,6 @@ index 56465a8..23b6b13 100644
        )
        ..addFlag(
          'tree-shake-icons',
-         negatable: true,
-         defaultsTo: false,
          hide: !verboseHelp,
 -        help: '(deprecated) Icon font tree shaking is not supported by this command.',
 +        help:
@@ -1378,7 +1453,7 @@ index 56465a8..23b6b13 100644
        );
      usesPubOption();
      usesTrackWidgetCreation(verboseHelp: verboseHelp);
-@@ -71,7 +75,8 @@ class BuildBundleCommand extends BuildSubCommand {
+@@ -65,7 +70,8 @@ class BuildBundleCommand extends BuildSubCommand {
    final String name = 'bundle';
  
    @override
@@ -1388,7 +1463,7 @@ index 56465a8..23b6b13 100644
  
    @override
    final String usageFooter = 'The Flutter assets directory contains your '
-@@ -81,7 +86,8 @@ class BuildBundleCommand extends BuildSubCommand {
+@@ -75,7 +81,8 @@ class BuildBundleCommand extends BuildSubCommand {
    @override
    Future<CustomDimensions> get usageValues async {
      final String projectDir = globals.fs.file(targetFile).parent.parent.path;
@@ -1398,10 +1473,10 @@ index 56465a8..23b6b13 100644
      if (flutterProject == null) {
        return const CustomDimensions();
      }
-@@ -94,13 +100,16 @@ class BuildBundleCommand extends BuildSubCommand {
+@@ -88,13 +95,16 @@ class BuildBundleCommand extends BuildSubCommand {
    @override
    Future<void> validateCommand() async {
-     if (argResults['tree-shake-icons'] as bool) {
+     if (boolArg('tree-shake-icons')) {
 -      throwToolExit('The "--tree-shake-icons" flag is deprecated for "build bundle" and will be removed in a future version of Flutter.');
 +      throwToolExit(
 +          'The "--tree-shake-icons" flag is deprecated for "build bundle" and will be removed in a future version of Flutter.');
@@ -1413,13 +1488,13 @@ index 56465a8..23b6b13 100644
    Future<FlutterCommandResult> runCommand() async {
 +    await AspectdHook.enableAspectd();
 +
-     final String targetPlatform = stringArg('target-platform');
+     final String targetPlatform = stringArg('target-platform')!;
      final TargetPlatform platform = getTargetPlatformForName(targetPlatform);
      if (platform == null) {
-diff --git a/lib/src/compile.dart b/lib/src/compile.dart
-index f09cce3..dd6aa2b 100644
---- a/lib/src/compile.dart
-+++ b/lib/src/compile.dart
+diff --git a/packages/flutter_tools/lib/src/compile.dart b/packages/flutter_tools/lib/src/compile.dart
+index 1198d344e4..8cb6c3a0a2 100644
+--- a/packages/flutter_tools/lib/src/compile.dart
++++ b/packages/flutter_tools/lib/src/compile.dart
 @@ -18,6 +18,7 @@ import 'base/logger.dart';
  import 'base/platform.dart';
  import 'build_info.dart';
@@ -1474,17 +1549,35 @@ index f09cce3..dd6aa2b 100644
      boundaryKey = null;
      compilerOutput = Completer<CompilerOutput?>();
      _suppressCompilerMessages = suppressCompilerMessages;
-@@ -170,7 +177,8 @@ List<String> buildModeOptions(BuildMode mode, List<String> dartDefines) {
-         '-Ddart.vm.profile=false',
-         // This allows the CLI to override the value of this define for unit
+@@ -169,9 +176,11 @@ List<String> buildModeOptions(BuildMode mode, List<String> dartDefines) {
+       return <String>[
+         // These checks allow the CLI to override the value of this define for unit
          // testing the framework.
+-        if (!dartDefines.any((String define) => define.startsWith('dart.vm.profile')))
++        if (!dartDefines
++            .any((String define) => define.startsWith('dart.vm.profile')))
+           '-Ddart.vm.profile=false',
 -        if (!dartDefines.any((String define) => define.startsWith('dart.vm.product')))
 +        if (!dartDefines
 +            .any((String define) => define.startsWith('dart.vm.product')))
            '-Ddart.vm.product=false',
          '--enable-asserts',
        ];
-@@ -198,13 +206,14 @@ class KernelCompiler {
+@@ -179,9 +188,11 @@ List<String> buildModeOptions(BuildMode mode, List<String> dartDefines) {
+       return <String>[
+         // These checks allow the CLI to override the value of this define for
+         // benchmarks with most timeline traces disabled.
+-        if (!dartDefines.any((String define) => define.startsWith('dart.vm.profile')))
++        if (!dartDefines
++            .any((String define) => define.startsWith('dart.vm.profile')))
+           '-Ddart.vm.profile=true',
+-        if (!dartDefines.any((String define) => define.startsWith('dart.vm.product')))
++        if (!dartDefines
++            .any((String define) => define.startsWith('dart.vm.product')))
+           '-Ddart.vm.product=false',
+       ];
+     case BuildMode.release:
+@@ -203,13 +214,14 @@ class KernelCompiler {
      required List<String> fileSystemRoots,
      String? fileSystemScheme,
      @visibleForTesting StdoutHandler? stdoutHandler,
@@ -1506,13 +1599,15 @@ index f09cce3..dd6aa2b 100644
  
    final FileSystem _fileSystem;
    final Artifacts _artifacts;
-@@ -235,14 +244,14 @@ class KernelCompiler {
+@@ -240,14 +252,16 @@ class KernelCompiler {
      required List<String> dartDefines,
      required PackageConfig packageConfig,
    }) async {
 -    final String frontendServer = _artifacts.getArtifactPath(
 -      Artifact.frontendServerSnapshotForEngineDartSdk
 -    );
++    await AspectdHook.enableAspectd();
++
 +    final String frontendServer = _artifacts
 +        .getArtifactPath(Artifact.frontendServerSnapshotForEngineDartSdk);
      // This is a URI, not a file path, so the forward slash is correct even on Windows.
@@ -1525,7 +1620,7 @@ index f09cce3..dd6aa2b 100644
      if (!_processManager.canRun(engineDartPath)) {
        throwToolExit('Unable to find Dart binary at $engineDartPath');
      }
-@@ -252,7 +261,8 @@ class KernelCompiler {
+@@ -257,7 +271,8 @@ class KernelCompiler {
      if (packagesPath != null) {
        mainUri = packageConfig.toPackageUri(mainFileUri)?.toString();
      }
@@ -1535,7 +1630,16 @@ index f09cce3..dd6aa2b 100644
      if (outputFilePath != null && !_fileSystem.isFileSync(outputFilePath)) {
        _fileSystem.file(outputFilePath).createSync(recursive: true);
      }
-@@ -273,8 +283,7 @@ class KernelCompiler {
+@@ -268,6 +283,8 @@ class KernelCompiler {
+         ? buildDir?.parent.childFile('dart_plugin_registrant.dart')
+         : null;
+ 
++    bool aopConfig = AspectdHook.configFileExists();
++
+     final List<String> command = <String>[
+       engineDartPath,
+       '--disable-dart-dev',
+@@ -276,8 +293,7 @@ class KernelCompiler {
        sdkRoot,
        '--target=$targetModel',
        '--no-print-incremental-dependencies',
@@ -1545,7 +1649,7 @@ index f09cce3..dd6aa2b 100644
        ...buildModeOptions(buildMode, dartDefines),
        if (trackWidgetCreation) '--track-widget-creation',
        if (!linkPlatformKernelIn) '--no-link-platform',
-@@ -290,7 +299,8 @@ class KernelCompiler {
+@@ -293,7 +309,8 @@ class KernelCompiler {
          '--output-dill',
          outputFilePath,
        ],
@@ -1555,7 +1659,26 @@ index f09cce3..dd6aa2b 100644
          '--depfile',
          depFilePath,
        ],
-@@ -318,13 +328,11 @@ class KernelCompiler {
+@@ -314,7 +331,12 @@ class KernelCompiler {
+         '--platform',
+         platformDill,
+       ],
+-      if (dartPluginRegistrant != null && dartPluginRegistrant.existsSync()) ...<String>[
++      if (aopConfig) ...<String>[
++        '--aop',
++        '1',
++      ],
++      if (dartPluginRegistrant != null &&
++          dartPluginRegistrant.existsSync()) ...<String>[
+         '--source',
+         dartPluginRegistrant.path,
+         '--source',
+@@ -325,16 +347,16 @@ class KernelCompiler {
+       mainUri,
+     ];
+ 
++    print(command.join(' '));
++
      _logger.printTrace(command.join(' '));
      final Process server = await _processManager.start(command);
  
@@ -1573,7 +1696,26 @@ index f09cce3..dd6aa2b 100644
      final int exitCode = await server.exitCode;
      if (exitCode == 0) {
        return _stdoutHandler.compilerOutput?.future;
-@@ -429,7 +437,8 @@ class _RejectRequest extends _CompilationRequest {
+@@ -357,15 +379,9 @@ abstract class _CompilationRequest {
+ }
+ 
+ class _RecompileRequest extends _CompilationRequest {
+-  _RecompileRequest(
+-    super.completer,
+-    this.mainUri,
+-    this.invalidatedFiles,
+-    this.outputPath,
+-    this.packageConfig,
+-    this.suppressErrors,
+-    {this.additionalSource}
+-  );
++  _RecompileRequest(super.completer, this.mainUri, this.invalidatedFiles,
++      this.outputPath, this.packageConfig, this.suppressErrors,
++      {this.additionalSource});
+ 
+   Uri mainUri;
+   List<Uri>? invalidatedFiles;
+@@ -441,7 +457,8 @@ class _RejectRequest extends _CompilationRequest {
  /// The wrapper is intended to stay resident in memory as user changes, reloads,
  /// restarts the Flutter app.
  abstract class ResidentCompiler {
@@ -1583,7 +1725,7 @@ index f09cce3..dd6aa2b 100644
      required BuildMode buildMode,
      required Logger logger,
      required ProcessManager processManager,
-@@ -557,17 +566,18 @@ class DefaultResidentCompiler implements ResidentCompiler {
+@@ -571,17 +588,18 @@ class DefaultResidentCompiler implements ResidentCompiler {
      List<String>? dartDefines,
      this.librariesSpec,
      @visibleForTesting StdoutHandler? stdoutHandler,
@@ -1613,7 +1755,7 @@ index f09cce3..dd6aa2b 100644
  
    final Logger _logger;
    final ProcessManager _processManager;
-@@ -606,7 +616,8 @@ class DefaultResidentCompiler implements ResidentCompiler {
+@@ -621,7 +639,8 @@ class DefaultResidentCompiler implements ResidentCompiler {
    final StdoutHandler _stdoutHandler;
    bool _compileRequestNeedsConfirmation = false;
  
@@ -1623,19 +1765,17 @@ index f09cce3..dd6aa2b 100644
  
    @override
    Future<CompilerOutput?> recompile(
-@@ -638,9 +649,8 @@ class DefaultResidentCompiler implements ResidentCompiler {
+@@ -649,7 +668,8 @@ class DefaultResidentCompiler implements ResidentCompiler {
+           'dart_plugin_registrant.dart',
+         ),
+       );
+-      if (dartPluginRegistrantDart != null && dartPluginRegistrantDart.existsSync()) {
++      if (dartPluginRegistrantDart != null &&
++          dartPluginRegistrantDart.existsSync()) {
+         additionalSource = dartPluginRegistrantDart.path;
        }
      }
-     final Completer<CompilerOutput?> completer = Completer<CompilerOutput?>();
--    _controller.add(
--      _RecompileRequest(completer, mainUri, invalidatedFiles, outputPath, packageConfig, suppressErrors)
--    );
-+    _controller.add(_RecompileRequest(completer, mainUri, invalidatedFiles,
-+        outputPath, packageConfig, suppressErrors));
-     return completer.future;
-   }
- 
-@@ -649,8 +659,10 @@ class DefaultResidentCompiler implements ResidentCompiler {
+@@ -671,12 +691,15 @@ class DefaultResidentCompiler implements ResidentCompiler {
      _compileRequestNeedsConfirmation = true;
      _stdoutHandler._suppressCompilerMessages = request.suppressErrors;
  
@@ -1648,7 +1788,13 @@ index f09cce3..dd6aa2b 100644
  
      final Process? server = _server;
      if (server == null) {
-@@ -668,7 +680,8 @@ class DefaultResidentCompiler implements ResidentCompiler {
+-      return _compile(mainUri, request.outputPath, additionalSource: request.additionalSource);
++      return _compile(mainUri, request.outputPath,
++          additionalSource: request.additionalSource);
+     }
+     final String inputKey = Uuid().generateV4();
+ 
+@@ -690,7 +713,8 @@ class DefaultResidentCompiler implements ResidentCompiler {
            message = fileUri.toString();
          } else {
            message = request.packageConfig.toPackageUri(fileUri)?.toString() ??
@@ -1658,21 +1804,30 @@ index f09cce3..dd6aa2b 100644
          }
          server.stdin.writeln(message);
          _logger.printTrace(message);
-@@ -701,9 +714,10 @@ class DefaultResidentCompiler implements ResidentCompiler {
-     String scriptUri,
-     String? outputPath,
-   ) async {
+@@ -719,14 +743,14 @@ class DefaultResidentCompiler implements ResidentCompiler {
+     }
+   }
+ 
+-  Future<CompilerOutput?> _compile(
+-    String scriptUri,
+-    String? outputPath,
+-    {String? additionalSource}
+-  ) async {
 -    final String frontendServer = _artifacts.getArtifactPath(
 -      Artifact.frontendServerSnapshotForEngineDartSdk
 -    );
-+    await AspectdHook.enableAspectd();
-+
++  Future<CompilerOutput?> _compile(String scriptUri, String? outputPath,
++      {String? additionalSource}) async {
 +    final String frontendServer = _artifacts
 +        .getArtifactPath(Artifact.frontendServerSnapshotForEngineDartSdk);
++
++    await AspectdHook.enableAspectd();
++    bool aopConfig = AspectdHook.configFileExists();
++
      final List<String> command = <String>[
        _artifacts.getHostArtifact(HostArtifact.engineDartBinary).path,
        '--disable-dart-dev',
-@@ -711,8 +725,7 @@ class DefaultResidentCompiler implements ResidentCompiler {
+@@ -734,8 +758,7 @@ class DefaultResidentCompiler implements ResidentCompiler {
        '--sdk-root',
        sdkRoot,
        '--incremental',
@@ -1682,7 +1837,7 @@ index f09cce3..dd6aa2b 100644
        '--target=$targetModel',
        // TODO(zanderso): remove once this becomes the default behavior
        // in the frontend_server.
-@@ -722,8 +735,7 @@ class DefaultResidentCompiler implements ResidentCompiler {
+@@ -745,8 +768,7 @@ class DefaultResidentCompiler implements ResidentCompiler {
        // in the frontend_server.
        // https://github.com/flutter/flutter/issues/59902
        '--experimental-emit-debug-metadata',
@@ -1692,7 +1847,27 @@ index f09cce3..dd6aa2b 100644
        if (outputPath != null) ...<String>[
          '--output-dill',
          outputPath,
-@@ -761,23 +773,21 @@ class DefaultResidentCompiler implements ResidentCompiler {
+@@ -774,7 +796,8 @@ class DefaultResidentCompiler implements ResidentCompiler {
+         '--initialize-from-dill',
+         initializeFromDill!,
+       ],
+-      if (assumeInitializeFromDillUpToDate) '--assume-initialize-from-dill-up-to-date',
++      if (assumeInitializeFromDillUpToDate)
++        '--assume-initialize-from-dill-up-to-date',
+       if (additionalSource != null) ...<String>[
+         '--source',
+         additionalSource,
+@@ -786,29 +809,31 @@ class DefaultResidentCompiler implements ResidentCompiler {
+         '--platform',
+         platformDill!,
+       ],
++      if (aopConfig) ...<String>[
++        '--aop',
++        '1',
++      ],
+       if (unsafePackageSerialization == true) '--unsafe-package-serialization',
+       ...?extraFrontEndOptions,
+     ];
      _logger.printTrace(command.join(' '));
      _server = await _processManager.start(command);
      _server?.stdout
@@ -1729,7 +1904,7 @@ index f09cce3..dd6aa2b 100644
  
      unawaited(_server?.exitCode.then((int code) {
        if (code != 0) {
-@@ -805,14 +815,22 @@ class DefaultResidentCompiler implements ResidentCompiler {
+@@ -836,14 +861,22 @@ class DefaultResidentCompiler implements ResidentCompiler {
      }
  
      final Completer<CompilerOutput?> completer = Completer<CompilerOutput?>();
@@ -1756,7 +1931,7 @@ index f09cce3..dd6aa2b 100644
  
      // 'compile-expression' should be invoked after compiler has been started,
      // program was compiled.
-@@ -852,14 +870,13 @@ class DefaultResidentCompiler implements ResidentCompiler {
+@@ -883,14 +916,13 @@ class DefaultResidentCompiler implements ResidentCompiler {
      }
  
      final Completer<CompilerOutput?> completer = Completer<CompilerOutput?>();
@@ -1775,7 +1950,7 @@ index f09cce3..dd6aa2b 100644
      _stdoutHandler.reset(suppressCompilerMessages: true, expectSources: false);
  
      // 'compile-expression-to-js' should be invoked after compiler has been started,
-@@ -875,9 +892,13 @@ class DefaultResidentCompiler implements ResidentCompiler {
+@@ -906,9 +938,13 @@ class DefaultResidentCompiler implements ResidentCompiler {
        ..writeln(request.libraryUri ?? '')
        ..writeln(request.line)
        ..writeln(request.column);
@@ -1791,7 +1966,7 @@ index f09cce3..dd6aa2b 100644
      server.stdin
        ..writeln(inputKey)
        ..writeln(request.moduleName ?? '')
-@@ -939,7 +960,8 @@ class DefaultResidentCompiler implements ResidentCompiler {
+@@ -970,7 +1006,8 @@ class DefaultResidentCompiler implements ResidentCompiler {
  /// Convert a file URI into a multi-root scheme URI if provided, otherwise
  /// return unmodified.
  @visibleForTesting
@@ -1802,5 +1977,5 @@ index f09cce3..dd6aa2b 100644
      return fileUri.toString();
    }
 -- 
-2.30.1 (Apple Git-130)
+2.32.1 (Apple Git-133)
 

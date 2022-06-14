@@ -77,15 +77,21 @@ class AopInjectImplTransformer extends Transformer {
           final List<String> keypaths =
               AopUtils.getPropertyKeyPaths(node.toString());
           final String firstEle = keypaths[0];
-          if (firstEle == 'this' || firstEle == 'PropertyGet(this') {
-            final Class cls =
-                AopUtils.findClassFromThisWithKeypath(_curClass, keypaths);
+          if (node.receiver is ThisExpression) {
+            final Class cls = _curClass;
             final Field field =
                 AopUtils.findFieldForClassWithName(cls, node.name.text);
-            return InstanceGet(
-                InstanceAccessKind.Instance, node.receiver, field.name,
-                interfaceTarget: node.interfaceTarget,
-                resultType: node.resultType);
+
+            final ThisExpression thisE = ThisExpression();
+
+            final InstanceGet instanceGet = InstanceGet(
+                InstanceAccessKind.Instance,
+                thisE,
+                Name(field.name.text, _curClass.parent),
+                interfaceTarget: field,
+                resultType: field.type);
+
+            return instanceGet;
           } else {
             final VariableDeclaration variableDeclaration =
                 _originalVariableDeclaration[firstEle];
@@ -94,15 +100,14 @@ class AopInjectImplTransformer extends Transformer {
               return node;
             }
             if (variableDeclaration.type is InterfaceType) {
-              final InterfaceType interfaceType = variableDeclaration.type;
-              final Class cls = AopUtils.findClassFromThisWithKeypath(
-                  interfaceType.classNode, keypaths);
+              final Class cls = _curClass;
               final Field field =
                   AopUtils.findFieldForClassWithName(cls, node.name.text);
-              return InstanceGet(
+              InstanceGet instanceGet = InstanceGet(
                   InstanceAccessKind.Instance, node.receiver, field.name,
                   interfaceTarget: node.interfaceTarget,
                   resultType: node.resultType);
+              return instanceGet;
             }
           }
         }
@@ -122,6 +127,41 @@ class AopInjectImplTransformer extends Transformer {
   FunctionDeclaration visitFunctionDeclaration(FunctionDeclaration node) {
     node.transformChildren(this);
     checkIfInsertInFunction(node.function);
+    return node;
+  }
+
+  @override
+  InstanceSet visitInstanceSet(InstanceSet node) {
+    node.transformChildren(this);
+
+    if (!(node.receiver is ThisExpression)) {
+      return node;
+    }
+
+    final String text = node.name.text;
+    if (text != null) {
+      Field exchangeField;
+      for (Field field in _curClass.fields) {
+        if (field.name.text == text) {
+          exchangeField = field;
+          break;
+        }
+      }
+
+      if (exchangeField != null) {
+        final ThisExpression thisE = ThisExpression();
+
+        final InstanceGet property = InstanceGet(InstanceAccessKind.Instance,
+            thisE, Name(exchangeField.name.text, _curClass.parent),
+            interfaceTarget: exchangeField, resultType: exchangeField.type);
+
+        InstanceSet newSet = InstanceSet(
+            node.kind, thisE, exchangeField.name, node.value,
+            interfaceTarget: exchangeField);
+        return newSet;
+      }
+    }
+
     return node;
   }
 
