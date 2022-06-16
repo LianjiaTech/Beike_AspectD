@@ -29,12 +29,14 @@ class _FlutterFrontendCompiler implements frontend.CompilerInterface {
   final frontend.CompilerInterface _compiler;
 
   final AopWrapperTransformer aspectdAopTransformer = AopWrapperTransformer();
+  final bool aopTransform;
 
   _FlutterFrontendCompiler(StringSink output,
       {bool unsafePackageSerialization,
       bool useDebuggerModuleNames,
       bool emitDebugMetadata,
-      frontend.ProgramTransformer transformer})
+      frontend.ProgramTransformer transformer,
+      this.aopTransform})
       : _compiler = frontend.FrontendCompiler(output,
             transformer: transformer,
             useDebuggerModuleNames: useDebuggerModuleNames,
@@ -44,14 +46,12 @@ class _FlutterFrontendCompiler implements frontend.CompilerInterface {
   @override
   Future<bool> compile(String filename, ArgResults options,
       {IncrementalCompiler generator}) async {
-    final bool incremental = options.arguments.contains('--incremental');
+    print('aop: need perform ' + aopTransform.toString());
 
-    if (!incremental) {
-      List<FlutterProgramTransformer> transformers =
-          FlutterTarget.flutterProgramTransformers;
-      if (!transformers.contains(aspectdAopTransformer)) {
-        transformers.add(aspectdAopTransformer);
-      }
+    if (aopTransform == true &&
+        !FlutterTarget.flutterProgramTransformers
+            .contains(aspectdAopTransformer)) {
+      FlutterTarget.flutterProgramTransformers.add(aspectdAopTransformer);
     }
 
     return _compiler.compile(filename, options, generator: generator);
@@ -59,7 +59,7 @@ class _FlutterFrontendCompiler implements frontend.CompilerInterface {
 
   @override
   Future<Null> recompileDelta({String entryPoint}) async {
-    final List<FlutterProgramTransformer> transformers =
+    List<FlutterProgramTransformer> transformers =
         FlutterTarget.flutterProgramTransformers;
     transformers.clear();
 
@@ -132,7 +132,9 @@ Future<int> starter(
   ArgResults options;
 
   try {
-    options = frontend.argParser.parse(args);
+    ArgParser parser = frontend.argParser;
+    parser.addOption('aop', help: 'aop transform');
+    options = parser.parse(args);
   } catch (error) {
     print('ERROR: $error\n');
     print(frontend.usage);
@@ -190,7 +192,8 @@ Future<int> starter(
       useDebuggerModuleNames: options['debugger-module-names'] as bool,
       emitDebugMetadata: options['experimental-emit-debug-metadata'] as bool,
       unsafePackageSerialization:
-          options['unsafe-package-serialization'] as bool);
+          options['unsafe-package-serialization'] as bool,
+      aopTransform: options['aop'].toString() == '1' ? true : false);
 
   if (options.rest.isNotEmpty) {
     return await compiler.compile(options.rest[0], options) ? 0 : 254;
