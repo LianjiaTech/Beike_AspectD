@@ -1,29 +1,27 @@
-From f099cf04baa547a3db6252fe588dc23b14c3e2f6 Mon Sep 17 00:00:00 2001
+From be6b42c298a03b6888bf402af0f0bc5c2438cad3 Mon Sep 17 00:00:00 2001
 From: xiaopeng015 <xiaopeng015@ke.com>
-Date: Wed, 22 Dec 2021 11:48:31 +0800
+Date: Thu, 16 Jun 2022 20:52:53 +0800
 Subject: [PATCH] 1
 
 ---
- .../lib/src/aop/aop_manager.dart              | 199 ++++++++++++++++
- .../lib/src/aop/hook_factory.dart             |  96 ++++++++
- packages/flutter_tools/lib/src/aspectd.dart   | 219 ++++++++++++++++++
- .../lib/src/build_system/targets/common.dart  |   8 +
- .../lib/src/build_system/targets/web.dart     |  21 +-
+ .../lib/src/aop/aop_manager.dart              | 198 ++++++++++++++++
+ .../flutter_tools/lib/src/aop/aspectd.dart    | 221 ++++++++++++++++++
+ .../lib/src/aop/hook_factory.dart             |  98 ++++++++
+ .../lib/src/build_system/targets/common.dart  | 194 ++++++++-------
+ .../lib/src/build_system/targets/web.dart     |   4 +
  .../lib/src/commands/build_bundle.dart        |   4 +
- packages/flutter_tools/lib/src/compile.dart   |   7 +
- .../flutter_tools/lib/src/web/chrome.dart     |   1 +
- 8 files changed, 549 insertions(+), 6 deletions(-)
+ packages/flutter_tools/lib/src/compile.dart   |  20 ++
+ 7 files changed, 656 insertions(+), 83 deletions(-)
  create mode 100644 packages/flutter_tools/lib/src/aop/aop_manager.dart
+ create mode 100644 packages/flutter_tools/lib/src/aop/aspectd.dart
  create mode 100644 packages/flutter_tools/lib/src/aop/hook_factory.dart
- create mode 100644 packages/flutter_tools/lib/src/aspectd.dart
 
 diff --git a/packages/flutter_tools/lib/src/aop/aop_manager.dart b/packages/flutter_tools/lib/src/aop/aop_manager.dart
 new file mode 100644
-index 0000000000..a8d2e29e2d
+index 0000000000..7950860724
 --- /dev/null
 +++ b/packages/flutter_tools/lib/src/aop/aop_manager.dart
-@@ -0,0 +1,199 @@
-+
+@@ -0,0 +1,198 @@
 +// @dart = 2.8
 +
 +import 'package:flutter_tools/src/aop/hook_factory.dart';
@@ -82,8 +80,8 @@ index 0000000000..a8d2e29e2d
 +  }
 +
 +  static Future<List<String>> aopArgs(BuildMode buildMode) async {
-+    final String dart_path =
-+        globals.artifacts.getHostArtifact(HostArtifact.engineDartSdkPath).path;
++    final String dart_path = globals.artifacts
++        .getArtifactPath(Artifact.frontendServerSnapshotForEngineDartSdk);
 +
 +    final List proceduresList = await _aopProcedures();
 +
@@ -222,114 +220,12 @@ index 0000000000..a8d2e29e2d
 +    return null;
 +  }
 +}
-diff --git a/packages/flutter_tools/lib/src/aop/hook_factory.dart b/packages/flutter_tools/lib/src/aop/hook_factory.dart
+diff --git a/packages/flutter_tools/lib/src/aop/aspectd.dart b/packages/flutter_tools/lib/src/aop/aspectd.dart
 new file mode 100644
-index 0000000000..3a512f3536
+index 0000000000..bb5d6ea08e
 --- /dev/null
-+++ b/packages/flutter_tools/lib/src/aop/hook_factory.dart
-@@ -0,0 +1,96 @@
-+// @dart = 2.8
-+
-+import 'dart:io';
-+
-+import 'package:flutter_tools/src/artifacts.dart';
-+import 'package:flutter_tools/src/base/common.dart';
-+import 'package:flutter_tools/src/base/file_system.dart';
-+import 'package:flutter_tools/src/build_info.dart';
-+import 'package:flutter_tools/src/globals.dart';
-+
-+/// 创建时间：2020-03-28
-+/// 作者：liujingguang
-+/// 描述：Hook处理工厂
-+enum CommandType4Aop { Bundle, Aot, Snapshot }
-+
-+// ignore: avoid_classes_with_only_static_members
-+class HookFactory {
-+  static Future<void> hook(String productDirPath, String executorPath,
-+      BuildMode buildMode, CommandType4Aop type) async {
-+
-+    if (productDirPath == null ||
-+        executorPath == null ||
-+        !fs.file(executorPath).existsSync()) {
-+      return;
-+    }
-+
-+    String inputPath;
-+    switch (type) {
-+      case CommandType4Aop.Bundle:
-+        inputPath = _getBundleInputPath(productDirPath);
-+        break;
-+      case CommandType4Aop.Aot:
-+        inputPath = _getAotInputPath(productDirPath);
-+        break;
-+      case CommandType4Aop.Snapshot:
-+        inputPath = _getSnapShotInputPath(productDirPath);
-+        break;
-+    }
-+    if (!inputPath.startsWith(fs.currentDirectory.path)) {
-+      inputPath = fs.path.join(fs.currentDirectory.path, inputPath);
-+    }
-+    if (!fs.file(inputPath).existsSync()) {
-+      return;
-+    }
-+
-+    final String outputPath =
-+        inputPath + '.${type.toString().toLowerCase()}.result.dill';
-+
-+    /// 执行hook命令
-+    final List<String> command = <String>[
-+      artifacts.getHostArtifact(HostArtifact.engineDartBinary).path,
-+      executorPath,
-+      '--input',
-+      inputPath,
-+      '--output',
-+      outputPath,
-+      if (buildMode != BuildMode.release) ...<String>[
-+        '--sdk-root',
-+        fs
-+                .file(artifacts.getArtifactPath(Artifact.platformKernelDill))
-+                .parent
-+                .path +
-+            fs.path.separator
-+      ],
-+    ];
-+
-+    print(command.toString());
-+    final ProcessResult result = await processManager.run(command);
-+    if (result.exitCode != 0) {
-+      print(result.stderr);
-+      throwToolExit(
-+          'hook by aop terminated unexpectedly in ${type.toString()}.');
-+      return;
-+    }
-+
-+    print('aop hook succeed');
-+
-+    /// 删除input输入文件
-+    final File inputFile = fs.file(inputPath);
-+    if (inputFile.existsSync()) {
-+//      inputFile.copySync(inputPath + '.old'); //调试时可以打开查看信息
-+      inputFile.deleteSync();
-+    }
-+
-+    /// 将Aop处理生成后的output文件重命名为input文件名
-+    fs.file(outputPath).renameSync(inputPath);
-+  }
-+
-+  static String _getBundleInputPath(String assetsDir) =>
-+      fs.path.join(assetsDir, 'kernel_blob.bin');
-+
-+  static String _getAotInputPath(String path) =>
-+      fs.path.join(path ?? getAotBuildDirectory(), 'app.dill');
-+
-+  static String _getSnapShotInputPath(String path) => path;
-+}
-diff --git a/packages/flutter_tools/lib/src/aspectd.dart b/packages/flutter_tools/lib/src/aspectd.dart
-new file mode 100644
-index 0000000000..c683172b41
---- /dev/null
-+++ b/packages/flutter_tools/lib/src/aspectd.dart
-@@ -0,0 +1,219 @@
++++ b/packages/flutter_tools/lib/src/aop/aspectd.dart
+@@ -0,0 +1,221 @@
 +// Copyright 2018 The Chromium Authors. All rights reserved.
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -342,16 +238,16 @@ index 0000000000..c683172b41
 +import 'package:yaml/yaml.dart';
 +import 'package:package_config/package_config.dart';
 +
-+import 'artifacts.dart';
-+import 'base/common.dart';
-+import 'base/file_system.dart';
-+import 'build_info.dart';
-+import 'build_system/build_system.dart';
-+import 'build_system/targets/common.dart';
-+import 'cache.dart';
-+import 'compile.dart';
-+import 'dart/package_map.dart';
-+import 'globals.dart' as globals;
++import '../artifacts.dart';
++import '../base/common.dart';
++import '../build_info.dart';
++import '../base/file_system.dart';
++import '../build_system/build_system.dart';
++import '../build_system/targets/common.dart';
++import '../cache.dart';
++import '../compile.dart';
++import '../dart/package_map.dart';
++import '../globals.dart' as globals;
 +
 +const String aspectdImplPackageRelPath = '..';
 +const String frontendServerDartSnapshot = 'frontend_server.dart.snapshot';
@@ -375,7 +271,7 @@ index 0000000000..c683172b41
 +          (Package element) => element.name == packageName,
 +          orElse: () => null);
 +
-+      if(aspectdPackage == null) {
++      if (aspectdPackage == null) {
 +        return null;
 +      }
 +      return globals.fs.directory(aspectdPackage.root.toFilePath());
@@ -385,18 +281,15 @@ index 0000000000..c683172b41
 +
 +  static Future<Directory> getFlutterFrontendServerDirectory(
 +      String packagesPath) async {
++    final Directory directory =
++        await getPackagePathFromConfig(packagesPath, beike_aspectd);
 +
-+    final Directory directory = await getPackagePathFromConfig(packagesPath, beike_aspectd);
-+
-+    if(directory == null) {
++    if (directory == null) {
 +      return null;
 +    }
 +
-+    return globals.fs.directory(globals.fs.path.join(
-+        directory
-+            .absolute
-+            .path, inner_path,
-+        'flutter_frontend_server'));
++    return globals.fs.directory(globals.fs.path
++        .join(directory.absolute.path, inner_path, 'flutter_frontend_server'));
 +  }
 +
 +  static bool configFileExists() {
@@ -431,7 +324,6 @@ index 0000000000..c683172b41
 +  }
 +
 +  static Future<void> enableAspectd() async {
-+
 +    final Directory currentDirectory = globals.fs.currentDirectory;
 +
 +    final String packagesPath = globals.fs.path
@@ -443,47 +335,50 @@ index 0000000000..c683172b41
 +    final Directory flutterFrontendServerDirectory =
 +        await getFlutterFrontendServerDirectory(packagesPath);
 +
-+    if(beikeAspectdDirectory == null || flutterFrontendServerDirectory == null) {
++    if (beikeAspectdDirectory == null ||
++        flutterFrontendServerDirectory == null) {
 +      return;
 +    }
 +
 +    final String aspectdPackagesPath = globals.fs.path.join(
 +        beikeAspectdDirectory.absolute.path, inner_path, globalPackagesPath);
 +
-+    await checkAspectdFlutterFrontendServerSnapshot(aspectdPackagesPath, flutterFrontendServerDirectory);
++    await checkAspectdFlutterFrontendServerSnapshot(
++        aspectdPackagesPath, flutterFrontendServerDirectory);
 +  }
 +
 +  static Future<void> checkAspectdFlutterFrontendServerSnapshot(
 +      String packagesPath, Directory flutterFrontendServerDirectory) async {
-+
 +    final String aspectdFlutterFrontendServerSnapshot = globals.fs.path.join(
 +        flutterFrontendServerDirectory.absolute.path,
 +        frontendServerDartSnapshot);
 +    final String defaultFlutterFrontendServerSnapshot = globals.artifacts
 +        .getArtifactPath(Artifact.frontendServerSnapshotForEngineDartSdk);
-+    final File defaultServerFile = globals.fs.file(defaultFlutterFrontendServerSnapshot);
-+    final File aspectdServerFile = globals.fs.file(aspectdFlutterFrontendServerSnapshot);
++    final File defaultServerFile =
++        globals.fs.file(defaultFlutterFrontendServerSnapshot);
++    final File aspectdServerFile =
++        globals.fs.file(aspectdFlutterFrontendServerSnapshot);
 +
 +    if (defaultServerFile.existsSync()) {
-+
-+      if(md5.convert(defaultServerFile.readAsBytesSync()) == md5.convert(aspectdServerFile.readAsBytesSync())) {
++      if (md5.convert(defaultServerFile.readAsBytesSync()) ==
++          md5.convert(aspectdServerFile.readAsBytesSync())) {
 +        return true;
 +      }
 +
 +      globals.fs.file(defaultFlutterFrontendServerSnapshot).deleteSync();
 +    }
 +
-+    print('Overriding frontend server snapshot');
-+    aspectdServerFile
-+        .copySync(defaultFlutterFrontendServerSnapshot);
-+  }
++    aspectdServerFile.copySync(defaultFlutterFrontendServerSnapshot);
 +
++    print('[aop]: New frontend server snapshot updated');
++  }
 +
 +  static Future<String> getDartSdkDependency(String aspectdDir) async {
 +    final ProcessResult processResult = await globals.processManager.run(
 +        <String>[
 +          globals.fs.path.join(
-+              globals.artifacts.getHostArtifact(HostArtifact.engineDartSdkPath).path,
++              globals.artifacts.getArtifactPath(
++                  Artifact.frontendServerSnapshotForEngineDartSdk),
 +              'bin',
 +              'pub'),
 +          'get',
@@ -540,32 +435,258 @@ index 0000000000..c683172b41
 +        await auxKernelSnapshot.buildImpl(auxEnvironment);
 +
 +    final String aspectdDill = compilerOutput.outputFilename;
++
++    print('Aspectdill path : ' + aspectdDill);
 +    final File originalDillFile = globals.fs.file(
 +        globals.fs.path.join(environment.buildDir.absolute.path, 'app.dill'));
 +
++    print('originalDillFile path : ' + originalDillFile.path);
 +    if (originalDillFile.existsSync()) {
-+      await  originalDillFile.copy(originalDillFile.absolute.path + '.bak');
++      await originalDillFile.copy(originalDillFile.absolute.path + '.bak');
 +    }
 +    globals.fs.file(aspectdDill).copySync(originalDillFile.absolute.path);
 +  }
 +}
+diff --git a/packages/flutter_tools/lib/src/aop/hook_factory.dart b/packages/flutter_tools/lib/src/aop/hook_factory.dart
+new file mode 100644
+index 0000000000..3e8b794615
+--- /dev/null
++++ b/packages/flutter_tools/lib/src/aop/hook_factory.dart
+@@ -0,0 +1,98 @@
++// @dart = 2.8
++
++import 'dart:io';
++
++import 'package:flutter_tools/src/artifacts.dart';
++import 'package:flutter_tools/src/base/common.dart';
++import 'package:flutter_tools/src/base/file_system.dart';
++import 'package:flutter_tools/src/build_info.dart';
++import 'package:flutter_tools/src/globals.dart';
++
++/// 创建时间：2020-03-28
++/// 作者：liujingguang
++/// 描述：Hook处理工厂
++enum CommandType4Aop { Bundle, Aot, Snapshot }
++
++// ignore: avoid_classes_with_only_static_members
++class HookFactory {
++  static Future<void> hook(String productDirPath, String executorPath,
++      BuildMode buildMode, CommandType4Aop type) async {
++    if (productDirPath == null ||
++        executorPath == null ||
++        !fs.file(executorPath).existsSync()) {
++      return;
++    }
++
++    String inputPath;
++    switch (type) {
++      case CommandType4Aop.Bundle:
++        inputPath = _getBundleInputPath(productDirPath);
++        break;
++      case CommandType4Aop.Aot:
++        inputPath = _getAotInputPath(productDirPath);
++        break;
++      case CommandType4Aop.Snapshot:
++        inputPath = _getSnapShotInputPath(productDirPath);
++        break;
++    }
++    if (!inputPath.startsWith(fs.currentDirectory.path)) {
++      inputPath = fs.path.join(fs.currentDirectory.path, inputPath);
++    }
++    if (!fs.file(inputPath).existsSync()) {
++      return;
++    }
++
++    final String outputPath =
++        inputPath + '.${type.toString().toLowerCase()}.result.dill';
++
++    final String engineDartPath =
++        artifacts.getHostArtifact(HostArtifact.engineDartBinary).path;
++
++    /// 执行hook命令
++    final List<String> command = <String>[
++      engineDartPath,
++      executorPath,
++      '--input',
++      inputPath,
++      '--output',
++      outputPath,
++      if (buildMode != BuildMode.release) ...<String>[
++        '--sdk-root',
++        fs
++                .file(artifacts.getArtifactPath(Artifact.platformKernelDill))
++                .parent
++                .path +
++            fs.path.separator
++      ],
++    ];
++
++    print(command.toString());
++    final ProcessResult result = await processManager.run(command);
++    if (result.exitCode != 0) {
++      print(result.stderr);
++      throwToolExit(
++          'hook by aop terminated unexpectedly in ${type.toString()}.');
++      return;
++    }
++
++    print('aop hook succeed');
++
++    /// 删除input输入文件
++    final File inputFile = fs.file(inputPath);
++    if (inputFile.existsSync()) {
++//      inputFile.copySync(inputPath + '.old'); //调试时可以打开查看信息
++      inputFile.deleteSync();
++    }
++
++    /// 将Aop处理生成后的output文件重命名为input文件名
++    fs.file(outputPath).renameSync(inputPath);
++  }
++
++  static String _getBundleInputPath(String assetsDir) =>
++      fs.path.join(assetsDir, 'kernel_blob.bin');
++
++  static String _getAotInputPath(String path) =>
++      fs.path.join(path ?? getAotBuildDirectory(), 'app.dill');
++
++  static String _getSnapShotInputPath(String path) => path;
++}
 diff --git a/packages/flutter_tools/lib/src/build_system/targets/common.dart b/packages/flutter_tools/lib/src/build_system/targets/common.dart
-index e1d40b0984..c386f7d817 100644
+index e1d40b0984..a490cc28b9 100644
 --- a/packages/flutter_tools/lib/src/build_system/targets/common.dart
 +++ b/packages/flutter_tools/lib/src/build_system/targets/common.dart
 @@ -20,6 +20,7 @@ import 'assets.dart';
  import 'dart_plugin_registrant.dart';
  import 'icon_tree_shaker.dart';
  import 'localizations.dart';
-+import '../../aspectd.dart';
++import '../../aop/aspectd.dart';
  
  /// Copies the pre-built flutter bundle.
  // This is a one-off rule for implementing build bundle in terms of assemble.
-@@ -147,8 +148,15 @@ class KernelSnapshot extends Target {
-     DartPluginRegistrantTarget(),
-   ];
+@@ -31,42 +32,45 @@ class CopyFlutterBundle extends Target {
  
-+
+   @override
+   List<Source> get inputs => const <Source>[
+-    Source.artifact(Artifact.vmSnapshotData, mode: BuildMode.debug),
+-    Source.artifact(Artifact.isolateSnapshotData, mode: BuildMode.debug),
+-    Source.pattern('{BUILD_DIR}/app.dill'),
+-    ...IconTreeShaker.inputs,
+-  ];
++        Source.artifact(Artifact.vmSnapshotData, mode: BuildMode.debug),
++        Source.artifact(Artifact.isolateSnapshotData, mode: BuildMode.debug),
++        Source.pattern('{BUILD_DIR}/app.dill'),
++        ...IconTreeShaker.inputs,
++      ];
+ 
+   @override
+   List<Source> get outputs => const <Source>[
+-    Source.pattern('{OUTPUT_DIR}/vm_snapshot_data'),
+-    Source.pattern('{OUTPUT_DIR}/isolate_snapshot_data'),
+-    Source.pattern('{OUTPUT_DIR}/kernel_blob.bin'),
+-  ];
++        Source.pattern('{OUTPUT_DIR}/vm_snapshot_data'),
++        Source.pattern('{OUTPUT_DIR}/isolate_snapshot_data'),
++        Source.pattern('{OUTPUT_DIR}/kernel_blob.bin'),
++      ];
+ 
+   @override
+-  List<String> get depfiles => <String>[
+-    'flutter_assets.d'
+-  ];
++  List<String> get depfiles => <String>['flutter_assets.d'];
+ 
+   @override
+   Future<void> build(Environment environment) async {
+     if (environment.defines[kBuildMode] == null) {
+       throw MissingDefineException(kBuildMode, 'copy_flutter_bundle');
+     }
+-    final BuildMode buildMode = getBuildModeForName(environment.defines[kBuildMode]);
++    final BuildMode buildMode =
++        getBuildModeForName(environment.defines[kBuildMode]);
+     environment.outputDir.createSync(recursive: true);
+ 
+     // Only copy the prebuilt runtimes and kernel blob in debug mode.
+     if (buildMode == BuildMode.debug) {
+-      final String vmSnapshotData = environment.artifacts.getArtifactPath(Artifact.vmSnapshotData, mode: BuildMode.debug);
+-      final String isolateSnapshotData = environment.artifacts.getArtifactPath(Artifact.isolateSnapshotData, mode: BuildMode.debug);
+-      environment.buildDir.childFile('app.dill')
++      final String vmSnapshotData = environment.artifacts
++          .getArtifactPath(Artifact.vmSnapshotData, mode: BuildMode.debug);
++      final String isolateSnapshotData = environment.artifacts
++          .getArtifactPath(Artifact.isolateSnapshotData, mode: BuildMode.debug);
++      environment.buildDir
++          .childFile('app.dill')
+           .copySync(environment.outputDir.childFile('kernel_blob.bin').path);
+-      environment.fileSystem.file(vmSnapshotData)
++      environment.fileSystem
++          .file(vmSnapshotData)
+           .copySync(environment.outputDir.childFile('vm_snapshot_data').path);
+-      environment.fileSystem.file(isolateSnapshotData)
+-          .copySync(environment.outputDir.childFile('isolate_snapshot_data').path);
++      environment.fileSystem.file(isolateSnapshotData).copySync(
++          environment.outputDir.childFile('isolate_snapshot_data').path);
+     }
+     final Depfile assetDepfile = await copyAssets(
+       environment,
+@@ -86,8 +90,8 @@ class CopyFlutterBundle extends Target {
+ 
+   @override
+   List<Target> get dependencies => const <Target>[
+-    KernelSnapshot(),
+-  ];
++        KernelSnapshot(),
++      ];
+ }
+ 
+ /// Copies the pre-built flutter bundle for release mode.
+@@ -105,8 +109,8 @@ class ReleaseCopyFlutterBundle extends CopyFlutterBundle {
+ 
+   @override
+   List<String> get depfiles => const <String>[
+-    'flutter_assets.d',
+-  ];
++        'flutter_assets.d',
++      ];
+ 
+   @override
+   List<Target> get dependencies => const <Target>[];
+@@ -126,29 +130,35 @@ class KernelSnapshot extends Target {
+ 
+   @override
+   List<Source> get inputs => const <Source>[
+-    Source.pattern('{PROJECT_DIR}/.dart_tool/package_config_subset'),
+-    Source.pattern('{FLUTTER_ROOT}/packages/flutter_tools/lib/src/build_system/targets/common.dart'),
+-    Source.artifact(Artifact.platformKernelDill),
+-    Source.hostArtifact(HostArtifact.engineDartBinary),
+-    Source.artifact(Artifact.frontendServerSnapshotForEngineDartSdk),
+-  ];
++        Source.pattern('{PROJECT_DIR}/.dart_tool/package_config_subset'),
++        Source.pattern(
++            '{FLUTTER_ROOT}/packages/flutter_tools/lib/src/build_system/targets/common.dart'),
++        Source.artifact(Artifact.platformKernelDill),
++        Source.hostArtifact(HostArtifact.engineDartBinary),
++        Source.artifact(Artifact.frontendServerSnapshotForEngineDartSdk),
++      ];
+ 
+   @override
+   List<Source> get outputs => const <Source>[];
+ 
+   @override
+   List<String> get depfiles => <String>[
+-    'kernel_snapshot.d',
+-  ];
++        'kernel_snapshot.d',
++      ];
+ 
+   @override
+   List<Target> get dependencies => const <Target>[
+-    GenerateLocalizationsTarget(),
+-    DartPluginRegistrantTarget(),
+-  ];
++        GenerateLocalizationsTarget(),
++        DartPluginRegistrantTarget(),
++      ];
+ 
    @override
    Future<void> build(Environment environment) async {
 +    await AspectdHook.enableAspectd();
@@ -573,12 +694,194 @@ index e1d40b0984..c386f7d817 100644
 +  }
 +
 +  Future<CompilerOutput> buildImpl(Environment environment) async {
-+
      final KernelCompiler compiler = KernelCompiler(
        fileSystem: environment.fileSystem,
        logger: environment.logger,
+@@ -163,19 +173,26 @@ class KernelSnapshot extends Target {
+     if (environment.defines[kTargetPlatform] == null) {
+       throw MissingDefineException(kTargetPlatform, 'kernel_snapshot');
+     }
+-    final BuildMode buildMode = getBuildModeForName(environment.defines[kBuildMode]);
+-    final String targetFile = environment.defines[kTargetFile] ?? environment.fileSystem.path.join('lib', 'main.dart');
++    final BuildMode buildMode =
++        getBuildModeForName(environment.defines[kBuildMode]);
++    final String targetFile = environment.defines[kTargetFile] ??
++        environment.fileSystem.path.join('lib', 'main.dart');
+     final File packagesFile = environment.projectDir
+-      .childDirectory('.dart_tool')
+-      .childFile('package_config.json');
+-    final String targetFileAbsolute = environment.fileSystem.file(targetFile).absolute.path;
++        .childDirectory('.dart_tool')
++        .childFile('package_config.json');
++    final String targetFileAbsolute =
++        environment.fileSystem.file(targetFile).absolute.path;
+     // everything besides 'false' is considered to be enabled.
+-    final bool trackWidgetCreation = environment.defines[kTrackWidgetCreation] != 'false';
+-    final TargetPlatform targetPlatform = getTargetPlatformForName(environment.defines[kTargetPlatform]);
++    final bool trackWidgetCreation =
++        environment.defines[kTrackWidgetCreation] != 'false';
++    final TargetPlatform targetPlatform =
++        getTargetPlatformForName(environment.defines[kTargetPlatform]);
+ 
+     // This configuration is all optional.
+-    final List<String> extraFrontEndOptions = decodeCommaSeparated(environment.defines, kExtraFrontEndOptions);
+-    final List<String> fileSystemRoots = environment.defines[kFileSystemRoots]?.split(',');
++    final List<String> extraFrontEndOptions =
++        decodeCommaSeparated(environment.defines, kExtraFrontEndOptions);
++    final List<String> fileSystemRoots =
++        environment.defines[kFileSystemRoots]?.split(',');
+     final String fileSystemScheme = environment.defines[kFileSystemScheme];
+ 
+     TargetModel targetModel = TargetModel.flutter;
+@@ -228,6 +245,7 @@ class KernelSnapshot extends Target {
+     if (output == null || output.errorCount != 0) {
+       throw Exception();
+     }
++    return output;
+   }
+ }
+ 
+@@ -255,22 +273,28 @@ abstract class AotElfBase extends Target {
+     if (environment.defines[kTargetPlatform] == null) {
+       throw MissingDefineException(kTargetPlatform, 'aot_elf');
+     }
+-    final List<String> extraGenSnapshotOptions = decodeCommaSeparated(environment.defines, kExtraGenSnapshotOptions);
+-    final BuildMode buildMode = getBuildModeForName(environment.defines[kBuildMode]);
+-    final TargetPlatform targetPlatform = getTargetPlatformForName(environment.defines[kTargetPlatform]);
++    final List<String> extraGenSnapshotOptions =
++        decodeCommaSeparated(environment.defines, kExtraGenSnapshotOptions);
++    final BuildMode buildMode =
++        getBuildModeForName(environment.defines[kBuildMode]);
++    final TargetPlatform targetPlatform =
++        getTargetPlatformForName(environment.defines[kTargetPlatform]);
+     final String splitDebugInfo = environment.defines[kSplitDebugInfo];
+-    final bool dartObfuscation = environment.defines[kDartObfuscation] == 'true';
++    final bool dartObfuscation =
++        environment.defines[kDartObfuscation] == 'true';
+     final String codeSizeDirectory = environment.defines[kCodeSizeDirectory];
+ 
+     if (codeSizeDirectory != null) {
+       final File codeSizeFile = environment.fileSystem
+-        .directory(codeSizeDirectory)
+-        .childFile('snapshot.${environment.defines[kTargetPlatform]}.json');
++          .directory(codeSizeDirectory)
++          .childFile('snapshot.${environment.defines[kTargetPlatform]}.json');
+       final File precompilerTraceFile = environment.fileSystem
+-        .directory(codeSizeDirectory)
+-        .childFile('trace.${environment.defines[kTargetPlatform]}.json');
+-      extraGenSnapshotOptions.add('--write-v8-snapshot-profile-to=${codeSizeFile.path}');
+-      extraGenSnapshotOptions.add('--trace-precompiler-to=${precompilerTraceFile.path}');
++          .directory(codeSizeDirectory)
++          .childFile('trace.${environment.defines[kTargetPlatform]}.json');
++      extraGenSnapshotOptions
++          .add('--write-v8-snapshot-profile-to=${codeSizeFile.path}');
++      extraGenSnapshotOptions
++          .add('--trace-precompiler-to=${precompilerTraceFile.path}');
+     }
+ 
+     final int snapshotExitCode = await snapshotter.build(
+@@ -298,25 +322,27 @@ class AotElfProfile extends AotElfBase {
+ 
+   @override
+   List<Source> get inputs => <Source>[
+-    const Source.pattern('{FLUTTER_ROOT}/packages/flutter_tools/lib/src/build_system/targets/common.dart'),
+-    const Source.pattern('{BUILD_DIR}/app.dill'),
+-    const Source.hostArtifact(HostArtifact.engineDartBinary),
+-    const Source.artifact(Artifact.skyEnginePath),
+-    Source.artifact(Artifact.genSnapshot,
+-      platform: targetPlatform,
+-      mode: BuildMode.profile,
+-    ),
+-  ];
++        const Source.pattern(
++            '{FLUTTER_ROOT}/packages/flutter_tools/lib/src/build_system/targets/common.dart'),
++        const Source.pattern('{BUILD_DIR}/app.dill'),
++        const Source.hostArtifact(HostArtifact.engineDartBinary),
++        const Source.artifact(Artifact.skyEnginePath),
++        Source.artifact(
++          Artifact.genSnapshot,
++          platform: targetPlatform,
++          mode: BuildMode.profile,
++        ),
++      ];
+ 
+   @override
+   List<Source> get outputs => const <Source>[
+-    Source.pattern('{BUILD_DIR}/app.so'),
+-  ];
++        Source.pattern('{BUILD_DIR}/app.so'),
++      ];
+ 
+   @override
+   List<Target> get dependencies => const <Target>[
+-    KernelSnapshot(),
+-  ];
++        KernelSnapshot(),
++      ];
+ 
+   final TargetPlatform targetPlatform;
+ }
+@@ -330,25 +356,27 @@ class AotElfRelease extends AotElfBase {
+ 
+   @override
+   List<Source> get inputs => <Source>[
+-    const Source.pattern('{FLUTTER_ROOT}/packages/flutter_tools/lib/src/build_system/targets/common.dart'),
+-    const Source.pattern('{BUILD_DIR}/app.dill'),
+-    const Source.hostArtifact(HostArtifact.engineDartBinary),
+-    const Source.artifact(Artifact.skyEnginePath),
+-    Source.artifact(Artifact.genSnapshot,
+-      platform: targetPlatform,
+-      mode: BuildMode.release,
+-    ),
+-  ];
++        const Source.pattern(
++            '{FLUTTER_ROOT}/packages/flutter_tools/lib/src/build_system/targets/common.dart'),
++        const Source.pattern('{BUILD_DIR}/app.dill'),
++        const Source.hostArtifact(HostArtifact.engineDartBinary),
++        const Source.artifact(Artifact.skyEnginePath),
++        Source.artifact(
++          Artifact.genSnapshot,
++          platform: targetPlatform,
++          mode: BuildMode.release,
++        ),
++      ];
+ 
+   @override
+   List<Source> get outputs => const <Source>[
+-    Source.pattern('{BUILD_DIR}/app.so'),
+-  ];
++        Source.pattern('{BUILD_DIR}/app.so'),
++      ];
+ 
+   @override
+   List<Target> get dependencies => const <Target>[
+-    KernelSnapshot(),
+-  ];
++        KernelSnapshot(),
++      ];
+ 
+   final TargetPlatform targetPlatform;
+ }
+@@ -360,13 +388,13 @@ abstract class CopyFlutterAotBundle extends Target {
+ 
+   @override
+   List<Source> get inputs => const <Source>[
+-    Source.pattern('{BUILD_DIR}/app.so'),
+-  ];
++        Source.pattern('{BUILD_DIR}/app.so'),
++      ];
+ 
+   @override
+   List<Source> get outputs => const <Source>[
+-    Source.pattern('{OUTPUT_DIR}/app.so'),
+-  ];
++        Source.pattern('{OUTPUT_DIR}/app.so'),
++      ];
+ 
+   @override
+   Future<void> build(Environment environment) async {
 diff --git a/packages/flutter_tools/lib/src/build_system/targets/web.dart b/packages/flutter_tools/lib/src/build_system/targets/web.dart
-index 7a6096af90..99950b3eb9 100644
+index 7a6096af90..92a193aec8 100644
 --- a/packages/flutter_tools/lib/src/build_system/targets/web.dart
 +++ b/packages/flutter_tools/lib/src/build_system/targets/web.dart
 @@ -24,6 +24,7 @@ import '../build_system.dart';
@@ -589,63 +892,25 @@ index 7a6096af90..99950b3eb9 100644
  
  /// Whether the application has web plugins.
  const String kHasWebPlugins = 'HasWebPlugins';
-@@ -233,25 +234,30 @@ class Dart2JSTarget extends Target {
-         '--no-source-maps',
-     ];
- 
--    // Run the dart2js compilation in two stages, so that icon tree shaking can
--    // parse the kernel file for web builds.
--    final ProcessResult kernelResult = await globals.processManager.run(<String>[
-+    final kernelCommands = <String>[
-       ...sharedCommandOptions,
-       '-o',
-       environment.buildDir.childFile('app.dill').path,
-       '--packages=.packages',
-       '--cfe-only',
-       environment.buildDir.childFile('main.dart').path, // dartfile
--    ]);
-+    ];
-+
-+    print(kernelCommands);
-+    // Run the dart2js compilation in two stages, so that icon tree shaking can
-+    // parse the kernel file for web builds.
-+    final ProcessResult kernelResult = await globals.processManager.run(kernelCommands);
-     if (kernelResult.exitCode != 0) {
+@@ -247,6 +248,9 @@ class Dart2JSTarget extends Target {
        throw Exception(_collectOutput(kernelResult));
      }
  
-+    await AopManager.hookSnapshotCommand(environment.buildDir.childFile('app.dill').path, buildMode);
++    await AopManager.hookSnapshotCommand(
++        environment.buildDir.childFile('app.dill').path, buildMode);
 +
      final String dart2jsOptimization = environment.defines[kDart2jsOptimization];
      final File outputJSFile = environment.buildDir.childFile('main.dart.js');
      final bool csp = environment.defines[kCspMode] == 'true';
- 
--    final ProcessResult javaScriptResult = await environment.processManager.run(<String>[
-+    final commands = <String>[
-       ...sharedCommandOptions,
-       if (dart2jsOptimization != null) '-$dart2jsOptimization' else '-O4',
-       if (buildMode == BuildMode.profile) '--no-minify',
-@@ -259,7 +265,10 @@ class Dart2JSTarget extends Target {
-       '-o',
-       outputJSFile.path,
-       environment.buildDir.childFile('app.dill').path, // dartfile
--    ]);
-+    ];
-+
-+    print(commands);
-+    final ProcessResult javaScriptResult = await environment.processManager.run(commands);
-     if (javaScriptResult.exitCode != 0) {
-       throw Exception(_collectOutput(javaScriptResult));
-     }
 diff --git a/packages/flutter_tools/lib/src/commands/build_bundle.dart b/packages/flutter_tools/lib/src/commands/build_bundle.dart
-index f8fa4ad040..5390760e9d 100644
+index f8fa4ad040..b3ea095dbe 100644
 --- a/packages/flutter_tools/lib/src/commands/build_bundle.dart
 +++ b/packages/flutter_tools/lib/src/commands/build_bundle.dart
 @@ -14,6 +14,7 @@ import '../project.dart';
  import '../reporting/reporting.dart';
  import '../runner/flutter_command.dart';
  import 'build.dart';
-+import '../aspectd.dart';
++import '../aop/aspectd.dart';
  
  class BuildBundleCommand extends BuildSubCommand {
    BuildBundleCommand({bool verboseHelp = false, this.bundleBuilder}) {
@@ -660,49 +925,75 @@ index f8fa4ad040..5390760e9d 100644
      final TargetPlatform platform = getTargetPlatformForName(targetPlatform);
      if (platform == null) {
 diff --git a/packages/flutter_tools/lib/src/compile.dart b/packages/flutter_tools/lib/src/compile.dart
-index b41bc4ff2b..927f470db5 100644
+index b41bc4ff2b..171d5eca65 100644
 --- a/packages/flutter_tools/lib/src/compile.dart
 +++ b/packages/flutter_tools/lib/src/compile.dart
 @@ -18,6 +18,7 @@ import 'base/logger.dart';
  import 'base/platform.dart';
  import 'build_info.dart';
  import 'convert.dart';
-+import 'aspectd.dart';
++import 'aop/aspectd.dart';
  
  /// The target model describes the set of core libraries that are available within
  /// the SDK.
-@@ -695,6 +696,9 @@ class DefaultResidentCompiler implements ResidentCompiler {
-     String scriptUri,
-     String? outputPath,
-   ) async {
+@@ -235,6 +236,9 @@ class KernelCompiler {
+     required List<String> dartDefines,
+     required PackageConfig packageConfig,
+   }) async {
 +
 +    await AspectdHook.enableAspectd();
 +
      final String frontendServer = _artifacts.getArtifactPath(
        Artifact.frontendServerSnapshotForEngineDartSdk
      );
-@@ -752,6 +756,9 @@ class DefaultResidentCompiler implements ResidentCompiler {
-       if (unsafePackageSerialization == true) '--unsafe-package-serialization',
-       ...?extraFrontEndOptions,
-     ];
+@@ -265,6 +269,8 @@ class KernelCompiler {
+       }
+     }
+ 
++    bool aopConfig = AspectdHook.configFileExists();
 +
+     final List<String> command = <String>[
+       engineDartPath,
+       '--disable-dart-dev',
+@@ -311,10 +317,16 @@ class KernelCompiler {
+         '--platform',
+         platformDill,
+       ],
++      if (aopConfig) ...<String>[
++        '--aop',
++        '1',
++      ],
+       ...?extraFrontEndOptions,
+       mainUri,
+     ];
+ 
 +    print(command.join(' '));
 +
      _logger.printTrace(command.join(' '));
-     _server = await _processManager.start(command);
-     _server?.stdout
-diff --git a/packages/flutter_tools/lib/src/web/chrome.dart b/packages/flutter_tools/lib/src/web/chrome.dart
-index 41b2445985..806376f4ac 100644
---- a/packages/flutter_tools/lib/src/web/chrome.dart
-+++ b/packages/flutter_tools/lib/src/web/chrome.dart
-@@ -208,6 +208,7 @@ class ChromiumLauncher {
-       '--no-default-browser-check',
-       '--disable-default-apps',
-       '--disable-translate',
-+      '–disable-web-security',
-       if (headless)
-         ...<String>[
-           '--headless',
+     final Process server = await _processManager.start(command);
+ 
+@@ -698,6 +710,10 @@ class DefaultResidentCompiler implements ResidentCompiler {
+     final String frontendServer = _artifacts.getArtifactPath(
+       Artifact.frontendServerSnapshotForEngineDartSdk
+     );
++
++    await AspectdHook.enableAspectd();
++    bool aopConfig = AspectdHook.configFileExists();
++
+     final List<String> command = <String>[
+       _artifacts.getHostArtifact(HostArtifact.engineDartBinary).path,
+       '--disable-dart-dev',
+@@ -749,6 +765,10 @@ class DefaultResidentCompiler implements ResidentCompiler {
+         '--platform',
+         platformDill!,
+       ],
++      if (aopConfig) ...<String>[
++        '--aop',
++        '1',
++      ],
+       if (unsafePackageSerialization == true) '--unsafe-package-serialization',
+       ...?extraFrontEndOptions,
+     ];
 -- 
-2.30.1 (Apple Git-130)
+2.32.1 (Apple Git-133)
 
