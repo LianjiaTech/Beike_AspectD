@@ -27,6 +27,7 @@
 .flutter-plugins-dependencies
 .packages
 .pub-cache/
+ios/Flutter
 .pub/
 /build/
 android/.gradle/*

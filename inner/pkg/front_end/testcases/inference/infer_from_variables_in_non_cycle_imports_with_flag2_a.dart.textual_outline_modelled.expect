@@ -1,0 +1,6 @@
+// @dart = 2.9
+class A {
+  static var x = 2;
+}
+
+main() {}

@@ -1,0 +1,14 @@
+// @dart = 2.9
+class A {
+  method(num a) {}
+}
+
+class B extends A {
+  method(dynamic a) {}
+}
+
+class C extends B {
+  method(covariant String a) {}
+}
+
+main() {}

@@ -1,0 +1,10 @@
+// @dart = 2.9
+class Class {}
+extension Extension on Class {
+  Extension() {}
+  Extension.named() {}
+  factory Extension.fact() => null;
+  factory Extension.redirect() = Extension;
+  method() {}
+}
+main() {}

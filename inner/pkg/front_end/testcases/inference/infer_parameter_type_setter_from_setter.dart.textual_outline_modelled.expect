@@ -1,0 +1,12 @@
+// @dart = 2.9
+library test;
+
+class C extends D {
+  set foo(x) {}
+}
+
+class D {
+  set foo(int x) {}
+}
+
+main() {}

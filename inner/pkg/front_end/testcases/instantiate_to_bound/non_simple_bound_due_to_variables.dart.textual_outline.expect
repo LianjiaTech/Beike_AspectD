@@ -1,0 +1,7 @@
+// @dart = 2.9
+class A<TypeT, TypeS extends TypeT> {}
+
+class B<TypeU extends A> {}
+
+B b;
+main() {}

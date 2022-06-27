@@ -1,0 +1,10 @@
+// @dart = 2.9
+class A {
+  A(x);
+}
+
+class B extends A {
+  const B() : super();
+}
+
+main() {}

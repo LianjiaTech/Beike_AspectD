@@ -7,7 +7,7 @@ Beike_AspectD是一个dart面向切面库。闲鱼的AspectD为开发者提供�
 
 - ✅  Add语法支持为class添加方法；
 - ✅  FieldGet语法支持更换变量获取；
-- ✅  支持空安全。
+- ✅  支持空安全。（null-safety下的分支）
 - ✅  支持Flutter for Web；
 - ✅  其他的一些问题修复.
 
@@ -22,9 +22,9 @@ Beike_AspectD是一个dart面向切面库。闲鱼的AspectD为开发者提供�
 
 ## 1. Apply flutter_tools.patch.
 ```shell
-cd ...path/to/flutter/packages/flutter_tools/
+cd ...path/to/flutter
 git apply --3way path-for-beike_aspectd-package/inner/flutter_tools.patch
-rm ../../bin/cache/flutter_tools.stamp
+rm bin/cache/flutter_tools.stamp
 ```
 当下次编译你的Flutter工程时，flutter tools就会重新build。
 
@@ -51,6 +51,7 @@ flutter_tools_hook:
 
 ## 4. 添加hook代码.
 hook_example.dart(aop implementation)
+
 ```dart
 import 'package:beike_aspectd/aspectd.dart';
 
@@ -112,8 +113,11 @@ Field get可以被用来替换对于某个属性的调用.
 ```
 比如，MyApp有个属性field，通过上面代码，调用MyApp中field属性的地方都会返回字符串'Beike_AspectD'。
 
-# 版本支持
+## 版本支持
 目前Beike_AspectD已经支持Flutter 1.22.4，2.2.2和2.5.3.
+
+## 如何调试
+见[调试](doc/如何调试.md)
 
 ## 常见问题
 - 如何知道我的hook代码是否生效?

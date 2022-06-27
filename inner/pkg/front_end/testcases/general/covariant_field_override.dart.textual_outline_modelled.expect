@@ -1,0 +1,14 @@
+// @dart = 2.9
+class A {
+  num field;
+}
+
+class B {
+  covariant num field;
+}
+
+class C extends A implements B {
+  num field;
+}
+
+main() {}

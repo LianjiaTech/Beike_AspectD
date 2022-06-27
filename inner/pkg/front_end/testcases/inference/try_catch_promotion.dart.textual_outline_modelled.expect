@@ -1,0 +1,11 @@
+// @dart = 2.9
+library test;
+
+class C {}
+
+class D extends C {}
+
+class E extends StackTrace {}
+
+main() {}
+void test(void f()) {}

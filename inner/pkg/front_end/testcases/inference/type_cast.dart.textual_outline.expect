@@ -1,0 +1,12 @@
+// @dart = 2.9
+library test;
+
+class A<T> {}
+
+class B<T> extends A<T> {
+  foo() {}
+}
+
+A<num> a = new B<int>();
+var b = (a as B<int>);
+main() {}

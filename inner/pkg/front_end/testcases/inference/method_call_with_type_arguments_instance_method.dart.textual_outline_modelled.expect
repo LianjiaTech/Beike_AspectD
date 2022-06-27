@@ -1,0 +1,11 @@
+// @dart = 2.9
+library test;
+
+class C {
+  D<T> f<T>() => null;
+}
+
+class D<T> {}
+
+main() {}
+var f = new C().f<int>();

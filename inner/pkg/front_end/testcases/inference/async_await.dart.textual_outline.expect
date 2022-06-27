@@ -1,0 +1,9 @@
+// @dart = 2.9
+library test;
+
+import 'dart:async';
+
+abstract class MyFuture implements Future<int> {}
+
+void test() async {}
+main() {}

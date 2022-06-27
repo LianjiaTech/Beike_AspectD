@@ -1,0 +1,5 @@
+// @dart = 2.9
+class B<T extends Comparable<T>> {}
+
+var y = new B();
+main() {}

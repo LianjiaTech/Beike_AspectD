@@ -1,0 +1,11 @@
+// @dart = 2.9
+class A {
+  int a;
+}
+class B extends A {
+  B() : super.a = 42;
+}
+class C {
+  C() : super = 42;
+}
+main() {}

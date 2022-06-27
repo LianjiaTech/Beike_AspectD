@@ -1,0 +1,11 @@
+// @dart = 2.9
+library test;
+
+abstract class C {}
+
+abstract class D<T> {
+  D(T t);
+}
+
+void test() {}
+main() {}

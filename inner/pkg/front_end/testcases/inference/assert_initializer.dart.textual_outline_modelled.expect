@@ -1,0 +1,11 @@
+// @dart = 2.9
+library test;
+
+T f<T>() => null;
+
+class C {
+  C.expressionAndMessage() : assert(f(), f());
+  C.expressionOnly() : assert(f());
+}
+
+main() {}

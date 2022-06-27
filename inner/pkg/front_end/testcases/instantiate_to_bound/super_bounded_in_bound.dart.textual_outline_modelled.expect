@@ -1,0 +1,6 @@
+// @dart = 2.9
+class A<X extends Comparable<X>> {}
+
+class B<Y extends A<dynamic>> {}
+
+main() {}

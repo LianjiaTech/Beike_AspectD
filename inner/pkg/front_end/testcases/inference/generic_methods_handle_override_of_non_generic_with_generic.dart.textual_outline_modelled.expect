@@ -1,0 +1,14 @@
+// @dart = 2.9
+library test;
+
+class C {
+  dynamic g(int x) => x;
+  m(x) => x;
+}
+
+class D extends C {
+  T g<T>(T x) => x;
+  T m<T>(T x) => x;
+}
+
+main() {}

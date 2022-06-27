@@ -1,0 +1,16 @@
+// @dart = 2.9
+library test;
+
+class A implements B {
+  void set x(value) {}
+}
+
+abstract class B implements C {
+  void set x(value);
+}
+
+abstract class C {
+  void set x(int value);
+}
+
+main() {}

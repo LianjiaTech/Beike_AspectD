@@ -1,0 +1,9 @@
+// @dart = 2.9
+import 'dart:collection' as collection;
+
+class Fisk {
+  it1(x) {}
+}
+
+main(arguments) {}
+typedef void VoidFunction();

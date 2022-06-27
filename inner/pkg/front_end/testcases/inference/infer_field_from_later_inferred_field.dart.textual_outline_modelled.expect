@@ -1,0 +1,12 @@
+// @dart = 2.9
+library test;
+
+class A implements B {
+  var x;
+}
+
+class B {
+  var x = 0;
+}
+
+main() {}

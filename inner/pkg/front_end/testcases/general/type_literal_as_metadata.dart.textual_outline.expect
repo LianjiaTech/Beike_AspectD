@@ -1,0 +1,9 @@
+// @dart = 2.9
+class A {
+  const A();
+}
+
+@A
+class B {}
+
+main() {}

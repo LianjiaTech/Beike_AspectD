@@ -1,0 +1,8 @@
+// @dart = 2.9
+class C {
+  foo() {}
+}
+
+main() {}
+typedef A<T>(T p);
+typedef B<U extends A<U>>(U p);

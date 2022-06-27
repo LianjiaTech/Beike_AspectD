@@ -1,0 +1,14 @@
+// @dart = 2.9
+library test;
+
+import 'dart:math' as math;
+
+class Trace {
+  List<Frame> frames = [];
+}
+
+class Frame {
+  String location = '';
+}
+
+main() {}

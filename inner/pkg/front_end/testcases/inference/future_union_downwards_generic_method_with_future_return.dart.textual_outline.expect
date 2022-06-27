@@ -1,0 +1,10 @@
+// @dart = 2.9
+library test;
+
+import 'dart:async';
+
+foo() async {}
+
+class A {}
+
+main() {}

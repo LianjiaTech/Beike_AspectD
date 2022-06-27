@@ -1,0 +1,8 @@
+// @dart = 2.9
+library test;
+
+main() {}
+var a = 'aaa';
+var b = 'b ${x} bb';
+var c = 'c ${x} cc' 'ccc';
+var x = 1;

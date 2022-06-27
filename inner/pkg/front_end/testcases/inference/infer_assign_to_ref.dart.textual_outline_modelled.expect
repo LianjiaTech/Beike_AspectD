@@ -1,0 +1,11 @@
+// @dart = 2.9
+library test;
+
+A a = new A();
+
+class A {
+  int f;
+}
+
+main() {}
+var c = 0;

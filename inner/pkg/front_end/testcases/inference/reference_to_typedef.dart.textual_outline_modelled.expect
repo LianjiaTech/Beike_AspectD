@@ -1,0 +1,6 @@
+// @dart = 2.9
+library test;
+
+final x = F;
+main() {}
+typedef void F();

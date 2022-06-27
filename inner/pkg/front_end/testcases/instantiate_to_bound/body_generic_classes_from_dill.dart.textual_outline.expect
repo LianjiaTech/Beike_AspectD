@@ -1,0 +1,8 @@
+// @dart = 2.9
+import 'dart:collection';
+
+class A {
+  foo() {}
+}
+
+main() {}

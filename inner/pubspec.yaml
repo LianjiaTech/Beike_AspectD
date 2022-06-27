@@ -1,7 +1,7 @@
 name: beike_aspectd
 description: AOP for Flutter. AspectD is an AOP(aspect oriented programming) framework for dart. It provides call&execute&inject grammar.
 version: 0.9.7
-homepage: https://github.com/alibaba-flutter/aspectd
+homepage: https://github.com/LianjiaTech/Beike_AspectD
 
 environment:
   sdk: ">=2.3.0-dev.68.0 <3.0.0"
@@ -17,16 +17,16 @@ dependency_overrides:
   package_config: 1.9.3
 
   meta:
-    path: ../../sdk/pkg/meta
+    path: pkg/meta
 
   frontend_server:
-    path: ../../../SDK/dart-sdk/2.5.3/pkg/frontend_server
+    path: pkg/frontend_server
 
   _fe_analyzer_shared:
-    path: ../../../SDK/dart-sdk/2.5.3/pkg/_fe_analyzer_shared
+    path: pkg/_fe_analyzer_shared
 
   vm:
-    path: ../../../SDK/dart-sdk/2.5.3/pkg/vm
+    path: pkg/vm
 
   kernel:
-    path: ../../../SDK/dart-sdk/2.5.3/pkg/kernel
+      path: pkg/kernel

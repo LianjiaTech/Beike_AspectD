@@ -1,0 +1,5 @@
+// @dart = 2.9
+library test;
+
+final f = (bool b) => 1;
+main() {}

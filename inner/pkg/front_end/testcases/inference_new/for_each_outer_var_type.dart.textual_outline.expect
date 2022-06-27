@@ -1,0 +1,13 @@
+// @dart = 2.9
+library test;
+
+import 'dart:async';
+
+T f<T>() => null;
+
+class A {}
+
+class B extends A {}
+
+test() async {}
+main() {}

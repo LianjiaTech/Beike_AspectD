@@ -544,16 +544,6 @@ class AopUtils {
         getArguments,
       );
 
-      // final InstanceInvocation methodInvocation = InstanceInvocation(
-      //     InstanceAccessKind.Instance,
-      //     InstanceGet(InstanceAccessKind.Instance, ThisExpression(),
-      //         Name('positionalParams'),
-      //         resultType: positionalParamsField.getterType,
-      //         interfaceTarget: positionalParamsField),
-      //     listGetProcedure.name,
-      //     getArguments,
-      //     interfaceTarget: listGetProcedure,
-      //     functionType: listGetProcedure.getterType);
       final AsExpression asExpression = AsExpression(methodInvocation,
           deepCopyASTNode(variableDeclaration.type, ignoreGenerics: true));
       arguments.positional.add(asExpression);
@@ -565,15 +555,6 @@ class AopUtils {
         in member.function.namedParameters) {
       final Arguments getArguments = Arguments.empty();
       getArguments.positional.add(StringLiteral(variableDeclaration.name));
-      // final InstanceInvocation methodInvocation = InstanceInvocation(
-      //     InstanceAccessKind.Instance,
-      //     InstanceGet(InstanceAccessKind.Instance, ThisExpression(),
-      //         Name('namedParams'),
-      //         interfaceTarget: namedParams, resultType: namedParams.getterType),
-      //     mapGetProcedure.name,
-      //     getArguments,
-      //     interfaceTarget: listGetProcedure,
-      //     functionType: listGetProcedure.getterType);
 
       final DynamicInvocation methodInvocation = DynamicInvocation(
         DynamicAccessKind.Dynamic,
@@ -841,6 +822,11 @@ class AopUtils {
     }
     if (node is TypedefType) {
       return TypedefType(node.typedefNode, Nullability.legacy,
+          deepCopyASTNodes(node.typeArguments, ignoreGeneric: ignoreGenerics));
+    }
+
+    if (node is InterfaceType) {
+      return InterfaceType(node.classNode, node.declaredNullability,
           deepCopyASTNodes(node.typeArguments, ignoreGeneric: ignoreGenerics));
     }
     return node;

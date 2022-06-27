@@ -1,0 +1,9 @@
+// @dart = 2.9
+typedef A<T>(T p);
+A a;
+
+class C {
+  A foo() => null;
+}
+
+main() {}

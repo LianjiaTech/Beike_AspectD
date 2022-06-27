@@ -1,0 +1,16 @@
+// @dart = 2.9
+library test;
+
+class C {
+  operator []=(dynamic index, dynamic value) {}
+}
+
+abstract class I {
+  void operator []=(dynamic index, dynamic value) {}
+}
+
+class D extends C implements I {
+  operator []=(dynamic index, dynamic value) {}
+}
+
+main() {}

@@ -1,0 +1,8 @@
+// @dart = 2.9
+extension Extension on int {
+  syncStarMethod() sync* {}
+  asyncMethod() async {}
+  asyncStarMethod() async* {}
+}
+
+main() {}

@@ -1,0 +1,8 @@
+// @dart = 2.9
+// @dart = 2.6
+class Class {
+  operator ==(o) {}
+  var field;
+}
+
+main() {}

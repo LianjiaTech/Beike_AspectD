@@ -1,0 +1,7 @@
+// @dart = 2.9
+class C {
+  test() {}
+}
+
+use(_) => null;
+main() {}

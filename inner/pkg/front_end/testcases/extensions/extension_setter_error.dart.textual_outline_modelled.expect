@@ -1,0 +1,9 @@
+// @dart = 2.9
+class GenericClass<T> {}
+
+error() {}
+expect(expected, actual) {}
+
+extension GenericExtension<T> on GenericClass<T> {
+  set setter(T value) {}
+}

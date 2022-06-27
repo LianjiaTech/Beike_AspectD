@@ -1,0 +1,10 @@
+// @dart = 2.9
+class A {
+  foo() {}
+}
+
+class B<T> {
+  int i;
+}
+
+main() {}

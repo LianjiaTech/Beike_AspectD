@@ -1,0 +1,7 @@
+// @dart = 2.9
+class A {
+  var a;
+  A(x) {}
+}
+
+class B extends A {}

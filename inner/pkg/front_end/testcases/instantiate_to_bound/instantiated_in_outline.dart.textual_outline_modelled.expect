@@ -1,0 +1,9 @@
+// @dart = 2.9
+class A<T extends num> {}
+
+class B {
+  A bar() => null;
+  foo(A a) => null;
+}
+
+main() {}

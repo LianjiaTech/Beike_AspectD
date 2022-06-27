@@ -1,0 +1,12 @@
+// @dart = 2.9
+abstract class I {
+  void foo();
+}
+
+class A {
+  dynamic noSuchMethod(Invocation i) {}
+}
+
+class B extends A implements I {}
+
+main() {}

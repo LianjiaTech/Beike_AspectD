@@ -1,0 +1,6 @@
+// @dart = 2.9
+library test;
+
+typedef T F<T>();
+final x = <String, F<int>>{};
+main() {}

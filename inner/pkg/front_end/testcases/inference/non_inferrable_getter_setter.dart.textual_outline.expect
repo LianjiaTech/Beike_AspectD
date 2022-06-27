@@ -1,0 +1,9 @@
+// @dart = 2.9
+library test;
+
+class C {
+  get x => null;
+  void set x(value) {}
+}
+
+main() {}

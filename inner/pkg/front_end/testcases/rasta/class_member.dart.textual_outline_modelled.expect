@@ -1,0 +1,12 @@
+// @dart = 2.9
+class Foo {
+  Foo.constructor1();
+  Foo.constructor2();
+  Foo.constructor3();
+  a() {}
+  b() {}
+  c() {}
+  var field1;
+  var field2;
+  var field3;
+}

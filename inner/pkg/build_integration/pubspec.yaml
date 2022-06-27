@@ -1,0 +1,16 @@
+name: build_integration
+description: >
+  Libraries for integrating Dart tools with build systems like bazel
+  and build_runner.
+# This package is not intended for consumption on pub.dev. DO NOT publish.
+publish_to: none
+
+environment:
+  sdk: '>=2.12.0 <3.0.0'
+
+dependencies:
+  front_end:
+    path: ../front_end
+
+dev_dependencies:
+  test: any

@@ -1,0 +1,9 @@
+// @dart = 2.9
+library test;
+
+class C<T> {
+  const C(this.t);
+  final T t;
+}
+
+main() {}

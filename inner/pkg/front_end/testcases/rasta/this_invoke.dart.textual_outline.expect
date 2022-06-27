@@ -1,0 +1,7 @@
+// @dart = 2.9
+class C {
+  m(x) => this(x);
+  call(x) => 42;
+}
+
+main() {}

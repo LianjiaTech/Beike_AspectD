@@ -1,0 +1,5 @@
+// @dart = 2.9
+int i = 5;
+int test1() {}
+int test2() {}
+main() {}

@@ -1,0 +1,5 @@
+// @dart = 2.9
+library test;
+
+typedef int FunctionReturningInt();
+main() {}

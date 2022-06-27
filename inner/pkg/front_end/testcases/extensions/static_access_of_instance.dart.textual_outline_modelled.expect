@@ -1,0 +1,10 @@
+// @dart = 2.9
+class Class {}
+
+extension Extension on Class {
+  get instanceProperty => 42;
+  instanceMethod() {}
+  set instanceProperty(value) {}
+}
+
+main() {}

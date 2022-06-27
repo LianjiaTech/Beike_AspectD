@@ -1,0 +1,11 @@
+// @dart = 2.9
+class Supertype {
+  factory Supertype() = X;
+  factory Supertype() = X;
+}
+
+class X implements Supertype {
+  X();
+}
+
+main() {}

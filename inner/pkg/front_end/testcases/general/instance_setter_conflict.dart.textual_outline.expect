@@ -1,0 +1,11 @@
+// @dart = 2.9
+class A {
+  int v;
+}
+
+class C extends A {
+  static int n;
+  static get v {}
+}
+
+main() {}

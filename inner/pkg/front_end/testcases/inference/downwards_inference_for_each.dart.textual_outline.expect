@@ -1,0 +1,12 @@
+// @dart = 2.9
+library test;
+
+import 'dart:async';
+
+abstract class MyStream<T> extends Stream<T> {
+  factory MyStream() => null;
+}
+
+T F<T>() => null;
+Future f() async {}
+Future main() async {}

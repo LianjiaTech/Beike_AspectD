@@ -24,22 +24,18 @@ class Observer {
 }
 
 void injectDemo(List<Observer> observers) {
-  int a = 10;
-  if (a > 5) {
-    print('[KWLM]:if1');
-  }
-  print('[KWLM]:a');
-  for (Observer o in observers) {
-    print('[KWLM]:Observer1');
-    o.onChanged();
-    print('[KWLM]:Observer2');
-  }
-  print('[KWLM]:b');
-  for (int i = 0; i < 10; i++) {
-    print('[KWLM]:for i $i');
-    print('[KWLM]:for i $i');
-  }
-  print('[KWLM]:c');
+  // int a = 10;
+  // if (a > 5) {
+  //   print('[KWLM]:if1');
+  // }
+  // print('[KWLM]:a');
+  // for (Observer o in observers) {
+  //   print('[KWLM]:Observer1');
+  //   o.onChanged();
+  //   print('[KWLM]:Observer2');
+  // }
+  //
+  // print('[KWLM]:c');
 }
 
 class MyApp extends StatelessWidget {
@@ -54,7 +50,7 @@ class MyApp extends StatelessWidget {
 
     appInit();
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Flutter Demo1',
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -114,6 +110,7 @@ class _MyHomePageState extends State<MyHomePage> {
       // called again, and so nothing would appear to happen.
       i++;
     });
+
   }
 
   static void testFunction() {}

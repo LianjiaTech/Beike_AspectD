@@ -1,0 +1,7 @@
+// @dart = 2.9
+library test;
+
+import 'dart:math' show Random;
+
+test2() {}
+main() {}
