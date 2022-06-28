@@ -21,7 +21,7 @@ Beike has used Beike_AspectD in many packages.
 ## 1. Apply flutter_tools.patch.
 ```shell
 cd ...path/to/flutter/packages/flutter_tools/
-git apply --3way path-for-beike_aspectd-package/inner/flutter_tools.patch
+git apply path-for-beike_aspectd-package/inner/flutter_tools.patch
 rm ../../bin/cache/flutter_tools.stamp
 ```
 Next time when you build your project, flutter tools will build automatically.
