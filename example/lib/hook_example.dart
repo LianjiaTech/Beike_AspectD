@@ -79,10 +79,10 @@ class CallDemo {
 //   pointcut.proceed();
 // }
 
-// //构造方法
+//构造方法
 // @Call("package:example/receiver_test.dart", "Receiver", "+Receiver")
 // @pragma("vm:entry-point")
-// dynamic receiveTapped(PointCut pointcut) {
+// static dynamic receiveTapped(PointCut pointcut) {
 //   dynamic obj = pointcut.proceed();
 //   print('[beike_aspectd]: call constructor method!');
 //   pointcut.proceed();
