@@ -281,6 +281,8 @@ class AopWrapperTransformer extends FlutterProgramTransformer {
             }
           }
 
+          member.annotations.remove(annotation);
+
           return AopItemInfo(
               importUri: importUri,
               clsName: clsName,
@@ -370,6 +372,8 @@ class AopWrapperTransformer extends FlutterProgramTransformer {
                   : BoolLiteral(false);
           isStatic = isStaticLiteral.value;
         }
+
+        member.annotations.remove(annotation);
 
         return AopItemInfo(
             importUri: importUri,
