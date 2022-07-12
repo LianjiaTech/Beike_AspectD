@@ -548,7 +548,12 @@ class AopCallImplTransformer extends Transformer {
         bodyStatements,
         shouldReturn);
     pointCutClass.procedures.add(procedure);
-    procedure.parent = pointCutClass;
+    if(procedure.isStatic) {
+      procedure.parent = pointCutClass.parent;
+    } else {
+      procedure.parent = pointCutClass;
+    }
+
     AopUtils.insertProceedBranch(pointCutClass, procedure, shouldReturn);
   }
 }
