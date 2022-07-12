@@ -284,6 +284,7 @@ class AopExecuteImplTransformer extends Transformer {
             constructorInvocation, shouldReturn),
         shouldReturn);
     pointcutClass.procedures.add(stubProcedureNew);
+    stubProcedureNew.parent = pointcutClass;
     AopUtils.insertProceedBranch(pointcutClass, stubProcedureNew, shouldReturn);
   }
 
@@ -326,6 +327,8 @@ class AopExecuteImplTransformer extends Transformer {
         body,
         shouldReturn);
     final Node parent = originalProcedure.parent;
+
+    originalStubProcedure.parent = parent;
     String parentIdentifier;
     if (parent is Library) {
       parent.procedures.add(originalStubProcedure);
@@ -363,6 +366,7 @@ class AopExecuteImplTransformer extends Transformer {
             staticInvocation, shouldReturn),
         shouldReturn);
     pointcutClass.procedures.add(stubProcedureNew);
+    stubProcedureNew.parent = pointcutClass;
     AopUtils.insertProceedBranch(pointcutClass, stubProcedureNew, shouldReturn);
   }
 
