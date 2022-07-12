@@ -306,7 +306,7 @@ class AopUtils {
     }
 
     //Get annotations and members in call/execute mode
-    if (clz != null && clz is Class) {
+    if (clz != null && clz is Class ) {
       final ThisExpression thisE = ThisExpression();
       final List<MapLiteralEntry> filedsMap = <MapLiteralEntry>[];
 
@@ -351,7 +351,13 @@ class AopUtils {
         }
       }
 
-      pointCutConstructorArguments.positional.add(MapLiteral(filedsMap));
+      if(member is Procedure && member.isStatic) {
+        pointCutConstructorArguments.positional.add(NullLiteral());
+
+      } else {
+        pointCutConstructorArguments.positional.add(MapLiteral(filedsMap));
+
+      }
 
       //Get annotations of caller
       final List<Expression> annotations = clz?.annotations;
@@ -610,13 +616,14 @@ class AopUtils {
       Class pointCutClass, Procedure procedure, bool shouldReturn) {
     final Block block = pointCutProceedProcedure.function.body;
     final String methodName = procedure.name.text;
-    final InstanceInvocation methodInvocation = InstanceInvocation(
-        InstanceAccessKind.Instance,
-        ThisExpression(),
-        Name(methodName),
-        Arguments.empty(),
-        interfaceTarget: procedure,
-        functionType: procedure.getterType);
+
+    final InvocationExpression methodInvocation = InstanceInvocation(
+          InstanceAccessKind.Instance,
+          ThisExpression(),
+          Name(methodName),
+          Arguments.empty(),
+          interfaceTarget: procedure,
+          functionType: procedure.getterType);
 
     Field stubKeyField;
 
