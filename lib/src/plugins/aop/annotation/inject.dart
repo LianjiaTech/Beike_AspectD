@@ -1,5 +1,3 @@
-// @dart=2.8
-
 import 'annotation_info.dart';
 
 /// Inject grammar can help you to inject statements into specific method
@@ -12,7 +10,7 @@ class Inject extends AnnotationInfo {
 
   @pragma('vm:entry-point')
   const Inject._(String importUri, String clsName, String methodName,
-      {int lineNum, bool isRegex})
+      {int? lineNum, bool? isRegex})
       : super(
             importUri: importUri,
             clsName: clsName,
