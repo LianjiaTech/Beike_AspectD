@@ -595,6 +595,13 @@ class AopUtils {
     final Block block = pointCutProceedProcedure.function.body;
     final String methodName = procedure.name.text;
 
+    // final InvocationExpression methodInvocation = DynamicInvocation(
+    //   DynamicAccessKind.Dynamic,
+    //   ThisExpression(),
+    //   Name(methodName),
+    //   Arguments.empty(),
+    // );
+
     final InvocationExpression methodInvocation = InstanceInvocation(
         InstanceAccessKind.Instance,
         ThisExpression(),
@@ -824,7 +831,9 @@ class AopUtils {
         return const DynamicType();
       }
       return TypeParameterType(
-          deepCopyASTNode(node.parameter), deepCopyASTNode(node.promotedBound));
+          deepCopyASTNode(node.parameter),
+          deepCopyASTNode(node.declaredNullability),
+          deepCopyASTNode(node.promotedBound));
     }
     if (node is FunctionType) {
       return FunctionType(
