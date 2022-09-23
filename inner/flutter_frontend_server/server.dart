@@ -269,7 +269,7 @@ class ToStringVisitor extends RecursiveVisitor<void> {
         ReturnStatement(
           SuperMethodInvocation(
             node.name,
-            Arguments(<Expression>[]),
+            Arguments(<Expression>[]),node
           ),
         ),
       );

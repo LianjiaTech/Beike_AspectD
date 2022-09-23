@@ -17,8 +17,8 @@ class FlutterTarget extends VmTarget {
   FlutterTarget(TargetFlags flags) : super(flags);
 
   late final WidgetCreatorTracker _widgetTracker = WidgetCreatorTracker();
-  static List<FlutterProgramTransformer> _flutterProgramTransformers = [];
 
+  static List<FlutterProgramTransformer> _flutterProgramTransformers = [];
   static List<FlutterProgramTransformer> get flutterProgramTransformers => _flutterProgramTransformers;
 
   @override
@@ -57,6 +57,10 @@ class FlutterTarget extends VmTarget {
   List<String> get extraRequiredLibrariesPlatform => const <String>[];
 
   @override
+  DartLibrarySupport get dartLibrarySupport =>
+      const CustomizedDartLibrarySupport(unsupported: {'mirrors'});
+
+  @override
   void performPreConstantEvaluationTransformations(
       Component component,
       CoreTypes coreTypes,
@@ -66,6 +70,7 @@ class FlutterTarget extends VmTarget {
       ChangedStructureNotifier? changedStructureNotifier}) {
 
     if (_flutterProgramTransformers.length > 0) {
+
       int flutterProgramTransformersLen = _flutterProgramTransformers.length;
       for (int i=0; i<flutterProgramTransformersLen; i++) {
         _flutterProgramTransformers[i].transform(component);

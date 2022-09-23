@@ -768,7 +768,7 @@ class AopUtils {
 
     procedure.fileOffset = referProcedure.fileOffset;
     procedure.fileEndOffset = referProcedure.fileEndOffset;
-    procedure.startFileOffset = referProcedure.startFileOffset;
+    procedure.fileStartOffset = referProcedure.fileStartOffset;
 
     return procedure;
   }
@@ -843,8 +843,7 @@ class AopUtils {
           namedParameters: deepCopyASTNodes(node.namedParameters),
           typeParameters: deepCopyASTNodes(node.typeParameters),
           requiredParameterCount: node.requiredParameterCount,
-          typedefType: deepCopyASTNode(node.typedefType,
-              ignoreGenerics: ignoreGenerics));
+       );
     }
     if (node is TypedefType) {
       return TypedefType(node.typedefNode, Nullability.legacy,

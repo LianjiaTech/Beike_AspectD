@@ -219,7 +219,7 @@ class _MyHomePageState extends State<MyHomePage> {
         onPressed: () {
           test();
           // Receiver.tap();
-          // _incrementCounter();
+          _incrementCounter();
         },
         tooltip: 'Increment',
         child: Icon(Icons.add),
