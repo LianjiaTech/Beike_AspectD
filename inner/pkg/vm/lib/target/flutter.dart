@@ -70,7 +70,6 @@ class FlutterTarget extends VmTarget {
       ChangedStructureNotifier? changedStructureNotifier}) {
 
     if (_flutterProgramTransformers.length > 0) {
-
       int flutterProgramTransformersLen = _flutterProgramTransformers.length;
       for (int i=0; i<flutterProgramTransformersLen; i++) {
         _flutterProgramTransformers[i].transform(component);

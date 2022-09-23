@@ -1,18 +1,18 @@
-From 631603f91ca8f8db6ab8e50cf2a73b7a324bd584 Mon Sep 17 00:00:00 2001
+From 627a60ec32c71c7362c0fceed515d02f9216f84e Mon Sep 17 00:00:00 2001
 From: xiaopeng015 <xiaopeng015@ke.com>
-Date: Fri, 23 Sep 2022 14:42:47 +0800
-Subject: [PATCH] Flutter tools patch
+Date: Fri, 23 Sep 2022 15:22:47 +0800
+Subject: [PATCH] flutter tools
 
 ---
  packages/flutter_tools/bin/flutter_tools.dart |   1 +
  .../lib/src/aop/aop_manager.dart              | 198 ++++++++++++++++
  .../flutter_tools/lib/src/aop/aspectd.dart    | 221 ++++++++++++++++++
  .../lib/src/aop/hook_factory.dart             |  98 ++++++++
- .../lib/src/build_system/targets/common.dart  |   7 +
+ .../lib/src/build_system/targets/common.dart  |   9 +
  .../lib/src/build_system/targets/web.dart     |   4 +
  .../lib/src/commands/build_bundle.dart        |   4 +
  packages/flutter_tools/lib/src/compile.dart   |  18 ++
- 8 files changed, 551 insertions(+)
+ 8 files changed, 553 insertions(+)
  create mode 100644 packages/flutter_tools/lib/src/aop/aop_manager.dart
  create mode 100644 packages/flutter_tools/lib/src/aop/aspectd.dart
  create mode 100644 packages/flutter_tools/lib/src/aop/hook_factory.dart
@@ -564,7 +564,7 @@ index 0000000000..3e8b794615
 +  static String _getSnapShotInputPath(String path) => path;
 +}
 diff --git a/packages/flutter_tools/lib/src/build_system/targets/common.dart b/packages/flutter_tools/lib/src/build_system/targets/common.dart
-index afa21709af..776d68cc43 100644
+index afa21709af..cb9a201a03 100644
 --- a/packages/flutter_tools/lib/src/build_system/targets/common.dart
 +++ b/packages/flutter_tools/lib/src/build_system/targets/common.dart
 @@ -19,6 +19,7 @@ import 'dart_plugin_registrant.dart';
@@ -575,7 +575,7 @@ index afa21709af..776d68cc43 100644
  
  /// Copies the pre-built flutter bundle.
  // This is a one-off rule for implementing build bundle in terms of assemble.
-@@ -150,6 +151,11 @@ class KernelSnapshot extends Target {
+@@ -150,6 +151,12 @@ class KernelSnapshot extends Target {
  
    @override
    Future<void> build(Environment environment) async {
@@ -584,19 +584,21 @@ index afa21709af..776d68cc43 100644
 +  }
 +
 +  Future<CompilerOutput> buildImpl(Environment environment) async {
++
      final KernelCompiler compiler = KernelCompiler(
        fileSystem: environment.fileSystem,
        logger: environment.logger,
-@@ -243,6 +249,7 @@ class KernelSnapshot extends Target {
+@@ -243,6 +250,8 @@ class KernelSnapshot extends Target {
      if (output == null || output.errorCount != 0) {
        throw Exception();
      }
++
 +    return output;
    }
  }
  
 diff --git a/packages/flutter_tools/lib/src/build_system/targets/web.dart b/packages/flutter_tools/lib/src/build_system/targets/web.dart
-index 35b7b4e765..f57175815e 100644
+index 35b7b4e765..1e62dca90d 100644
 --- a/packages/flutter_tools/lib/src/build_system/targets/web.dart
 +++ b/packages/flutter_tools/lib/src/build_system/targets/web.dart
 @@ -26,6 +26,7 @@ import '../depfile.dart';
@@ -612,7 +614,7 @@ index 35b7b4e765..f57175815e 100644
      }
  
 +    await AopManager.hookSnapshotCommand(
-+        environment.buildDir.childFile('app.dill').path, buildMode);
++      environment.buildDir.childFile('app.dill').path, buildMode);
 +
      final String? dart2jsOptimization = environment.defines[kDart2jsOptimization];
      final File outputJSFile = environment.buildDir.childFile('main.dart.js');
@@ -640,7 +642,7 @@ index 1e1f66b309..4b59b6669a 100644
      final TargetPlatform platform = getTargetPlatformForName(targetPlatform);
      if (platform == null) {
 diff --git a/packages/flutter_tools/lib/src/compile.dart b/packages/flutter_tools/lib/src/compile.dart
-index 8733f87396..d8d748ab5a 100644
+index 8733f87396..782c7a47f6 100644
 --- a/packages/flutter_tools/lib/src/compile.dart
 +++ b/packages/flutter_tools/lib/src/compile.dart
 @@ -18,6 +18,7 @@ import 'base/logger.dart';
@@ -696,10 +698,10 @@ index 8733f87396..d8d748ab5a 100644
          '--platform',
          platformDill!,
        ],
-+     if (aopConfig) ...<String>[
-+       '--aop',
++      if (aopConfig) ...<String>[
++        '--aop',
 +        '1',
-+     ],
++      ],
        if (unsafePackageSerialization == true) '--unsafe-package-serialization',
        // See: https://github.com/flutter/flutter/issues/103994
        '--verbosity=error',
