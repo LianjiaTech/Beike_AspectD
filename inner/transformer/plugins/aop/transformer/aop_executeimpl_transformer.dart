@@ -417,19 +417,30 @@ class AopExecuteImplTransformer extends Transformer {
       }
     }
 
-    final InstanceInvocation mockedInvocation = InstanceInvocation(
-        InstanceAccessKind.Instance,
-        AsExpression(
-            InstanceGet(
-                InstanceAccessKind.Instance, ThisExpression(), Name('target'),
-                resultType: targetFiled.type, interfaceTarget: targetFiled),
-            InterfaceType(originalClass, Nullability.legacy)),
-        originalStubProcedure.name,
-        AopUtils.concatArguments4PointcutStubCall(
-            originalProcedure, aopItemInfo),
-        interfaceTarget: originalStubProcedure,
-        functionType: (originalStubProcedure.getterType as FunctionType)
-            .withoutTypeParameters);
+    final DynamicInvocation mockedInvocation = DynamicInvocation(
+      DynamicAccessKind.Dynamic,
+      AsExpression(
+          InstanceGet(
+              InstanceAccessKind.Instance, ThisExpression(), Name('target'),
+              resultType: targetFiled.type, interfaceTarget: targetFiled),
+          InterfaceType(originalClass, Nullability.legacy)),
+      originalStubProcedure.name,
+      AopUtils.concatArguments4PointcutStubCall(originalProcedure, aopItemInfo),
+    );
+
+    // final InstanceInvocation mockedInvocation = InstanceInvocation(
+    //     InstanceAccessKind.Instance,
+    //     AsExpression(
+    //         InstanceGet(
+    //             InstanceAccessKind.Instance, ThisExpression(), Name('target'),
+    //             resultType: targetFiled.type, interfaceTarget: targetFiled),
+    //         InterfaceType(originalClass, Nullability.legacy)),
+    //     originalStubProcedure.name,
+    //     AopUtils.concatArguments4PointcutStubCall(
+    //         originalProcedure, aopItemInfo),
+    //     interfaceTarget: originalStubProcedure,
+    //     functionType: (originalStubProcedure.getterType as FunctionType)
+    //         .withoutTypeParameters);
 
     final Procedure stubProcedureNew = AopUtils.createStubProcedure(
         Name(stubKey, AopUtils.pointCutProceedProcedure.name.library),
