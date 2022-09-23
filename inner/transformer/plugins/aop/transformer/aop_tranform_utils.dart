@@ -291,7 +291,7 @@ class AopUtils {
     }
 
     //Get annotations and members in call/execute mode
-    if (clz != null && clz is Class ) {
+    if (clz != null && clz is Class) {
       final ThisExpression thisE = ThisExpression();
       final List<MapLiteralEntry> filedsMap = <MapLiteralEntry>[];
 
@@ -336,12 +336,10 @@ class AopUtils {
         }
       }
 
-      if(member is Procedure && member.isStatic) {
+      if (member is Procedure && member.isStatic) {
         pointCutConstructorArguments.positional.add(NullLiteral());
-
       } else {
         pointCutConstructorArguments.positional.add(MapLiteral(filedsMap));
-
       }
 
       //Get annotations of caller
@@ -563,13 +561,13 @@ class AopUtils {
       getArguments.positional.add(StringLiteral(variableDeclaration.name));
 
       final DynamicInvocation methodInvocation = DynamicInvocation(
-        DynamicAccessKind.Dynamic,
-        InstanceGet(
-            InstanceAccessKind.Instance, ThisExpression(), Name('namedParams'),
-            resultType: namedParams.getterType, interfaceTarget: namedParams),
-        listGetProcedure.name,
-        getArguments,
-      );
+          DynamicAccessKind.Dynamic,
+          InstanceGet(InstanceAccessKind.Instance, ThisExpression(),
+              Name('namedParams'),
+              interfaceTarget: namedParams, resultType: namedParams.getterType),
+          mapGetProcedure.name,
+          getArguments);
+
       final AsExpression asExpression = AsExpression(methodInvocation,
           deepCopyASTNode(variableDeclaration.type, ignoreGenerics: true));
       namedEntries.add(NamedExpression(variableDeclaration.name, asExpression));
@@ -586,13 +584,20 @@ class AopUtils {
     final Block block = pointCutProceedProcedure.function.body;
     final String methodName = procedure.name.text;
 
+    // final InvocationExpression methodInvocation = DynamicInvocation(
+    //   DynamicAccessKind.Dynamic,
+    //   ThisExpression(),
+    //   Name(methodName),
+    //   Arguments.empty(),
+    // );
+
     final InvocationExpression methodInvocation = InstanceInvocation(
-          InstanceAccessKind.Instance,
-          ThisExpression(),
-          Name(methodName),
-          Arguments.empty(),
-          interfaceTarget: procedure,
-          functionType: procedure.getterType);
+        InstanceAccessKind.Instance,
+        ThisExpression(),
+        Name(methodName),
+        Arguments.empty(),
+        interfaceTarget: procedure,
+        functionType: procedure.getterType);
 
     Field stubKeyField;
 
@@ -814,7 +819,9 @@ class AopUtils {
         return const DynamicType();
       }
       return TypeParameterType(
-          deepCopyASTNode(node.parameter), deepCopyASTNode(node.promotedBound));
+          deepCopyASTNode(node.parameter),
+          deepCopyASTNode(node.declaredNullability),
+          deepCopyASTNode(node.promotedBound));
     }
     if (node is FunctionType) {
       return FunctionType(
