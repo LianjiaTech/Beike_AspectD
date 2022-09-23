@@ -306,7 +306,7 @@ class AopUtils {
     }
 
     //Get annotations and members in call/execute mode
-    if (clz != null && clz is Class ) {
+    if (clz != null && clz is Class) {
       final ThisExpression thisE = ThisExpression();
       final List<MapLiteralEntry> filedsMap = <MapLiteralEntry>[];
 
@@ -351,12 +351,10 @@ class AopUtils {
         }
       }
 
-      if(member is Procedure && member.isStatic) {
+      if (member is Procedure && member.isStatic) {
         pointCutConstructorArguments.positional.add(NullLiteral());
-
       } else {
         pointCutConstructorArguments.positional.add(MapLiteral(filedsMap));
-
       }
 
       //Get annotations of caller
@@ -561,16 +559,6 @@ class AopUtils {
         getArguments,
       );
 
-      // final InstanceInvocation methodInvocation = InstanceInvocation(
-      //     InstanceAccessKind.Instance,
-      //     InstanceGet(InstanceAccessKind.Instance, ThisExpression(),
-      //         Name('positionalParams'),
-      //         resultType: positionalParamsField.getterType,
-      //         interfaceTarget: positionalParamsField),
-      //     listGetProcedure.name,
-      //     getArguments,
-      //     interfaceTarget: listGetProcedure,
-      //     functionType: listGetProcedure.getterType);
       final AsExpression asExpression = AsExpression(methodInvocation,
           deepCopyASTNode(variableDeclaration.type, ignoreGenerics: true));
       arguments.positional.add(asExpression);
@@ -582,25 +570,15 @@ class AopUtils {
         in member.function.namedParameters) {
       final Arguments getArguments = Arguments.empty();
       getArguments.positional.add(StringLiteral(variableDeclaration.name));
-      // final InstanceInvocation methodInvocation = InstanceInvocation(
-      //     InstanceAccessKind.Instance,
-      //     InstanceGet(InstanceAccessKind.Instance, ThisExpression(),
-      //         Name('namedParams'),
-      //         interfaceTarget: namedParams, resultType: namedParams.getterType),
-      //     mapGetProcedure.name,
-      //     getArguments,
-      //     interfaceTarget: listGetProcedure,
-      //     functionType: listGetProcedure.getterType);
 
       final DynamicInvocation methodInvocation = DynamicInvocation(
-        DynamicAccessKind.Dynamic,
-        InstanceGet(
-            InstanceAccessKind.Instance, ThisExpression(), Name('namedParams'),
-            resultType: positionalParamsField.getterType,
-            interfaceTarget: positionalParamsField),
-        listGetProcedure.name,
-        getArguments,
-      );
+          DynamicAccessKind.Dynamic,
+          InstanceGet(InstanceAccessKind.Instance, ThisExpression(),
+              Name('namedParams'),
+              interfaceTarget: namedParams, resultType: namedParams.getterType),
+          mapGetProcedure.name,
+          getArguments);
+
       final AsExpression asExpression = AsExpression(methodInvocation,
           deepCopyASTNode(variableDeclaration.type, ignoreGenerics: true));
       namedEntries.add(NamedExpression(variableDeclaration.name, asExpression));
@@ -617,13 +595,20 @@ class AopUtils {
     final Block block = pointCutProceedProcedure.function.body;
     final String methodName = procedure.name.text;
 
+    // final InvocationExpression methodInvocation = DynamicInvocation(
+    //   DynamicAccessKind.Dynamic,
+    //   ThisExpression(),
+    //   Name(methodName),
+    //   Arguments.empty(),
+    // );
+
     final InvocationExpression methodInvocation = InstanceInvocation(
-          InstanceAccessKind.Instance,
-          ThisExpression(),
-          Name(methodName),
-          Arguments.empty(),
-          interfaceTarget: procedure,
-          functionType: procedure.getterType);
+        InstanceAccessKind.Instance,
+        ThisExpression(),
+        Name(methodName),
+        Arguments.empty(),
+        interfaceTarget: procedure,
+        functionType: procedure.getterType);
 
     Field stubKeyField;
 
@@ -846,7 +831,9 @@ class AopUtils {
         return const DynamicType();
       }
       return TypeParameterType(
-          deepCopyASTNode(node.parameter), deepCopyASTNode(node.promotedBound));
+          deepCopyASTNode(node.parameter),
+          deepCopyASTNode(node.declaredNullability),
+          deepCopyASTNode(node.promotedBound));
     }
     if (node is FunctionType) {
       return FunctionType(
