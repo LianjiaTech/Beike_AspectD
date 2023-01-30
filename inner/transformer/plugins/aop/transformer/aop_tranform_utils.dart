@@ -832,8 +832,7 @@ class AopUtils {
       }
       return TypeParameterType(
           deepCopyASTNode(node.parameter),
-          deepCopyASTNode(node.declaredNullability),
-          deepCopyASTNode(node.promotedBound));
+          deepCopyASTNode(node.declaredNullability));
     }
     if (node is FunctionType) {
       return FunctionType(

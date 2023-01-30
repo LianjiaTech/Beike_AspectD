@@ -9,6 +9,7 @@ import 'package:kernel/target/targets.dart';
 import 'package:kernel/transformations/track_widget_constructor_locations.dart';
 import 'package:vm/target/vm.dart' show VmTarget;
 
+
 abstract class FlutterProgramTransformer {
   void transform(Component component, {void Function(String msg)? logger});
 }
@@ -17,7 +18,6 @@ class FlutterTarget extends VmTarget {
   FlutterTarget(TargetFlags flags) : super(flags);
 
   late final WidgetCreatorTracker _widgetTracker = WidgetCreatorTracker();
-
   static List<FlutterProgramTransformer> _flutterProgramTransformers = [];
 
   static List<FlutterProgramTransformer> get flutterProgramTransformers => _flutterProgramTransformers;
@@ -77,7 +77,7 @@ class FlutterTarget extends VmTarget {
         _flutterProgramTransformers[i].transform(component, logger: logger);
       }
     }
-
+    
     super.performPreConstantEvaluationTransformations(
         component, coreTypes, libraries, diagnosticReporter,
         logger: logger, changedStructureNotifier: changedStructureNotifier);
