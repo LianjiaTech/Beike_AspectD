@@ -18,7 +18,7 @@ class AopWrapperTransformer extends FlutterProgramTransformer {
   Component platformStrongComponent;
 
   @override
-  void transform(Component program) {
+  void transform(Component program, {void Function(String msg) logger}) {
     for (Library library in program.libraries) {
       componentLibraryMap.putIfAbsent(
           library.importUri.toString(), () => library);

@@ -1,33 +1,21 @@
-From 627a60ec32c71c7362c0fceed515d02f9216f84e Mon Sep 17 00:00:00 2001
+From 3b99d8e9f9960b61c3b4bd609da3d8392d8b380b Mon Sep 17 00:00:00 2001
 From: xiaopeng015 <xiaopeng015@ke.com>
-Date: Fri, 23 Sep 2022 15:22:47 +0800
-Subject: [PATCH] flutter tools
+Date: Mon, 30 Jan 2023 11:12:48 +0800
+Subject: [PATCH] 3
 
 ---
- packages/flutter_tools/bin/flutter_tools.dart |   1 +
  .../lib/src/aop/aop_manager.dart              | 198 ++++++++++++++++
  .../flutter_tools/lib/src/aop/aspectd.dart    | 221 ++++++++++++++++++
  .../lib/src/aop/hook_factory.dart             |  98 ++++++++
- .../lib/src/build_system/targets/common.dart  |   9 +
- .../lib/src/build_system/targets/web.dart     |   4 +
+ .../lib/src/build_system/targets/common.dart  |   8 +
+ .../lib/src/build_system/targets/web.dart     |   3 +
  .../lib/src/commands/build_bundle.dart        |   4 +
  packages/flutter_tools/lib/src/compile.dart   |  18 ++
- 8 files changed, 553 insertions(+)
+ 7 files changed, 550 insertions(+)
  create mode 100644 packages/flutter_tools/lib/src/aop/aop_manager.dart
  create mode 100644 packages/flutter_tools/lib/src/aop/aspectd.dart
  create mode 100644 packages/flutter_tools/lib/src/aop/hook_factory.dart
 
-diff --git a/packages/flutter_tools/bin/flutter_tools.dart b/packages/flutter_tools/bin/flutter_tools.dart
-index 1cad0ded07..3fec189a05 100644
---- a/packages/flutter_tools/bin/flutter_tools.dart
-+++ b/packages/flutter_tools/bin/flutter_tools.dart
-@@ -7,5 +7,6 @@
- import 'package:flutter_tools/executable.dart' as executable;
- 
- void main(List<String> args) {
-+  print(args.join(' '));
-   executable.main(args);
- }
 diff --git a/packages/flutter_tools/lib/src/aop/aop_manager.dart b/packages/flutter_tools/lib/src/aop/aop_manager.dart
 new file mode 100644
 index 0000000000..7950860724
@@ -564,7 +552,7 @@ index 0000000000..3e8b794615
 +  static String _getSnapShotInputPath(String path) => path;
 +}
 diff --git a/packages/flutter_tools/lib/src/build_system/targets/common.dart b/packages/flutter_tools/lib/src/build_system/targets/common.dart
-index afa21709af..cb9a201a03 100644
+index afa21709af..13e44c74c5 100644
 --- a/packages/flutter_tools/lib/src/build_system/targets/common.dart
 +++ b/packages/flutter_tools/lib/src/build_system/targets/common.dart
 @@ -19,6 +19,7 @@ import 'dart_plugin_registrant.dart';
@@ -575,7 +563,7 @@ index afa21709af..cb9a201a03 100644
  
  /// Copies the pre-built flutter bundle.
  // This is a one-off rule for implementing build bundle in terms of assemble.
-@@ -150,6 +151,12 @@ class KernelSnapshot extends Target {
+@@ -150,6 +151,11 @@ class KernelSnapshot extends Target {
  
    @override
    Future<void> build(Environment environment) async {
@@ -584,11 +572,10 @@ index afa21709af..cb9a201a03 100644
 +  }
 +
 +  Future<CompilerOutput> buildImpl(Environment environment) async {
-+
      final KernelCompiler compiler = KernelCompiler(
        fileSystem: environment.fileSystem,
        logger: environment.logger,
-@@ -243,6 +250,8 @@ class KernelSnapshot extends Target {
+@@ -243,6 +249,8 @@ class KernelSnapshot extends Target {
      if (output == null || output.errorCount != 0) {
        throw Exception();
      }
@@ -598,7 +585,7 @@ index afa21709af..cb9a201a03 100644
  }
  
 diff --git a/packages/flutter_tools/lib/src/build_system/targets/web.dart b/packages/flutter_tools/lib/src/build_system/targets/web.dart
-index 35b7b4e765..1e62dca90d 100644
+index 35b7b4e765..596d837474 100644
 --- a/packages/flutter_tools/lib/src/build_system/targets/web.dart
 +++ b/packages/flutter_tools/lib/src/build_system/targets/web.dart
 @@ -26,6 +26,7 @@ import '../depfile.dart';
@@ -609,16 +596,15 @@ index 35b7b4e765..1e62dca90d 100644
  
  /// Whether the application has web plugins.
  const String kHasWebPlugins = 'HasWebPlugins';
-@@ -215,6 +216,9 @@ class Dart2JSTarget extends Target {
+@@ -214,6 +215,8 @@ class Dart2JSTarget extends Target {
+     if (kernelResult.exitCode != 0) {
        throw Exception(_collectOutput(kernelResult));
      }
- 
 +    await AopManager.hookSnapshotCommand(
-+      environment.buildDir.childFile('app.dill').path, buildMode);
-+
++        environment.buildDir.childFile('app.dill').path, buildMode);
+ 
      final String? dart2jsOptimization = environment.defines[kDart2jsOptimization];
      final File outputJSFile = environment.buildDir.childFile('main.dart.js');
-     final bool csp = environment.defines[kCspMode] == 'true';
 diff --git a/packages/flutter_tools/lib/src/commands/build_bundle.dart b/packages/flutter_tools/lib/src/commands/build_bundle.dart
 index 1e1f66b309..4b59b6669a 100644
 --- a/packages/flutter_tools/lib/src/commands/build_bundle.dart
@@ -706,5 +692,5 @@ index 8733f87396..782c7a47f6 100644
        // See: https://github.com/flutter/flutter/issues/103994
        '--verbosity=error',
 -- 
-2.37.0 (Apple Git-136)
+2.32.1 (Apple Git-133)
 
