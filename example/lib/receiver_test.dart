@@ -1,4 +1,3 @@
-// @dart=2.10
 
 class Receiver {
 
@@ -10,7 +9,7 @@ class Receiver {
     
   }
 
-   void receiveTapped(int i, {int j}) {
+   void receiveTapped(int i, {int? j}) {
     print('[KWLM]:onPluginDemo111 Called!');
   }
 }

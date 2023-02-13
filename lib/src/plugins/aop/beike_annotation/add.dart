@@ -1,5 +1,3 @@
-// @dart=2.8
-
 import '../annotation/annotation_info.dart';
 
 /// Call grammar is working on those callsites for the annotated method.
@@ -11,7 +9,7 @@ class Add extends AnnotationInfo {
 
   @pragma('vm:entry-point')
   const Add._(String importUri, String clsName,
-      {bool isRegex, String superCls})
+      {bool? isRegex, String? superCls})
       : super(
             importUri: importUri,
             clsName: clsName,

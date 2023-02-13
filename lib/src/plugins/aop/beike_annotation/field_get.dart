@@ -1,5 +1,3 @@
-// @dart=2.8
-
 import '../annotation/annotation_info.dart';
 
 /// Field get grammar is working on those callsites for the annotated method.
@@ -11,7 +9,7 @@ class FieldGet extends AnnotationInfo {
 
   @pragma('vm:entry-point')
   const FieldGet._(String importUri, String clsName, this.fieldName, this.isStatic,
-      {bool isRegex})
+      {bool? isRegex})
       : super(
             importUri: importUri,
             clsName: clsName,
