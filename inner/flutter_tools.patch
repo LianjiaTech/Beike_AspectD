@@ -1,17 +1,17 @@
-From ce4abfb39a5eb7c456930ff5917a04f701b4f852 Mon Sep 17 00:00:00 2001
+From c4ad8560bde629e5687adda3a84d820208238d43 Mon Sep 17 00:00:00 2001
 From: xiaopeng015 <xiaopeng015@ke.com>
-Date: Mon, 30 Jan 2023 14:20:02 +0800
-Subject: [PATCH] 3
+Date: Fri, 5 May 2023 11:31:14 +0800
+Subject: [PATCH] aop
 
 ---
  .../lib/src/aop/aop_manager.dart              | 196 ++++++++++++++++
  .../flutter_tools/lib/src/aop/aspectd.dart    | 221 ++++++++++++++++++
  .../lib/src/aop/hook_factory.dart             |  96 ++++++++
  .../lib/src/build_system/targets/common.dart  |   8 +
- .../lib/src/build_system/targets/web.dart     |   4 +
+ .../lib/src/build_system/targets/web.dart     |   3 +
  .../lib/src/commands/build_bundle.dart        |   4 +
  packages/flutter_tools/lib/src/compile.dart   |  18 ++
- 7 files changed, 547 insertions(+)
+ 7 files changed, 546 insertions(+)
  create mode 100644 packages/flutter_tools/lib/src/aop/aop_manager.dart
  create mode 100644 packages/flutter_tools/lib/src/aop/aspectd.dart
  create mode 100644 packages/flutter_tools/lib/src/aop/hook_factory.dart
@@ -548,7 +548,7 @@ index 0000000000..db7aa89af0
 +  static String _getSnapShotInputPath(String path) => path;
 +}
 diff --git a/packages/flutter_tools/lib/src/build_system/targets/common.dart b/packages/flutter_tools/lib/src/build_system/targets/common.dart
-index 91a39e6c20..0e802e25cb 100644
+index 91a39e6c20..464e8c2db6 100644
 --- a/packages/flutter_tools/lib/src/build_system/targets/common.dart
 +++ b/packages/flutter_tools/lib/src/build_system/targets/common.dart
 @@ -20,6 +20,7 @@ import 'dart_plugin_registrant.dart';
@@ -559,10 +559,11 @@ index 91a39e6c20..0e802e25cb 100644
  
  /// Copies the pre-built flutter bundle.
  // This is a one-off rule for implementing build bundle in terms of assemble.
-@@ -152,6 +153,11 @@ class KernelSnapshot extends Target {
+@@ -152,6 +153,12 @@ class KernelSnapshot extends Target {
  
    @override
    Future<void> build(Environment environment) async {
++
 +    await AspectdHook.enableAspectd();
 +    await buildImpl(environment);
 +  }
@@ -571,17 +572,16 @@ index 91a39e6c20..0e802e25cb 100644
      final KernelCompiler compiler = KernelCompiler(
        fileSystem: environment.fileSystem,
        logger: environment.logger,
-@@ -245,6 +251,8 @@ class KernelSnapshot extends Target {
+@@ -245,6 +252,7 @@ class KernelSnapshot extends Target {
      if (output == null || output.errorCount != 0) {
        throw Exception();
      }
-+
 +    return output;
    }
  }
  
 diff --git a/packages/flutter_tools/lib/src/build_system/targets/web.dart b/packages/flutter_tools/lib/src/build_system/targets/web.dart
-index 995023d149..95a7902d79 100644
+index 995023d149..b4d2a5d778 100644
 --- a/packages/flutter_tools/lib/src/build_system/targets/web.dart
 +++ b/packages/flutter_tools/lib/src/build_system/targets/web.dart
 @@ -27,6 +27,7 @@ import '../exceptions.dart';
@@ -592,12 +592,11 @@ index 995023d149..95a7902d79 100644
  
  /// Whether the application has web plugins.
  const String kHasWebPlugins = 'HasWebPlugins';
-@@ -225,6 +226,9 @@ class Dart2JSTarget extends Target {
+@@ -225,6 +226,8 @@ class Dart2JSTarget extends Target {
        throw Exception(_collectOutput(kernelResult));
      }
  
-+    await AopManager.hookSnapshotCommand(
-+        environment.buildDir.childFile('app.dill').path, buildMode);
++    await AopManager.hookSnapshotCommand(environment.buildDir.childFile('app.dill').path, buildMode);
 +
      final String? dart2jsOptimization = environment.defines[kDart2jsOptimization];
      final bool dumpInfo = environment.defines[kDart2jsDumpInfo] == 'true';
@@ -689,5 +688,5 @@ index e072e6b7a4..c42311b5ef 100644
        // See: https://github.com/flutter/flutter/issues/103994
        '--verbosity=error',
 -- 
-2.32.1 (Apple Git-133)
+2.37.1 (Apple Git-137.1)
 

@@ -77,7 +77,7 @@ class FlutterTarget extends VmTarget {
         _flutterProgramTransformers[i].transform(component, logger: logger);
       }
     }
-    
+
     super.performPreConstantEvaluationTransformations(
         component, coreTypes, libraries, diagnosticReporter,
         logger: logger, changedStructureNotifier: changedStructureNotifier);
