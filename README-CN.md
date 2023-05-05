@@ -34,7 +34,7 @@ dependencies:
   beike_aspectd:
     git:
         url: https://github.com/LianjiaTech/Beike_AspectD.git
-        ref: 3.7.12
+        ref: 3.7.11
 ```
 
 ## 3. 将aop_config.yaml添加到你的工程.
