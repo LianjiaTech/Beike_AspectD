@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// @dart=2.8
-
 import 'dart:async';
 import 'dart:io' hide FileSystemEntity;
 
@@ -26,26 +24,24 @@ import '../transformer/plugins/aop/aop_transformer_wrapper.dart';
 /// Wrapper around [FrontendCompiler] that adds [widgetCreatorTracker] kernel
 /// transformation to the compilation.
 class _FlutterFrontendCompiler implements frontend.CompilerInterface {
+
+  _FlutterFrontendCompiler(StringSink? output,
+      {bool? unsafePackageSerialization,
+        bool? useDebuggerModuleNames,
+        bool? emitDebugMetadata,
+       frontend.ProgramTransformer? transformer,
+        this.aopTransform = false})
+      : _compiler = frontend.FrontendCompiler(output,
+            transformer: transformer,
+            unsafePackageSerialization: unsafePackageSerialization);
   final frontend.CompilerInterface _compiler;
 
   final AopWrapperTransformer aspectdAopTransformer = AopWrapperTransformer();
   final bool aopTransform;
 
-  _FlutterFrontendCompiler(StringSink output,
-      {bool unsafePackageSerialization,
-      bool useDebuggerModuleNames,
-      bool emitDebugMetadata,
-      frontend.ProgramTransformer transformer,
-      this.aopTransform})
-      : _compiler = frontend.FrontendCompiler(output,
-            transformer: transformer,
-            useDebuggerModuleNames: useDebuggerModuleNames,
-            emitDebugMetadata: emitDebugMetadata,
-            unsafePackageSerialization: unsafePackageSerialization);
-
   @override
   Future<bool> compile(String filename, ArgResults options,
-      {IncrementalCompiler generator}) async {
+      {IncrementalCompiler? generator}) async {
     print('aop: need perform ' + aopTransform.toString());
 
     if (aopTransform == true &&
@@ -58,8 +54,8 @@ class _FlutterFrontendCompiler implements frontend.CompilerInterface {
   }
 
   @override
-  Future<Null> recompileDelta({String entryPoint}) async {
-    List<FlutterProgramTransformer> transformers =
+  Future<void> recompileDelta({String? entryPoint}) async {
+    final List<FlutterProgramTransformer> transformers =
         FlutterTarget.flutterProgramTransformers;
     transformers.clear();
 
@@ -82,7 +78,7 @@ class _FlutterFrontendCompiler implements frontend.CompilerInterface {
   }
 
   @override
-  Future<Null> compileExpression(
+  Future<void> compileExpression(
       String expression,
       List<String> definitions,
       List<String> definitionTypes,
@@ -90,8 +86,8 @@ class _FlutterFrontendCompiler implements frontend.CompilerInterface {
       List<String> typeBounds,
       List<String> typeDefaults,
       String libraryUri,
-      String klass,
-      String method,
+      String? klass,
+      String? method,
       bool isStatic) {
     return _compiler.compileExpression(
         expression,
@@ -107,7 +103,7 @@ class _FlutterFrontendCompiler implements frontend.CompilerInterface {
   }
 
   @override
-  Future<Null> compileExpressionToJs(
+  Future<void> compileExpressionToJs(
       String libraryUri,
       int line,
       int column,
@@ -128,6 +124,11 @@ class _FlutterFrontendCompiler implements frontend.CompilerInterface {
   void resetIncrementalCompiler() {
     _compiler.resetIncrementalCompiler();
   }
+
+  @override
+  Future<bool> setNativeAssets(String nativeAssets) {
+    return _compiler.setNativeAssets(nativeAssets);
+  }
 }
 
 /// Entry point for this module, that creates `_FrontendCompiler` instance and
@@ -136,15 +137,15 @@ class _FlutterFrontendCompiler implements frontend.CompilerInterface {
 /// version for testing.
 Future<int> starter(
   List<String> args, {
-  frontend.CompilerInterface compiler,
-  Stream<List<int>> input,
-  StringSink output,
-  frontend.ProgramTransformer transformer,
+  frontend.CompilerInterface? compiler,
+  Stream<List<int>>? input,
+  StringSink? output,
+  frontend.ProgramTransformer? transformer,
 }) async {
   ArgResults options;
 
   try {
-    ArgParser parser = frontend.argParser;
+    final ArgParser parser = frontend.argParser;
     parser.addOption('aop', help: 'aop transform');
     options = parser.parse(args);
   } catch (error) {
@@ -180,7 +181,7 @@ Future<int> starter(
         ]);
         compiler ??= _FlutterFrontendCompiler(
           output,
-          transformer: ToStringTransformer(null, deleteToStringPackageUris),
+          transformer: ToStringTransformer(transformer, deleteToStringPackageUris),
         );
 
         await compiler.compile(input, options);
@@ -262,10 +263,10 @@ class ToStringVisitor extends RecursiveVisitor<void> {
         node.enclosingLibrary != null &&
         !node.isStatic &&
         !node.isAbstract &&
-        !node.enclosingClass.isEnum &&
+        !node.enclosingClass!.isEnum &&
         _isInTargetPackage(node) &&
         !_hasKeepAnnotation(node)) {
-      node.function.body.replaceWith(
+      node.function.body?.replaceWith(
         ReturnStatement(
           SuperMethodInvocation(
             node.name,
@@ -287,7 +288,7 @@ class ToStringTransformer extends frontend.ProgramTransformer {
   ToStringTransformer(this._child, this._packageUris)
       : assert(_packageUris != null);
 
-  final frontend.ProgramTransformer _child;
+  final frontend.ProgramTransformer? _child;
 
   /// A set of package URIs to apply this transformer to, e.g. 'dart:ui' and
   /// 'package:flutter/foundation.dart'.

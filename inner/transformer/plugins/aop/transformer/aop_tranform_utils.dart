@@ -1,7 +1,5 @@
 import 'dart:convert';
-
 import 'package:kernel/ast.dart';
-
 import 'aop_iteminfo.dart';
 import 'aop_mode.dart';
 
@@ -52,14 +50,14 @@ class AopUtils {
   static String kAopPointcutProcessName = 'proceed';
   static String kAopPointcutIgnoreVariableDeclaration = '//Aspectd Ignore';
   static String kAopPointcutReplaceThisUsage = '//Aspectd Replace This';
-  static Procedure pointCutProceedProcedure;
-  static Procedure listGetProcedure;
-  static Procedure mapGetProcedure;
-  static Component platformStrongComponent;
+  static Procedure? pointCutProceedProcedure;
+  static Procedure? listGetProcedure;
+  static Procedure? mapGetProcedure;
+  static Component? platformStrongComponent;
 
-  static Library coreLib;
+  static Library? coreLib;
 
-  static AopMode getAopModeByNameAndImportUri(String name, String importUri) {
+  static AopMode? getAopModeByNameAndImportUri(String name, String importUri) {
     if (name == kAopAnnotationClassCall && importUri == kImportUriAopCall) {
       return AopMode.Call;
     }
@@ -889,9 +887,9 @@ class AopUtils {
   }
 
   static NamedNode getNodeFromCanonicalName(
-      Map<String, Library> libraryMap, CanonicalName canonicalName) {
+      Map<String, Library> libraryMap, CanonicalName? canonicalName) {
     final List<CanonicalName> chainCanoniousNames = <CanonicalName>[];
-    CanonicalName tmpCanonicalName = canonicalName;
+    CanonicalName? tmpCanonicalName = canonicalName;
     while (tmpCanonicalName != null) {
       final CanonicalName parentName = tmpCanonicalName.parent;
       if (parentName != null && tmpCanonicalName.name != '@fields') {
