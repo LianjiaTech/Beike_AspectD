@@ -9,7 +9,7 @@ import 'aop_tranform_utils.dart';
 
 class AopStatementsInsertInfo {
   AopStatementsInsertInfo(
-      {this.library,
+      {required this.library,
       this.source,
       this.constructor,
       this.procedure,
@@ -18,34 +18,34 @@ class AopStatementsInsertInfo {
       this.aopInsertStatements});
 
   final Library library;
-  final Source source;
-  final Constructor constructor;
-  final Procedure procedure;
-  final Node node;
-  final AopItemInfo aopItemInfo;
-  final List<Statement> aopInsertStatements;
+  final Source? source;
+  final Constructor? constructor;
+  final Procedure? procedure;
+  final Node? node;
+  final AopItemInfo? aopItemInfo;
+  final List<Statement>? aopInsertStatements;
 }
 
 class AopInjectImplTransformer extends Transformer {
   AopInjectImplTransformer(
       this._aopItemInfoList, this._libraryMap, this._uriToSource);
 
-  final List<AopItemInfo> _aopItemInfoList;
-  final Map<String, Library> _libraryMap;
-  final Map<Uri, Source> _uriToSource;
+  late final List<AopItemInfo> _aopItemInfoList;
+  late final Map<String, Library> _libraryMap;
+  late final Map<Uri, Source> _uriToSource;
   final Set<VariableDeclaration> _mockedVariableDeclaration =
       <VariableDeclaration>{};
   final Map<String, VariableDeclaration> _originalVariableDeclaration =
       <String, VariableDeclaration>{};
-  Class _curClass;
-  Node _curMethodNode;
-  Library _curAopLibrary;
-  AopStatementsInsertInfo _curAopStatementsInsertInfo;
+  late Class _curClass;
+  late Node _curMethodNode;
+  Library? _curAopLibrary;
+  AopStatementsInsertInfo? _curAopStatementsInsertInfo;
 
   @override
   VariableDeclaration visitVariableDeclaration(VariableDeclaration node) {
     node.transformChildren(this);
-    _originalVariableDeclaration.putIfAbsent(node.name, () => node);
+    _originalVariableDeclaration.putIfAbsent(node.name!, () => node);
     return node;
   }
 
@@ -54,7 +54,7 @@ class AopInjectImplTransformer extends Transformer {
     node.transformChildren(this);
     if (_mockedVariableDeclaration.contains(node.variable)) {
       final VariableGet variableGet =
-          VariableGet(_originalVariableDeclaration[node.variable.name]);
+          VariableGet(_originalVariableDeclaration[node.variable.name]!);
       return variableGet;
     }
     return node;
@@ -70,30 +70,30 @@ class AopInjectImplTransformer extends Transformer {
       return node;
     }
 
-    final Node interfaceTargetNode = node.interfaceTargetReference.node;
+    final Node interfaceTargetNode = node.interfaceTargetReference.node!;
     if (_curAopLibrary != null) {
       if (interfaceTargetNode is Field) {
-        if (interfaceTargetNode.fileUri == _curAopLibrary.fileUri) {
+        if (interfaceTargetNode.fileUri == _curAopLibrary!.fileUri) {
           final List<String> keypaths =
               AopUtils.getPropertyKeyPaths(node.toString());
           final String firstEle = keypaths[0];
           if (node.receiver is ThisExpression) {
             final Class cls = _curClass;
             final Field field =
-                AopUtils.findFieldForClassWithName(cls, node.name.text);
+                AopUtils.findFieldForClassWithName(cls, node.name.text)!;
 
             final ThisExpression thisE = ThisExpression();
 
             final InstanceGet instanceGet = InstanceGet(
                 InstanceAccessKind.Instance,
                 thisE,
-                Name(field.name.text, _curClass.parent),
+                Name(field.name.text, _curClass.parent as Library),
                 interfaceTarget: field,
                 resultType: field.type);
 
             return instanceGet;
           } else {
-            final VariableDeclaration variableDeclaration =
+            final VariableDeclaration? variableDeclaration =
                 _originalVariableDeclaration[firstEle];
 
             if (variableDeclaration == null) {
@@ -102,7 +102,7 @@ class AopInjectImplTransformer extends Transformer {
             if (variableDeclaration.type is InterfaceType) {
               final Class cls = _curClass;
               final Field field =
-                  AopUtils.findFieldForClassWithName(cls, node.name.text);
+                  AopUtils.findFieldForClassWithName(cls, node.name.text)!;
               InstanceGet instanceGet = InstanceGet(
                   InstanceAccessKind.Instance, node.receiver, field.name,
                   interfaceTarget: node.interfaceTarget,
@@ -140,7 +140,7 @@ class AopInjectImplTransformer extends Transformer {
 
     final String text = node.name.text;
     if (text != null) {
-      Field exchangeField;
+      late Field exchangeField;
       for (Field field in _curClass.fields) {
         if (field.name.text == text) {
           exchangeField = field;
@@ -152,7 +152,7 @@ class AopInjectImplTransformer extends Transformer {
         final ThisExpression thisE = ThisExpression();
 
         final InstanceGet property = InstanceGet(InstanceAccessKind.Instance,
-            thisE, Name(exchangeField.name.text, _curClass.parent),
+            thisE, Name(exchangeField.name.text, _curClass!.parent as Library),
             interfaceTarget: exchangeField, resultType: exchangeField.type);
 
         InstanceSet newSet = InstanceSet(
@@ -176,11 +176,11 @@ class AopInjectImplTransformer extends Transformer {
   Block visitBlock(Block node) {
     node.transformChildren(this);
     if (_curAopStatementsInsertInfo != null) {
-      final Library library = _curAopStatementsInsertInfo.library;
-      final Source source = _curAopStatementsInsertInfo.source;
-      final AopItemInfo aopItemInfo = _curAopStatementsInsertInfo.aopItemInfo;
+      final Library library = _curAopStatementsInsertInfo!.library;
+      final Source source = _curAopStatementsInsertInfo!.source!;
+      final AopItemInfo aopItemInfo = _curAopStatementsInsertInfo!.aopItemInfo!;
       final List<Statement> aopInsertStatements =
-          _curAopStatementsInsertInfo.aopInsertStatements;
+          _curAopStatementsInsertInfo!.aopInsertStatements!;
       insertStatementsToBody(
           library, source, node, aopItemInfo, aopInsertStatements);
     }
@@ -195,7 +195,7 @@ class AopInjectImplTransformer extends Transformer {
     mergeTransform();
 
     for (AopItemInfo aopItemInfo in _aopItemInfoList) {
-      final Library aopAnnoLibrary = _libraryMap[aopItemInfo.importUri];
+      final Library aopAnnoLibrary = _libraryMap[aopItemInfo.importUri]!;
       final String clsName = aopItemInfo.clsName;
       if (aopAnnoLibrary == null) {
         return;
@@ -208,7 +208,7 @@ class AopInjectImplTransformer extends Transformer {
             expectedCls = cls;
             //Check Constructors
             if (aopItemInfo.methodName == aopItemInfo.clsName ||
-                aopItemInfo.methodName.startsWith(aopItemInfo.clsName + '.')) {
+                aopItemInfo.methodName!.startsWith(aopItemInfo.clsName + '.')) {
               for (Constructor constructor in cls.constructors) {
                 if (cls.name +
                             (constructor.name.text == ''
@@ -219,7 +219,7 @@ class AopInjectImplTransformer extends Transformer {
                   _curClass = expectedCls;
                   transformConstructor(
                       aopAnnoLibrary,
-                      _uriToSource[aopAnnoLibrary.fileUri],
+                      _uriToSource[aopAnnoLibrary.fileUri]!,
                       constructor,
                       aopItemInfo);
 //                  return;
@@ -233,7 +233,7 @@ class AopInjectImplTransformer extends Transformer {
                 _curClass = expectedCls;
                 transformMethodProcedure(
                     aopAnnoLibrary,
-                    _uriToSource[aopAnnoLibrary.fileUri],
+                    _uriToSource[aopAnnoLibrary.fileUri]!,
                     procedure,
                     aopItemInfo);
 //                return;
@@ -251,7 +251,7 @@ class AopInjectImplTransformer extends Transformer {
                   _curClass = cls;
                   transformMethodProcedure(
                       lib,
-                      _uriToSource[aopAnnoLibrary.fileUri],
+                      _uriToSource[aopAnnoLibrary.fileUri]!,
                       procedure,
                       aopItemInfo);
                 }
@@ -264,7 +264,7 @@ class AopInjectImplTransformer extends Transformer {
           if (procedure.name.text == aopItemInfo.methodName &&
               procedure.isStatic == aopItemInfo.isStatic) {
             transformMethodProcedure(aopAnnoLibrary,
-                _uriToSource[aopAnnoLibrary.fileUri], procedure, aopItemInfo);
+                _uriToSource[aopAnnoLibrary.fileUri]!, procedure, aopItemInfo);
           }
         }
       }
@@ -288,7 +288,7 @@ class AopInjectImplTransformer extends Transformer {
     final List<Statement> aopInsertStatements =
         onPrepareTransform(library, constructor, aopItemInfo);
 
-    final Statement body = constructor.function.body;
+    final Statement body = constructor.function.body!;
     bool canBeInitializers = true;
     for (Statement statement in aopInsertStatements) {
       if (!(statement is AssertStatement)) {
@@ -299,11 +299,11 @@ class AopInjectImplTransformer extends Transformer {
     if (!canBeInitializers ||
         ((body is Block) &&
             body.statements.isNotEmpty &&
-            aopItemInfo.lineNum >=
+            aopItemInfo.lineNum! >=
                 AopUtils.getLineStartNumForStatement(
                     source, body.statements.first)) ||
         (constructor.initializers.isNotEmpty &&
-            aopItemInfo.lineNum >
+            aopItemInfo.lineNum! >
                 AopUtils.getLineStartNumForInitializer(
                     source, constructor.initializers.last))) {
       _curMethodNode = constructor;
@@ -330,7 +330,7 @@ class AopInjectImplTransformer extends Transformer {
                   source, constructor.initializers[i + 1]) -
               1;
         }
-        final int lineNum2Insert = aopItemInfo.lineNum;
+        final int lineNum2Insert = aopItemInfo.lineNum!;
         if (lineNum2Insert > lineStart && lineNum2Insert <= lineEnds) {
           assert(false);
           break;
@@ -360,13 +360,13 @@ class AopInjectImplTransformer extends Transformer {
 
   List<Statement> onPrepareTransform(
       Library library, Node methodNode, AopItemInfo aopItemInfo) {
-    final Block block2Insert = aopItemInfo.aopMember.function.body;
-    final Library aopLibrary = aopItemInfo.aopMember?.parent?.parent;
+    final Block block2Insert = aopItemInfo.aopMember!.function!.body as Block;
+    final Library aopLibrary = aopItemInfo.aopMember?.parent?.parent as Library;
     final List<Statement> tmpStatements = <Statement>[];
     for (Statement statement in block2Insert.statements) {
-      final VariableDeclaration variableDeclaration =
+      final VariableDeclaration? variableDeclaration =
           AopUtils.checkIfSkipableVarDeclaration(
-              _uriToSource[aopLibrary.fileUri], statement);
+              _uriToSource[aopLibrary.fileUri]!, statement);
 
       if (variableDeclaration != null) {
         _mockedVariableDeclaration.add(variableDeclaration);
@@ -376,36 +376,36 @@ class AopInjectImplTransformer extends Transformer {
     }
     for (LibraryDependency libraryDependency in aopLibrary.dependencies) {
       AopUtils.insertLibraryDependency(
-          library, libraryDependency.importedLibraryReference.node);
+          library, libraryDependency.importedLibraryReference.node as Library);
     }
     if (methodNode is Procedure) {
       for (VariableDeclaration variableDeclaration
           in methodNode.function.namedParameters) {
         _originalVariableDeclaration.putIfAbsent(
-            variableDeclaration.name, () => variableDeclaration);
+            variableDeclaration.name!, () => variableDeclaration);
       }
       for (VariableDeclaration variableDeclaration
           in methodNode.function.positionalParameters) {
         _originalVariableDeclaration.putIfAbsent(
-            variableDeclaration.name, () => variableDeclaration);
+            variableDeclaration.name!, () => variableDeclaration);
       }
     } else if (methodNode is Constructor) {
       for (VariableDeclaration variableDeclaration
           in methodNode.function.namedParameters) {
         _originalVariableDeclaration.putIfAbsent(
-            variableDeclaration.name, () => variableDeclaration);
+            variableDeclaration.name!, () => variableDeclaration);
       }
       for (VariableDeclaration variableDeclaration
           in methodNode.function.positionalParameters) {
         _originalVariableDeclaration.putIfAbsent(
-            variableDeclaration.name, () => variableDeclaration);
+            variableDeclaration.name!, () => variableDeclaration);
       }
     }
     return tmpStatements;
   }
 
   void onPostTransform(AopItemInfo aopItemInfo) {
-    final Block block2Insert = aopItemInfo.aopMember.function.body;
+    final Block block2Insert = aopItemInfo.aopMember!.function!.body as Block;
     block2Insert.statements.clear();
     _mockedVariableDeclaration.clear();
     _originalVariableDeclaration.clear();
@@ -414,11 +414,11 @@ class AopInjectImplTransformer extends Transformer {
 
   void sortTransform() {
     _aopItemInfoList.sort((a, b) => a.importUri.compareTo(b.importUri));
-    _aopItemInfoList.sort((a, b) => a.lineNum.compareTo(b.lineNum));
+    _aopItemInfoList.sort((a, b) => a.lineNum!.compareTo(b.lineNum!));
   }
 
   void mergeTransform() {
-    AopItemInfo lastInfo;
+    late AopItemInfo lastInfo;
 
     final List<AopItemInfo> removeList = [];
 
@@ -431,11 +431,11 @@ class AopInjectImplTransformer extends Transformer {
       if (lastInfo.importUri == item.importUri &&
           lastInfo.clsName == item.clsName &&
           lastInfo.lineNum == item.lineNum) {
-        final FunctionNode lastNode = lastInfo.aopMember.function;
-        final Statement lastStatement = lastNode.body;
+        final FunctionNode lastNode = lastInfo.aopMember!.function!;
+        final Statement lastStatement = lastNode.body!;
 
-        final FunctionNode node = item.aopMember.function;
-        final Statement statement = node.body;
+        final FunctionNode node = item.aopMember!.function!;
+        final Statement statement = node.body!;
 
         if (lastStatement is Block && statement is Block) {
           final List<Statement> lastStatements = lastStatement.statements;
@@ -456,17 +456,17 @@ class AopInjectImplTransformer extends Transformer {
   void checkIfInsertInFunction(FunctionNode functionNode) {
     if (_curAopStatementsInsertInfo != null) {
       final int lineFrom = AopUtils.getLineNumBySourceAndOffset(
-          _curAopStatementsInsertInfo.source, functionNode.fileOffset);
+          _curAopStatementsInsertInfo!.source!, functionNode.fileOffset);
       final int lineTo = AopUtils.getLineNumBySourceAndOffset(
-          _curAopStatementsInsertInfo.source, functionNode.fileEndOffset);
+          _curAopStatementsInsertInfo!.source!, functionNode.fileEndOffset);
       final int expectedLineNum =
-          _curAopStatementsInsertInfo.aopItemInfo.lineNum;
+          _curAopStatementsInsertInfo!.aopItemInfo!.lineNum!;
       if (expectedLineNum >= lineFrom && expectedLineNum <= lineTo) {
-        final Library library = _curAopStatementsInsertInfo.library;
-        final Source source = _curAopStatementsInsertInfo.source;
-        final AopItemInfo aopItemInfo = _curAopStatementsInsertInfo.aopItemInfo;
+        final Library library = _curAopStatementsInsertInfo!.library;
+        final Source source = _curAopStatementsInsertInfo!.source!;
+        final AopItemInfo aopItemInfo = _curAopStatementsInsertInfo!.aopItemInfo!;
         final List<Statement> aopInsertStatements =
-            _curAopStatementsInsertInfo.aopInsertStatements;
+            _curAopStatementsInsertInfo!.aopInsertStatements!;
         _curAopStatementsInsertInfo = null;
         functionNode.body = insertStatementsToBody(
             library, source, functionNode, aopItemInfo, aopInsertStatements);
@@ -476,9 +476,9 @@ class AopInjectImplTransformer extends Transformer {
 
   Statement insertStatementsToBody(Library library, Source source, Node node,
       AopItemInfo aopItemInfo, List<Statement> aopInsertStatements) {
-    Statement body;
+    late Statement body;
     if (node is FunctionNode) {
-      body = node.body;
+      body = node!.body!;
       if (body is EmptyStatement) {
         final List<Statement> statements = <Statement>[body];
         body = Block(statements);
@@ -496,11 +496,11 @@ class AopInjectImplTransformer extends Transformer {
       final int len = statements.length;
       for (int i = 0; i < len; i++) {
         final Statement statement = statements[i];
-        final Node nodeToVisitRecursively =
+        final Node? nodeToVisitRecursively =
             AopUtils.getNodeToVisitRecursively(statement);
         int lineStart = AopUtils.getLineStartNumForStatement(source, statement);
         int lineEnds = -1;
-        final int lineNum2Insert = aopItemInfo.lineNum;
+        final int lineNum2Insert = aopItemInfo.lineNum!;
         int statement2InsertPos = -1;
         if (i != len - 1) {
           lineEnds =
@@ -520,7 +520,7 @@ class AopInjectImplTransformer extends Transformer {
             }
           } else if (node is Block) {
             if (_curMethodNode is Procedure) {
-              final Procedure procedure = _curMethodNode;
+              final Procedure procedure = _curMethodNode as Procedure;
               if (AopUtils.isAsyncFunctionNode(procedure.function) &&
                   procedure ==
                       body?.parent?.parent?.parent?.parent?.parent?.parent
@@ -530,7 +530,7 @@ class AopInjectImplTransformer extends Transformer {
                 }
               } else {
                 if (node.parent is FunctionNode) {
-                  final FunctionNode functionNode = node.parent;
+                  final FunctionNode functionNode = node.parent! as FunctionNode;
                   if (lineStart < 0)
                     lineStart = AopUtils.getLineNumBySourceAndOffset(
                         source, functionNode.fileOffset);
@@ -571,7 +571,7 @@ class AopInjectImplTransformer extends Transformer {
           _curAopStatementsInsertInfo = null;
 
           statements.insertAll(statement2InsertPos, aopInsertStatements);
-          _curAopLibrary = aopItemInfo.aopMember?.parent?.parent;
+          _curAopLibrary = aopItemInfo.aopMember?.parent?.parent as Library;
           visitNode(node);
           break;
         }

@@ -155,8 +155,6 @@ class AopWrapperTransformer extends FlutterProgramTransformer {
       final AopFieldGetImplTransformer aopFieldGetImplTransformer =
           AopFieldGetImplTransformer(
         fieldGetInfoList,
-        libraryMap,
-        concatUriToSource,
       );
 
       for (int i = 0; i < libraries.length; i++) {
@@ -302,7 +300,7 @@ class AopWrapperTransformer extends FlutterProgramTransformer {
         final ConstructorInvocation constructorInvocation = annotation;
         final Class cls = constructorInvocation!.targetReference!.node!.parent as Class;
         final Library clsParentLib = cls.parent as Library;
-        final AopMode aopMode = AopUtils.getAopModeByNameAndImportUri(
+        final AopMode? aopMode = AopUtils.getAopModeByNameAndImportUri(
             cls.name, clsParentLib.importUri!.toString());
         if (aopMode == null) {
           continue;

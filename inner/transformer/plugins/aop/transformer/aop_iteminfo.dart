@@ -8,12 +8,12 @@ class AopItemInfo {
       {required this.mode,
       required this.importUri,
       required this.clsName,
-      this.methodName,
+        required this.methodName,
       this.isStatic,
       this.aopMember,
-      this.isRegex,
+      this.isRegex = false,
       this.superCls,
-      this.lineNum,
+        this.lineNum,
       this.excludeCoreLib = false,
       this.fieldName});
 
@@ -22,11 +22,11 @@ class AopItemInfo {
   final String clsName;
   final String? methodName;
   final bool? isStatic;
-  final bool? isRegex;
+  final bool isRegex;
   final String? superCls;
   final Member? aopMember;
   final int? lineNum;
-  final bool? excludeCoreLib;
+  final bool excludeCoreLib;
   final String? fieldName;
   static String uniqueKeyForMethod(
       String importUri, String clsName, String methodName, bool isStatic,

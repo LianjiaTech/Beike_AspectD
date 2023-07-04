@@ -9,7 +9,7 @@ class AopAddImplTransformer extends RecursiveVisitor<void> {
   final List<AopItemInfo> _aopItemInfoList;
   final Map<Uri, Source> _uriToSource;
 
-  Library _curLibrary;
+  Library? _curLibrary;
 
   @override
   void visitLibrary(Library node) {
@@ -22,12 +22,12 @@ class AopAddImplTransformer extends RecursiveVisitor<void> {
     final String procedureImportUri =
         (node.parent as Library).importUri.toString();
 
-    final List<AopItemInfo> items = _filterAopItemInfo(
+    List<AopItemInfo>? items = _filterAopItemInfo(
         _aopItemInfoList, procedureImportUri, node.name, node.superclass);
-    if (items.isNotEmpty) {
+    if (items != null && items.isNotEmpty) {
       for (AopItemInfo item in items) {
         //Exclude hook class
-        if (item.aopMember.parent.parent != _curLibrary) {
+        if (item.aopMember!.parent!.parent != _curLibrary) {
           insertMethod4Class(item, node);
         }
       }
@@ -36,7 +36,7 @@ class AopAddImplTransformer extends RecursiveVisitor<void> {
 
   // ignore: flutter_style_todos
   void insertMethod4Class(AopItemInfo aopItemInfo, Class pointCutClass) {
-    final Procedure originProcedure = aopItemInfo.aopMember.function.parent;
+    final Procedure originProcedure = aopItemInfo.aopMember!.function!.parent as Procedure;
 
     for (Member member in pointCutClass.members) {
       if (member.name.text == originProcedure.name.text) {
@@ -45,13 +45,13 @@ class AopAddImplTransformer extends RecursiveVisitor<void> {
     }
 
     AopUtils.insertLibraryDependency(
-        _curLibrary, aopItemInfo.aopMember.parent.parent);
+        _curLibrary!, aopItemInfo.aopMember!.parent!.parent as Library);
 
     final Arguments redirectArguments = Arguments.empty();
     final Map<String, String> sourceInfo =
-        AopUtils.calcSourceInfo(_uriToSource, _curLibrary, 0);
+        AopUtils.calcSourceInfo(_uriToSource, _curLibrary!, 0);
 
-    final FunctionNode originFunctionNode = aopItemInfo.aopMember.function;
+    final FunctionNode originFunctionNode = aopItemInfo.aopMember!.function as FunctionNode;
 
     final Arguments originArguments =
         AopUtils.argumentsFromFunctionNode(originFunctionNode);
@@ -72,7 +72,7 @@ class AopAddImplTransformer extends RecursiveVisitor<void> {
     pointCutConstructorArguments.positional.add(NullLiteral());
 
     final Class pointCutProceedProcedureCls =
-        AopUtils.pointCutProceedProcedure.parent;
+        AopUtils.pointCutProceedProcedure!.parent as Class;
     final ConstructorInvocation pointCutConstructorInvocation =
         ConstructorInvocation(pointCutProceedProcedureCls.constructors.first,
             pointCutConstructorArguments);
@@ -107,14 +107,14 @@ class AopAddImplTransformer extends RecursiveVisitor<void> {
     redirectArguments.named.addAll(originArguments.named);
 
     // pointCutConstructorInvocation.arguments.positional
-    final Class cls = aopItemInfo.aopMember.parent;
+    final Class cls = aopItemInfo.aopMember!.parent as Class;
     final ConstructorInvocation redirectConstructorInvocation =
         ConstructorInvocation.byReference(
             cls.constructors.first.reference, Arguments(<Expression>[]));
     final InstanceInvocation methodInvocationNew = InstanceInvocation(InstanceAccessKind.Instance,
         redirectConstructorInvocation,
-        aopItemInfo.aopMember.name,
-        redirectArguments, interfaceTarget: aopItemInfo.aopMember, functionType: aopItemInfo.aopMember.getterType);
+        aopItemInfo.aopMember!.name,
+        redirectArguments, interfaceTarget: aopItemInfo.aopMember as Procedure, functionType: aopItemInfo.aopMember!.getterType as FunctionType);
 
     final bool shouldReturn =
         !(originProcedure.function.returnType is VoidType);
@@ -156,7 +156,7 @@ class AopAddImplTransformer extends RecursiveVisitor<void> {
 
   //Filter AopInfoMap for specific class.
   List<AopItemInfo> _filterAopItemInfo(List<AopItemInfo> aopItemInfoList,
-      String importUri, String clsName, Class superClazz) {
+      String importUri, String clsName, Class? superClazz) {
     //Reverse sorting so that the newly added Aspect might override the older ones.
     importUri ??= '';
     clsName ??= '';
@@ -178,7 +178,7 @@ class AopAddImplTransformer extends RecursiveVisitor<void> {
                 shouldAdd = true;
                 break;
               }
-              superClazz = superClazz.superclass;
+              superClazz = superClazz!.superclass!;
             }
           }
 

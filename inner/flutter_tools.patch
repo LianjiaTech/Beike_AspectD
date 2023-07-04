@@ -1,17 +1,17 @@
-From c4ad8560bde629e5687adda3a84d820208238d43 Mon Sep 17 00:00:00 2001
+From 8cfcb6467f8a9631c6b0f82134ff1d9ad8b9a327 Mon Sep 17 00:00:00 2001
 From: xiaopeng015 <xiaopeng015@ke.com>
-Date: Fri, 5 May 2023 11:31:14 +0800
-Subject: [PATCH] aop
+Date: Tue, 4 Jul 2023 17:42:16 +0800
+Subject: [PATCH] 1
 
 ---
  .../lib/src/aop/aop_manager.dart              | 196 ++++++++++++++++
  .../flutter_tools/lib/src/aop/aspectd.dart    | 221 ++++++++++++++++++
- .../lib/src/aop/hook_factory.dart             |  96 ++++++++
+ .../lib/src/aop/hook_factory.dart             |  95 ++++++++
  .../lib/src/build_system/targets/common.dart  |   8 +
  .../lib/src/build_system/targets/web.dart     |   3 +
  .../lib/src/commands/build_bundle.dart        |   4 +
  packages/flutter_tools/lib/src/compile.dart   |  18 ++
- 7 files changed, 546 insertions(+)
+ 7 files changed, 545 insertions(+)
  create mode 100644 packages/flutter_tools/lib/src/aop/aop_manager.dart
  create mode 100644 packages/flutter_tools/lib/src/aop/aspectd.dart
  create mode 100644 packages/flutter_tools/lib/src/aop/hook_factory.dart
@@ -447,17 +447,17 @@ index 0000000000..380e51cd08
 +}
 diff --git a/packages/flutter_tools/lib/src/aop/hook_factory.dart b/packages/flutter_tools/lib/src/aop/hook_factory.dart
 new file mode 100644
-index 0000000000..db7aa89af0
+index 0000000000..f7f22ec88f
 --- /dev/null
 +++ b/packages/flutter_tools/lib/src/aop/hook_factory.dart
-@@ -0,0 +1,96 @@
+@@ -0,0 +1,95 @@
 +import 'dart:io';
 +
-+import 'package:flutter_tools/src/artifacts.dart';
-+import 'package:flutter_tools/src/base/common.dart';
-+import 'package:flutter_tools/src/base/file_system.dart';
-+import 'package:flutter_tools/src/build_info.dart';
-+import 'package:flutter_tools/src/globals.dart';
++import '../artifacts.dart';
++import '../base/common.dart';
++import '../base/file_system.dart';
++import '../build_info.dart';
++import '../globals.dart';
 +
 +/// 创建时间：2020-03-28
 +/// 作者：liujingguang
@@ -494,10 +494,9 @@ index 0000000000..db7aa89af0
 +    }
 +
 +    final String outputPath =
-+        inputPath + '.${type.toString().toLowerCase()}.result.dill';
++        '$inputPath.${type.toString().toLowerCase()}.result.dill';
 +
-+    final String engineDartPath =
-+        artifacts!.getHostArtifact(HostArtifact.engineDartBinary).path;
++    final String engineDartPath = artifacts!.getArtifactPath(Artifact.engineDartBinary);
 +
 +    /// 执行hook命令
 +    final List<String> command = <String>[
@@ -548,7 +547,7 @@ index 0000000000..db7aa89af0
 +  static String _getSnapShotInputPath(String path) => path;
 +}
 diff --git a/packages/flutter_tools/lib/src/build_system/targets/common.dart b/packages/flutter_tools/lib/src/build_system/targets/common.dart
-index 91a39e6c20..464e8c2db6 100644
+index c3e6ea4d72..36c13f9e7b 100644
 --- a/packages/flutter_tools/lib/src/build_system/targets/common.dart
 +++ b/packages/flutter_tools/lib/src/build_system/targets/common.dart
 @@ -20,6 +20,7 @@ import 'dart_plugin_registrant.dart';
@@ -559,11 +558,10 @@ index 91a39e6c20..464e8c2db6 100644
  
  /// Copies the pre-built flutter bundle.
  // This is a one-off rule for implementing build bundle in terms of assemble.
-@@ -152,6 +153,12 @@ class KernelSnapshot extends Target {
+@@ -152,6 +153,11 @@ class KernelSnapshot extends Target {
  
    @override
    Future<void> build(Environment environment) async {
-+
 +    await AspectdHook.enableAspectd();
 +    await buildImpl(environment);
 +  }
@@ -572,19 +570,20 @@ index 91a39e6c20..464e8c2db6 100644
      final KernelCompiler compiler = KernelCompiler(
        fileSystem: environment.fileSystem,
        logger: environment.logger,
-@@ -245,6 +252,7 @@ class KernelSnapshot extends Target {
+@@ -243,6 +249,8 @@ class KernelSnapshot extends Target {
      if (output == null || output.errorCount != 0) {
        throw Exception();
      }
++
 +    return output;
    }
  }
  
 diff --git a/packages/flutter_tools/lib/src/build_system/targets/web.dart b/packages/flutter_tools/lib/src/build_system/targets/web.dart
-index 995023d149..b4d2a5d778 100644
+index 49f4b11df0..302d627474 100644
 --- a/packages/flutter_tools/lib/src/build_system/targets/web.dart
 +++ b/packages/flutter_tools/lib/src/build_system/targets/web.dart
-@@ -27,6 +27,7 @@ import '../exceptions.dart';
+@@ -30,6 +30,7 @@ import '../exceptions.dart';
  import 'assets.dart';
  import 'localizations.dart';
  import 'shader_compiler.dart';
@@ -592,17 +591,17 @@ index 995023d149..b4d2a5d778 100644
  
  /// Whether the application has web plugins.
  const String kHasWebPlugins = 'HasWebPlugins';
-@@ -225,6 +226,8 @@ class Dart2JSTarget extends Target {
+@@ -212,6 +213,8 @@ class Dart2JSTarget extends Dart2WebTarget {
        throw Exception(_collectOutput(kernelResult));
      }
  
 +    await AopManager.hookSnapshotCommand(environment.buildDir.childFile('app.dill').path, buildMode);
 +
-     final String? dart2jsOptimization = environment.defines[kDart2jsOptimization];
-     final bool dumpInfo = environment.defines[kDart2jsDumpInfo] == 'true';
-     final bool noFrequencyBasedMinification = environment.defines[kDart2jsNoFrequencyBasedMinification] == 'true';
+     final File outputJSFile = environment.buildDir.childFile('main.dart.js');
+ 
+     final ProcessResult javaScriptResult = await environment.processManager.run(<String>[
 diff --git a/packages/flutter_tools/lib/src/commands/build_bundle.dart b/packages/flutter_tools/lib/src/commands/build_bundle.dart
-index 9cd3413c0b..01f640064d 100644
+index 434ab77432..d75f7ceeec 100644
 --- a/packages/flutter_tools/lib/src/commands/build_bundle.dart
 +++ b/packages/flutter_tools/lib/src/commands/build_bundle.dart
 @@ -12,6 +12,7 @@ import '../project.dart';
@@ -613,18 +612,18 @@ index 9cd3413c0b..01f640064d 100644
  
  class BuildBundleCommand extends BuildSubCommand {
    BuildBundleCommand({
-@@ -96,6 +97,9 @@ class BuildBundleCommand extends BuildSubCommand {
+@@ -93,6 +94,9 @@ class BuildBundleCommand extends BuildSubCommand {
  
    @override
    Future<FlutterCommandResult> runCommand() async {
 +
 +    await AspectdHook.enableAspectd();
 +
-     final String targetPlatform = stringArgDeprecated('target-platform')!;
+     final String targetPlatform = stringArg('target-platform')!;
      final TargetPlatform platform = getTargetPlatformForName(targetPlatform);
-     if (platform == null) {
+     // Check for target platforms that are only allowed via feature flags.
 diff --git a/packages/flutter_tools/lib/src/compile.dart b/packages/flutter_tools/lib/src/compile.dart
-index e072e6b7a4..c42311b5ef 100644
+index 5b1422b8ba..6826b47cf1 100644
 --- a/packages/flutter_tools/lib/src/compile.dart
 +++ b/packages/flutter_tools/lib/src/compile.dart
 @@ -18,6 +18,7 @@ import 'base/logger.dart';
@@ -635,17 +634,17 @@ index e072e6b7a4..c42311b5ef 100644
  
  /// Opt-in changes to the dart compilers.
  const List<String> kDartCompilerExperiments = <String>[
-@@ -248,6 +249,9 @@ class KernelCompiler {
+@@ -244,6 +245,9 @@ class KernelCompiler {
      required List<String> dartDefines,
      required PackageConfig packageConfig,
    }) async {
 +
 +    await AspectdHook.enableAspectd();
 +
+     final TargetPlatform? platform = targetModel == TargetModel.dartdevc ? TargetPlatform.web_javascript : null;
      final String frontendServer = _artifacts.getArtifactPath(
-       Artifact.frontendServerSnapshotForEngineDartSdk
-     );
-@@ -283,6 +287,8 @@ class KernelCompiler {
+       Artifact.frontendServerSnapshotForEngineDartSdk,
+@@ -281,6 +285,8 @@ class KernelCompiler {
          toMultiRootPath(dartPluginRegistrantFileUri, _fileSystemScheme, _fileSystemRoots, _fileSystem.path.separator == r'\');
      }
  
@@ -654,7 +653,7 @@ index e072e6b7a4..c42311b5ef 100644
      final List<String> command = <String>[
        engineDartPath,
        '--disable-dart-dev',
-@@ -326,6 +332,10 @@ class KernelCompiler {
+@@ -324,6 +330,10 @@ class KernelCompiler {
          '--initialize-from-dill',
          initializeFromDill,
        ],
@@ -665,18 +664,18 @@ index e072e6b7a4..c42311b5ef 100644
        if (platformDill != null) ...<String>[
          '--platform',
          platformDill,
-@@ -740,6 +750,10 @@ class DefaultResidentCompiler implements ResidentCompiler {
-     String? outputPath,
-     {String? additionalSourceUri}
-   ) async {
+@@ -741,6 +751,10 @@ class DefaultResidentCompiler implements ResidentCompiler {
+       Artifact.frontendServerSnapshotForEngineDartSdk,
+       platform: platform,
+     );
 +
 +    await AspectdHook.enableAspectd();
 +    bool aopConfig = AspectdHook.configFileExists();
 +
-     final String frontendServer = _artifacts.getArtifactPath(
-       Artifact.frontendServerSnapshotForEngineDartSdk
-     );
-@@ -800,6 +814,10 @@ class DefaultResidentCompiler implements ResidentCompiler {
+     final List<String> command = <String>[
+       _artifacts.getArtifactPath(Artifact.engineDartBinary, platform: platform),
+       '--disable-dart-dev',
+@@ -797,6 +811,10 @@ class DefaultResidentCompiler implements ResidentCompiler {
          '--platform',
          platformDill!,
        ],

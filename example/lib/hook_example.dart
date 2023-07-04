@@ -333,7 +333,7 @@ class AddDemo {
 
   @Add("package:example/receiver_test.dart", "Receiver")
   @pragma("vm:entry-point")
-  dynamic addTest(PointCut pointCut, int j, {String s, int i}) {
+  dynamic addTest(PointCut pointCut, int j, {String? s, int? i}) {
     print('[beike_aspectd]: Add method');
   }
 
