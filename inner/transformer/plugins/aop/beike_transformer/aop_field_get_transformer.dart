@@ -9,17 +9,11 @@ import '../transformer/aop_tranform_utils.dart';
 
 class AopFieldGetImplTransformer extends Transformer {
   AopFieldGetImplTransformer(
-      this._aopItemInfoList, this._libraryMap, this._uriToSource);
+      this._aopItemInfoList);
 
   final List<AopItemInfo> _aopItemInfoList;
-  final Map<String, Library> _libraryMap;
-  Library _curLibrary;
-  Class _curClass;
-
-  final Map<Uri, Source> _uriToSource;
-  final Map<InvocationExpression, InvocationExpression>
-      _invocationExpressionMapping =
-      <InvocationExpression, InvocationExpression>{};
+  Library? _curLibrary;
+  Class ?_curClass;
 
   @override
   Library visitLibrary(Library node) {
@@ -37,9 +31,9 @@ class AopFieldGetImplTransformer extends Transformer {
 
   @override
   Expression visitStaticGet(StaticGet node) {
-    String importUri, clsName, fieldName;
+    String? importUri, clsName, fieldName;
 
-    importUri = _curLibrary.importUri.toString();
+    // importUri = _curLibrary!.importUri.toString();
 
     importUri = node?.targetReference?.canonicalName?.reference?.canonicalName
         ?.nonRootTop?.name;
@@ -47,30 +41,30 @@ class AopFieldGetImplTransformer extends Transformer {
     fieldName = node?.targetReference?.canonicalName?.name;
 
     final AopItemInfo aopItemInfo = _filterAopItemInfo(
-        _aopItemInfoList, importUri, clsName, fieldName, true);
+        _aopItemInfoList, importUri!, clsName!, fieldName!, true)!;
 
     if (aopItemInfo != null) {
       final Arguments redirectArguments = Arguments.empty();
       redirectArguments.positional.add(NullLiteral());
       final StaticInvocation staticInvocationNew =
-          StaticInvocation(aopItemInfo.aopMember, redirectArguments);
+          StaticInvocation(aopItemInfo.aopMember as Procedure, redirectArguments);
 
       return staticInvocationNew;
     }
 
-    return super.visitStaticGet(node);
+    return super.visitStaticGet(node) as Expression;
   }
 
   @override
   Expression visitInstanceGet(InstanceGet node) {
     String importUri, clsName, fieldName;
 
-    importUri = _curLibrary.importUri.toString();
-    clsName = _curClass.name;
+    importUri = _curLibrary!.importUri.toString();
+    clsName = _curClass!.name;
     fieldName = node.name.text;
 
     final AopItemInfo aopItemInfo = _filterAopItemInfo(
-        _aopItemInfoList, importUri, clsName, fieldName, false);
+        _aopItemInfoList, importUri, clsName, fieldName, false)!;
 
     if (aopItemInfo != null) {
       final Arguments redirectArguments = Arguments.empty();
@@ -78,16 +72,16 @@ class AopFieldGetImplTransformer extends Transformer {
       redirectArguments.positional.add(NullLiteral());
 
       final StaticInvocation staticInvocationNew =
-          StaticInvocation(aopItemInfo.aopMember, redirectArguments);
+          StaticInvocation(aopItemInfo.aopMember as Procedure, redirectArguments);
 
       return staticInvocationNew;
     }
 
-    return super.visitInstanceGet(node);
+    return super.visitInstanceGet(node) as Expression;
   }
 
   //Filter AopInfoMap for specific callsite.
-  AopItemInfo _filterAopItemInfo(List<AopItemInfo> aopItemInfoList,
+  AopItemInfo? _filterAopItemInfo(List<AopItemInfo> aopItemInfoList,
       String importUri, String clsName, String fieldName, bool isStatic) {
     //Reverse sorting so that the newly added Aspect might override the older ones.
     importUri ??= '';
@@ -98,14 +92,14 @@ class AopFieldGetImplTransformer extends Transformer {
       final AopItemInfo aopItemInfo = aopItemInfoList[i];
 
       if (aopItemInfo.excludeCoreLib &&
-          _curLibrary.importUri.toString().startsWith('package:flutter/')) {
+          _curLibrary!.importUri.toString().startsWith('package:flutter/')) {
         continue;
       }
 
       if (aopItemInfo.isRegex) {
         if (RegExp(aopItemInfo.importUri).hasMatch(importUri) &&
             RegExp(aopItemInfo.clsName).hasMatch(clsName) &&
-            RegExp(aopItemInfo.fieldName).hasMatch(fieldName) &&
+            RegExp(aopItemInfo.fieldName!).hasMatch(fieldName) &&
             isStatic == aopItemInfo.isStatic) {
           return aopItemInfo;
         }
@@ -125,9 +119,9 @@ class AopFieldGetImplTransformer extends Transformer {
   void createPointcutStubProcedure(AopItemInfo aopItemInfo, String stubKey,
       Class pointCutClass, Statement bodyStatements, bool shouldReturn) {
     final Procedure procedure = AopUtils.createStubProcedure(
-        Name(stubKey, AopUtils.pointCutProceedProcedure.name.library),
+        Name(stubKey, AopUtils.pointCutProceedProcedure!.name.library),
         aopItemInfo,
-        AopUtils.pointCutProceedProcedure,
+        AopUtils.pointCutProceedProcedure as Procedure,
         bodyStatements,
         shouldReturn);
     pointCutClass.procedures.add(procedure);

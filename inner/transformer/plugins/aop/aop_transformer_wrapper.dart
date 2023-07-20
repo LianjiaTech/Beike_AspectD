@@ -15,10 +15,10 @@ class AopWrapperTransformer extends FlutterProgramTransformer {
 
   List<AopItemInfo> aopItemInfoList = <AopItemInfo>[];
   Map<String, Library> componentLibraryMap = <String, Library>{};
-  Component platformStrongComponent;
+  Component? platformStrongComponent;
 
   @override
-  void transform(Component program, {void Function(String msg) logger}) {
+  void transform(Component program, {void Function(String msg)? logger}) {
     for (Library library in program.libraries) {
       componentLibraryMap.putIfAbsent(
           library.importUri.toString(), () => library);
@@ -32,20 +32,20 @@ class AopWrapperTransformer extends FlutterProgramTransformer {
 
     _resolveAopProcedures(libraries);
 
-    Procedure pointCutProceedProcedure;
-    Procedure listGetProcedure;
-    Procedure mapGetProcedure;
+    Procedure? pointCutProceedProcedure;
+    Procedure? listGetProcedure;
+    Procedure? mapGetProcedure;
     //Search the PointCut class first
     final List<Library> concatLibraries = <Library>[
       ...libraries,
-      ...platformStrongComponent != null
-          ? platformStrongComponent.libraries
+      ...?platformStrongComponent != null
+          ? platformStrongComponent?.libraries
           : <Library>[]
     ];
     final Map<Uri, Source> concatUriToSource = <Uri, Source>{}
       ..addAll(program.uriToSource)
       ..addAll(platformStrongComponent != null
-          ? platformStrongComponent.uriToSource
+          ? platformStrongComponent!.uriToSource
           : <Uri, Source>{});
     final Map<String, Library> libraryMap = <String, Library>{};
     for (Library library in concatLibraries) {
@@ -155,8 +155,6 @@ class AopWrapperTransformer extends FlutterProgramTransformer {
       final AopFieldGetImplTransformer aopFieldGetImplTransformer =
           AopFieldGetImplTransformer(
         fieldGetInfoList,
-        libraryMap,
-        concatUriToSource,
       );
 
       for (int i = 0; i < libraries.length; i++) {
@@ -179,7 +177,7 @@ class AopWrapperTransformer extends FlutterProgramTransformer {
           if (!(member is Member)) {
             continue;
           }
-          final AopItemInfo aopItemInfo = _processAopMember(member);
+          final AopItemInfo? aopItemInfo = _processAopMember(member);
           if (aopItemInfo != null) {
             aopItemInfoList.add(aopItemInfo);
           }
@@ -188,15 +186,15 @@ class AopWrapperTransformer extends FlutterProgramTransformer {
     }
   }
 
-  AopItemInfo _processAopMember(Member member) {
-    AopItemInfo aopItemInfoRet;
+  AopItemInfo? _processAopMember(Member member) {
+
     for (Expression annotation in member.annotations) {
       if (annotation is ConstantExpression) {
         final ConstantExpression constantExpression = annotation;
         final Constant constant = constantExpression.constant;
         if (constant is InstanceConstant) {
           final InstanceConstant instanceConstant = constant;
-          final CanonicalName canonicalName =
+          final CanonicalName? canonicalName =
               instanceConstant.classReference.canonicalName;
           constant.classReference.node ??= AopUtils.getNodeFromCanonicalName(
               componentLibraryMap, canonicalName);
@@ -205,19 +203,19 @@ class AopWrapperTransformer extends FlutterProgramTransformer {
             reference.node ??= AopUtils.getNodeFromCanonicalName(
                 componentLibraryMap, reference?.canonicalName);
           });
-          final AopMode aopMode = AopUtils.getAopModeByNameAndImportUri(
-              canonicalName.name, canonicalName?.parent?.name);
+          final AopMode? aopMode = AopUtils.getAopModeByNameAndImportUri(
+              canonicalName!.name, canonicalName!.parent!.name);
           if (aopMode == null) {
             continue;
           }
-          String importUri;
-          String clsName;
-          String superClsName;
-          String methodName;
-          String fieldName;
+          late String importUri;
+          late String clsName;
+          String? superClsName;
+          String? methodName;
+          String? fieldName;
           bool isRegex = false;
           bool excludeCoreLib = false;
-          int lineNum;
+          int? lineNum;
           bool isStatic = false;
 
           instanceConstant.fieldValues
@@ -268,13 +266,13 @@ class AopWrapperTransformer extends FlutterProgramTransformer {
 
           if (aopMode != AopMode.FieldGet) {
             if (methodName != null) {
-              if (methodName
+              if (methodName!
                   .startsWith(AopUtils.kAopAnnotationInstanceMethodPrefix)) {
-                methodName = methodName.substring(
+                methodName = methodName!.substring(
                     AopUtils.kAopAnnotationInstanceMethodPrefix.length);
-              } else if (methodName
+              } else if (methodName!
                   .startsWith(AopUtils.kAopAnnotationStaticMethodPrefix)) {
-                methodName = methodName.substring(
+                methodName = methodName!.substring(
                     AopUtils.kAopAnnotationStaticMethodPrefix.length);
                 isStatic = true;
               }
@@ -300,40 +298,40 @@ class AopWrapperTransformer extends FlutterProgramTransformer {
       //Debug Mode
       else if (annotation is ConstructorInvocation) {
         final ConstructorInvocation constructorInvocation = annotation;
-        final Class cls = constructorInvocation?.targetReference?.node?.parent;
-        final Library clsParentLib = cls?.parent;
-        final AopMode aopMode = AopUtils.getAopModeByNameAndImportUri(
-            cls?.name, clsParentLib?.importUri?.toString());
+        final Class cls = constructorInvocation!.targetReference!.node!.parent as Class;
+        final Library clsParentLib = cls.parent as Library;
+        final AopMode? aopMode = AopUtils.getAopModeByNameAndImportUri(
+            cls.name, clsParentLib.importUri!.toString());
         if (aopMode == null) {
           continue;
         }
         final StringLiteral stringLiteral0 =
-            constructorInvocation.arguments.positional[0];
+            constructorInvocation.arguments.positional[0] as StringLiteral;
         final String importUri = stringLiteral0.value;
         final StringLiteral stringLiteral1 =
-            constructorInvocation.arguments.positional[1];
+            constructorInvocation.arguments.positional[1] as StringLiteral;
         final String clsName = stringLiteral1.value;
         final StringLiteral stringLiteral2 =
-            constructorInvocation.arguments.positional.length > 2
+            (constructorInvocation.arguments.positional.length > 2
                 ? constructorInvocation.arguments.positional[2]
-                : StringLiteral('');
+                : StringLiteral('')) as StringLiteral;
         String methodName = stringLiteral2.value;
         bool isRegex = false;
-        int lineNum;
-        String superCls;
+        int? lineNum;
+        String? superCls;
 
         for (NamedExpression namedExpression
             in constructorInvocation.arguments.named) {
           if (namedExpression.name == AopUtils.kAopAnnotationLineNum) {
-            final IntLiteral intLiteral = namedExpression.value;
+            final IntLiteral intLiteral = namedExpression.value as IntLiteral;
             lineNum = intLiteral.value - 1;
           }
           if (namedExpression.name == AopUtils.kAopAnnotationSuperClsName) {
-            final StringLiteral stringLiteral = namedExpression.value;
+            final StringLiteral stringLiteral = namedExpression.value as StringLiteral;
             superCls = stringLiteral.value;
           }
           if (namedExpression.name == AopUtils.kAopAnnotationIsRegex) {
-            final BoolLiteral boolLiteral = namedExpression.value;
+            final BoolLiteral boolLiteral = namedExpression.value as BoolLiteral;
             isRegex = boolLiteral.value;
           }
         }
@@ -353,23 +351,23 @@ class AopWrapperTransformer extends FlutterProgramTransformer {
         String fieldName = '';
         if (aopMode == AopMode.FieldInitializer) {
           final StringLiteral stringLiteral3 =
-              constructorInvocation.arguments.positional.length > 3
+             ( constructorInvocation.arguments.positional.length > 3
                   ? constructorInvocation.arguments.positional[3]
-                  : StringLiteral('');
+                  : StringLiteral('')) as StringLiteral;
           fieldName = stringLiteral3.value;
         }
 
         if (aopMode == AopMode.FieldGet) {
           final StringLiteral stringLiteral3 =
-              constructorInvocation.arguments.positional.length > 2
+              (constructorInvocation.arguments.positional.length > 2
                   ? constructorInvocation.arguments.positional[2]
-                  : StringLiteral('');
+                  : StringLiteral('')) as StringLiteral;
           fieldName = stringLiteral3.value;
 
           final BoolLiteral isStaticLiteral =
-              constructorInvocation.arguments.positional.length > 3
+              (constructorInvocation.arguments.positional.length > 3
                   ? constructorInvocation.arguments.positional[3]
-                  : BoolLiteral(false);
+                  : BoolLiteral(false)) as BoolLiteral;
           isStatic = isStaticLiteral.value;
         }
 
@@ -388,7 +386,8 @@ class AopWrapperTransformer extends FlutterProgramTransformer {
             fieldName: fieldName);
       }
     }
-    return aopItemInfoRet;
+
+    return null;
   }
 
   void _checkIfCompleteLibraryReference(Library library) {

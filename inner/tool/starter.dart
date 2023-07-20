@@ -28,16 +28,16 @@ int main(List<String> args) {
 
   final DillOps dillOps = DillOps();
   final Component component = dillOps.readComponentFromDill(intputDill);
-  Component platformStrongComponent;
+  late Component platformStrongComponent;
   if (sdkRoot != null) {
     platformStrongComponent =
         dillOps.readComponentFromDill(p.join(sdkRoot, 'platform_strong.dill'));
     for (Library library in platformStrongComponent.libraries) {
-      libraryAbbrMap.putIfAbsent(library.name, () => library.reference.node);
+      libraryAbbrMap.putIfAbsent(library.name!, () => library.reference.node! as Library);
 
       for (Class clazz in library.classes) {
-        classAbbrMap.putIfAbsent(library.name + '.' + clazz.name,
-            () => clazz.reference.node);
+        classAbbrMap.putIfAbsent(library.name! + '.' + clazz.name,
+            () => clazz.reference.node as Class);
       }
     }
 
@@ -58,8 +58,8 @@ int main(List<String> args) {
       childrenToExchange.add(canonicalName.name);
     }
 
-    Library library = libraryAbbrMap[canonicalName.name];
-    CanonicalName canonical = canonicalMap[canonicalName.name];
+    Library? library = libraryAbbrMap[canonicalName.name];
+    CanonicalName canonical = canonicalMap[canonicalName.name] as CanonicalName;
     library ??= libraryAbbrMap[canonicalName.name.replaceAll(':', '.')];
     if (canonicalName.reference == null) {
       // canonicalName.reference = Reference()..node = library;
@@ -123,10 +123,10 @@ void completeDartComponent(Component component) {
   for (CanonicalName canonicalName
       in List<CanonicalName>.from(component.root.children.toList())) {
     if (!componentLibraryMap.containsKey(canonicalName.name)) {
-      Library library = libraryAbbrMap[canonicalName.name];
+      Library? library = libraryAbbrMap[canonicalName.name];
       library ??= libraryAbbrMap[canonicalName.name.replaceAll(':', '.')];
       component.root.removeChild(canonicalName.name);
-      component.libraries.add(library);
+      component.libraries.add(library!);
     }
   }
   component.adoptChildren();

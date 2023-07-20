@@ -1,7 +1,5 @@
 import 'dart:convert';
-
 import 'package:kernel/ast.dart';
-
 import 'aop_iteminfo.dart';
 import 'aop_mode.dart';
 
@@ -52,14 +50,14 @@ class AopUtils {
   static String kAopPointcutProcessName = 'proceed';
   static String kAopPointcutIgnoreVariableDeclaration = '//Aspectd Ignore';
   static String kAopPointcutReplaceThisUsage = '//Aspectd Replace This';
-  static Procedure pointCutProceedProcedure;
-  static Procedure listGetProcedure;
-  static Procedure mapGetProcedure;
-  static Component platformStrongComponent;
+  static Procedure? pointCutProceedProcedure;
+  static Procedure? listGetProcedure;
+  static Procedure? mapGetProcedure;
+  static Component? platformStrongComponent;
 
-  static Library coreLib;
+  static Library? coreLib;
 
-  static AopMode getAopModeByNameAndImportUri(String name, String importUri) {
+  static AopMode? getAopModeByNameAndImportUri(String name, String importUri) {
     if (name == kAopAnnotationClassCall && importUri == kImportUriAopCall) {
       return AopMode.Call;
     }
@@ -125,18 +123,22 @@ class AopUtils {
   }
 
   static int getLineNumBySourceAndOffset(Source source, int fileOffset) {
-    final int lineNum = source.lineStarts.length;
+    final int? lineNum = source.lineStarts?.length;
+
+    if(lineNum == null) {
+      return -1;
+    }
     for (int i = 0; i < lineNum; i++) {
-      final int lineStart = source.lineStarts[i];
+      final int lineStart = source.lineStarts![i];
       if (fileOffset >= lineStart &&
-          (i == lineNum - 1 || fileOffset < source.lineStarts[i + 1])) {
+          (i == lineNum - 1 || fileOffset < source.lineStarts![i + 1])) {
         return i;
       }
     }
     return -1;
   }
 
-  static VariableDeclaration checkIfSkipableVarDeclaration(
+  static VariableDeclaration? checkIfSkipableVarDeclaration(
       Source source, Statement statement) {
     if (statement is VariableDeclaration) {
       final VariableDeclaration variableDeclaration = statement;
@@ -146,11 +148,11 @@ class AopUtils {
       if (lineNum == -1) {
         return null;
       }
-      final int charFrom = source.lineStarts[lineNum];
+      final int charFrom = source.lineStarts![lineNum];
 
       int charTo = source.source.length;
-      if (lineNum < source.lineStarts.length - 1) {
-        charTo = source.lineStarts[lineNum + 1];
+      if (lineNum < source.lineStarts!.length - 1) {
+        charTo = source.lineStarts![lineNum + 1];
       }
       final String sourceString = const Utf8Decoder().convert(source.source);
       final String sourceLine = sourceString.substring(charFrom, charTo);
@@ -163,17 +165,17 @@ class AopUtils {
     return null;
   }
 
-  static bool checkIfReplaceThisUsage(Source source, Statement statement) {
+  static bool? checkIfReplaceThisUsage(Source source, Statement statement) {
     final int lineNum =
         AopUtils.getLineNumBySourceAndOffset(source, statement.fileOffset);
     if (lineNum == -1) {
       return null;
     }
-    final int charFrom = source.lineStarts[lineNum];
+    final int charFrom = source.lineStarts![lineNum];
 
     int charTo = source.source.length;
-    if (lineNum < source.lineStarts.length - 1) {
-      charTo = source.lineStarts[lineNum + 1];
+    if (lineNum < source.lineStarts!.length - 1) {
+      charTo = source.lineStarts![lineNum + 1];
     }
     final String sourceString = const Utf8Decoder().convert(source.source);
     final String sourceLine = sourceString.substring(charFrom, charTo);
@@ -210,8 +212,8 @@ class AopUtils {
       }
       for (Field field in cls.fields) {
         if (field.name.text == part) {
-          final InterfaceType interfaceType = field.type;
-          cls = interfaceType.className.node;
+          final InterfaceType interfaceType = field.type as InterfaceType;
+          cls = interfaceType.className.node as Class;
           break;
         }
       }
@@ -219,16 +221,16 @@ class AopUtils {
     return cls;
   }
 
-  static Class findClassOfNode(TreeNode node) {
-    TreeNode temp = node;
+  static Class? findClassOfNode(TreeNode node) {
+    TreeNode? temp = node;
     while (temp != null && !(temp is Class)) {
       temp = temp.parent;
     }
 
-    return temp;
+    return temp as Class;
   }
 
-  static Field findFieldForClassWithName(Class cls, String fieldName) {
+  static Field? findFieldForClassWithName(Class cls, String fieldName) {
     for (Field field in cls.fields) {
       if (field.name.text == fieldName) {
         return field;
@@ -242,7 +244,7 @@ class AopUtils {
         functionNode.dartAsyncMarker == AsyncMarker.AsyncStar;
   }
 
-  static Node getNodeToVisitRecursively(Object statement) {
+  static Node? getNodeToVisitRecursively(Object statement) {
     if (statement is FunctionDeclaration) {
       return statement.function;
     }
@@ -268,7 +270,7 @@ class AopUtils {
       Expression targetExpression,
       Member member,
       Arguments invocationArguments,
-      Class currrentClass) {
+      Class? currentClass) {
     final String stubKeyDefault =
         '${AopUtils.kAopStubMethodPrefix}${AopUtils.kPrimaryKeyAopMethod}';
     //重定向到AOP的函数体中去
@@ -282,11 +284,11 @@ class AopUtils {
 
     pointCutConstructorArguments.positional.add(MapLiteral(sourceInfos));
     pointCutConstructorArguments.positional.add(targetExpression);
-    String memberName = member?.name?.text;
+    String? memberName = member?.name?.text;
     if (member is Constructor) {
       memberName = AopUtils.nameForConstructor(member);
     }
-    pointCutConstructorArguments.positional.add(StringLiteral(memberName));
+    pointCutConstructorArguments.positional.add(StringLiteral(memberName!));
     pointCutConstructorArguments.positional
         .add(StringLiteral(stubKey ?? stubKeyDefault));
     pointCutConstructorArguments.positional
@@ -298,11 +300,11 @@ class AopUtils {
     }
     pointCutConstructorArguments.positional.add(MapLiteral(entries));
 
-    Class clz;
-    if (currrentClass == null && member.parent is Class) {
-      clz = member.parent;
+    Class? clz;
+    if (currentClass == null && member.parent is Class) {
+      clz = member.parent as Class;
     } else {
-      clz = currrentClass;
+      clz = currentClass;
     }
 
     //Get annotations and members in call/execute mode
@@ -336,7 +338,7 @@ class AopUtils {
             //     MapEntry(StringLiteral(f.name.name), ConstantExpression(c)));
           } else {
             filedsMap.add(
-                MapLiteralEntry(StringLiteral(f.name.text), f.initializer));
+                MapLiteralEntry(StringLiteral(f.name.text), f.initializer!));
           }
         } else if (f.isStatic) {
           final StaticGet staticGet = StaticGet(f);
@@ -344,7 +346,7 @@ class AopUtils {
           filedsMap.add(MapLiteralEntry(StringLiteral(f.name.text), ne.value));
         } else {
           final InstanceGet property = InstanceGet(
-              InstanceAccessKind.Instance, thisE, Name(f.name.text, clz.parent),
+              InstanceAccessKind.Instance, thisE, Name(f.name.text, clz.parent as Library?),
               interfaceTarget: f, resultType: f.type);
           final NamedExpression ne = NamedExpression(f.name.text, property);
           filedsMap.add(MapLiteralEntry(StringLiteral(f.name.text), ne.value));
@@ -358,7 +360,7 @@ class AopUtils {
       }
 
       //Get annotations of caller
-      final List<Expression> annotations = clz?.annotations;
+      final List<Expression>? annotations = clz?.annotations;
       final List<MapLiteralEntry> annotationMap = <MapLiteralEntry>[];
 
       if (annotations != null) {
@@ -378,11 +380,11 @@ class AopUtils {
               vals.forEach((Reference ref, Constant val) {
                 final ConstantExpression exp = ConstantExpression(val);
                 annotationParams.add(MapLiteralEntry(
-                    StringLiteral(ref.canonicalName.name), exp));
+                    StringLiteral(ref.canonicalName!.name), exp));
               });
 
               final CanonicalName canonicalName =
-                  instanceConstant.classReference.canonicalName;
+                  instanceConstant.classReference.canonicalName!;
               annotationMap.add(MapLiteralEntry(
                   StringLiteral(canonicalName.name),
                   MapLiteral(annotationParams)));
@@ -399,7 +401,7 @@ class AopUtils {
       pointCutConstructorArguments.positional.add(NullLiteral());
     }
 
-    final Class pointCutProceedProcedureCls = pointCutProceedProcedure.parent;
+    final Class pointCutProceedProcedureCls = pointCutProceedProcedure!.parent as Class;
     final ConstructorInvocation pointCutConstructorInvocation =
         ConstructorInvocation(pointCutProceedProcedureCls.constructors.first,
             pointCutConstructorArguments);
@@ -439,9 +441,9 @@ class AopUtils {
     }
     pointCutConstructorArguments.positional.add(MapLiteral(entries));
 
-    Class clz;
+    Class? clz;
     if (currrentClass == null && member.parent is Class) {
-      clz = member.parent;
+      clz = member.parent as Class;
     } else {
       clz = currrentClass;
     }
@@ -457,7 +459,7 @@ class AopUtils {
         NamedExpression ne;
 
         if (f.isConst) {
-          final ConstantExpression constantExpression = f.initializer;
+          final ConstantExpression constantExpression = f.initializer! as ConstantExpression;
           filedsMap.add(
               MapLiteralEntry(StringLiteral(f.name.text), constantExpression));
         } else if (f.isStatic) {
@@ -466,7 +468,7 @@ class AopUtils {
           filedsMap.add(MapLiteralEntry(StringLiteral(f.name.text), ne.value));
         } else {
           final InstanceGet property = InstanceGet(
-              InstanceAccessKind.Instance, thisE, Name(f.name.text, clz.parent),
+              InstanceAccessKind.Instance, thisE, Name(f.name.text, clz.parent as Library?),
               interfaceTarget: f, resultType: f.type);
           final NamedExpression ne = NamedExpression(f.name.text, property);
           filedsMap.add(MapLiteralEntry(StringLiteral(f.name.text), ne.value));
@@ -476,7 +478,7 @@ class AopUtils {
       pointCutConstructorArguments.positional.add(MapLiteral(filedsMap));
 
       //Get annotations of caller
-      final List<Expression> annotations = clz?.annotations;
+      final List<Expression>? annotations = clz?.annotations;
       final List<MapLiteralEntry> annotationMap = <MapLiteralEntry>[];
 
       if (annotations != null) {
@@ -496,11 +498,11 @@ class AopUtils {
               vals.forEach((Reference ref, Constant val) {
                 final ConstantExpression exp = ConstantExpression(val);
                 annotationParams.add(MapLiteralEntry(
-                    StringLiteral(ref.canonicalName.name), exp));
+                    StringLiteral(ref.canonicalName!.name), exp));
               });
 
               final CanonicalName canonicalName =
-                  instanceConstant.classReference.canonicalName;
+                  instanceConstant.classReference.canonicalName!;
               annotationMap.add(MapLiteralEntry(
                   StringLiteral(canonicalName.name),
                   MapLiteral(annotationParams)));
@@ -517,7 +519,7 @@ class AopUtils {
       pointCutConstructorArguments.positional.add(NullLiteral());
     }
 
-    final Class pointCutProceedProcedureCls = pointCutProceedProcedure.parent;
+    final Class pointCutProceedProcedureCls = pointCutProceedProcedure!.parent! as Class;
     final ConstructorInvocation pointCutConstructorInvocation =
         ConstructorInvocation(pointCutProceedProcedureCls.constructors.first,
             pointCutConstructorArguments);
@@ -529,10 +531,10 @@ class AopUtils {
     final Arguments arguments = Arguments.empty();
     int i = 0;
 
-    final Class pointCutClass = AopUtils.pointCutProceedProcedure.parent;
+    final Class pointCutClass = AopUtils.pointCutProceedProcedure!.parent as Class;
 
-    Field positionalParamsField;
-    Field namedParams;
+    late Field positionalParamsField;
+    late Field namedParams;
 
     for (Field field in pointCutClass.fields) {
       if (field.name.text == 'positionalParams') {
@@ -545,7 +547,7 @@ class AopUtils {
     }
 
     for (VariableDeclaration variableDeclaration
-        in member.function.positionalParameters) {
+        in member.function!.positionalParameters) {
       final Arguments getArguments = Arguments.empty();
       getArguments.positional.add(IntLiteral(i));
 
@@ -555,7 +557,7 @@ class AopUtils {
             Name('positionalParams'),
             resultType: positionalParamsField.getterType,
             interfaceTarget: positionalParamsField),
-        listGetProcedure.name,
+        listGetProcedure!.name,
         getArguments,
       );
 
@@ -567,21 +569,21 @@ class AopUtils {
     final List<NamedExpression> namedEntries = <NamedExpression>[];
 
     for (VariableDeclaration variableDeclaration
-        in member.function.namedParameters) {
+        in member.function!.namedParameters) {
       final Arguments getArguments = Arguments.empty();
-      getArguments.positional.add(StringLiteral(variableDeclaration.name));
+      getArguments.positional.add(StringLiteral(variableDeclaration.name!));
 
       final DynamicInvocation methodInvocation = DynamicInvocation(
           DynamicAccessKind.Dynamic,
           InstanceGet(InstanceAccessKind.Instance, ThisExpression(),
               Name('namedParams'),
               interfaceTarget: namedParams, resultType: namedParams.getterType),
-          mapGetProcedure.name,
+          mapGetProcedure!.name,
           getArguments);
 
       final AsExpression asExpression = AsExpression(methodInvocation,
           deepCopyASTNode(variableDeclaration.type, ignoreGenerics: true));
-      namedEntries.add(NamedExpression(variableDeclaration.name, asExpression));
+      namedEntries.add(NamedExpression(variableDeclaration.name!, asExpression));
     }
     if (namedEntries.isNotEmpty) {
       arguments.named.addAll(namedEntries);
@@ -592,7 +594,7 @@ class AopUtils {
 
   static void insertProceedBranch(
       Class pointCutClass, Procedure procedure, bool shouldReturn) {
-    final Block block = pointCutProceedProcedure.function.body;
+    final Block block = pointCutProceedProcedure!.function.body as Block;
     final String methodName = procedure.name.text;
 
     // final InvocationExpression methodInvocation = DynamicInvocation(
@@ -608,9 +610,9 @@ class AopUtils {
         Name(methodName),
         Arguments.empty(),
         interfaceTarget: procedure,
-        functionType: procedure.getterType);
+        functionType: procedure.getterType as FunctionType);
 
-    Field stubKeyField;
+    late Field stubKeyField;
 
     for (Field field in pointCutClass.fields) {
       if (field.name.text == 'stubKey') {
@@ -622,16 +624,16 @@ class AopUtils {
         InstanceAccessKind.Instance, ThisExpression(), Name('stubKey'),
         interfaceTarget: stubKeyField, resultType: stubKeyField.getterType);
 
-    final Library core = coreLib;
-    final Class objClass = classOfLib(core, 'Object');
-    final Procedure eqlProcedure = procedureOfClass(objClass, '==');
+    final Library core = coreLib!;
+    final Class objClass = classOfLib(core, 'Object')!;
+    final Procedure eqlProcedure = procedureOfClass(objClass, '==')!;
 
     final List<Statement> statements = block.statements;
     statements.insert(
         statements.length - 1,
         IfStatement(
             EqualsCall(stubInstance, StringLiteral(methodName),
-                functionType: eqlProcedure.getterType,
+                functionType: eqlProcedure.getterType as FunctionType,
                 interfaceTarget: eqlProcedure),
             Block(<Statement>[
               if (shouldReturn) ReturnStatement(methodInvocation),
@@ -642,7 +644,7 @@ class AopUtils {
 
   static bool canOperateLibrary(Library library) {
     if (platformStrongComponent != null &&
-        platformStrongComponent.libraries.contains(library)) {
+        platformStrongComponent!.libraries.contains(library)) {
       return false;
     }
     return true;
@@ -662,8 +664,8 @@ class AopUtils {
 
   // Skip aop operation for those aspectd/aop package.
   static bool checkIfSkipAOP(AopItemInfo aopItemInfo, Library curLibrary) {
-    final Library aopLibrary1 = aopItemInfo.aopMember.parent.parent;
-    final Library aopLibrary2 = pointCutProceedProcedure.parent.parent;
+    final Library aopLibrary1 = aopItemInfo.aopMember!.parent!.parent as Library;
+    final Library aopLibrary2 = pointCutProceedProcedure!.parent!.parent as Library;
     if (curLibrary == aopLibrary1 || curLibrary == aopLibrary2) {
       return true;
     }
@@ -679,7 +681,7 @@ class AopUtils {
         final Constant constant = constantExpression.constant;
         if (constant is InstanceConstant) {
           final InstanceConstant instanceConstant = constant;
-          final CanonicalName canonicalName =
+          final CanonicalName? canonicalName =
               instanceConstant.classReference.canonicalName;
           if (canonicalName != null &&
               canonicalName.name == AopUtils.kAopAnnotationClassAspect &&
@@ -692,11 +694,11 @@ class AopUtils {
       //Debug Mode
       else if (annotation is ConstructorInvocation) {
         final ConstructorInvocation constructorInvocation = annotation;
-        final Class cls = constructorInvocation.targetReference.node?.parent;
+        final Class? cls = constructorInvocation.targetReference.node?.parent as Class;
         if (cls == null) {
           continue;
         }
-        final Library library = cls?.parent;
+        final Library library = cls?.parent as Library;
         if (cls.name == AopUtils.kAopAnnotationClassAspect &&
             library.importUri.toString() == AopUtils.kImportUriAopAspect) {
           enabled = true;
@@ -716,15 +718,15 @@ class AopUtils {
       importUri = importUri.substring(0, idx);
     }
     final Uri fileUri = library.fileUri;
-    final Source source = uriToSource[fileUri];
+    final Source source = uriToSource[fileUri]!;
     int lineNum = 0;
-    int lineOffSet;
-    final int lineStartCnt = source.lineStarts.length;
+    late int lineOffSet;
+    final int lineStartCnt = source.lineStarts!.length;
 
     for (int i = 0; i < lineStartCnt; i++) {
-      final int lineStartIdx = source.lineStarts[i];
+      final int lineStartIdx = source.lineStarts![i];
       if (lineStartIdx <= fileOffset &&
-          (i == lineStartCnt - 1 || source.lineStarts[i + 1] > fileOffset)) {
+          (i == lineStartCnt - 1 || source.lineStarts![i + 1] > fileOffset)) {
         lineNum = i;
         lineOffSet = fileOffset - lineStartIdx;
         break;
@@ -874,13 +876,13 @@ class AopUtils {
     for (VariableDeclaration variableDeclaration
         in functionNode.namedParameters) {
       named.add(NamedExpression(
-          variableDeclaration.name, VariableGet(variableDeclaration)));
+          variableDeclaration.name!, VariableGet(variableDeclaration)));
     }
     return Arguments(positional, named: named);
   }
 
   static String nameForConstructor(Constructor constructor) {
-    final Class constructorCls = constructor.parent;
+    final Class constructorCls = constructor.parent! as Class;
     String constructorName = '${constructorCls.name}';
     if (constructor.name.text.isNotEmpty) {
       constructorName += '.${constructor.name.text}';
@@ -888,12 +890,12 @@ class AopUtils {
     return constructorName;
   }
 
-  static NamedNode getNodeFromCanonicalName(
-      Map<String, Library> libraryMap, CanonicalName canonicalName) {
+  static NamedNode? getNodeFromCanonicalName(
+      Map<String, Library> libraryMap, CanonicalName? canonicalName) {
     final List<CanonicalName> chainCanoniousNames = <CanonicalName>[];
-    CanonicalName tmpCanonicalName = canonicalName;
+    CanonicalName? tmpCanonicalName = canonicalName;
     while (tmpCanonicalName != null) {
-      final CanonicalName parentName = tmpCanonicalName.parent;
+      final CanonicalName? parentName = tmpCanonicalName.parent;
       if (parentName != null && tmpCanonicalName.name != '@fields') {
         chainCanoniousNames.insert(0, tmpCanonicalName);
       }
@@ -903,7 +905,7 @@ class AopUtils {
     for (int i = 0; i < chainCanoniousNames.length; i++) {
       final CanonicalName name = chainCanoniousNames[i];
       if (i == 0) {
-        namedNodes.add(libraryMap[name.name]);
+        namedNodes.add(libraryMap[name.name] as NamedNode);
       } else if (i == 1) {
         final NamedNode library = namedNodes[i - 1];
         if (library is Library) {
@@ -921,7 +923,7 @@ class AopUtils {
     return namedNodes?.last;
   }
 
-  static Class classOfLib(Library lib, String className) {
+  static Class? classOfLib(Library lib, String className) {
     for (Class clazz in lib.classes) {
       if (clazz.name == className) {
         return clazz;
@@ -930,7 +932,7 @@ class AopUtils {
     return null;
   }
 
-  static Procedure procedureOfClass(Class clazz, String procedureName) {
+  static Procedure? procedureOfClass(Class clazz, String procedureName) {
     for (Procedure procedure in clazz.procedures) {
       if (procedure.name.text == procedureName) {
         return procedure;
