@@ -1,5 +1,3 @@
-// @dart=2.8
-
 import 'annotation_info.dart';
 
 /// Execute grammar is working on method body.
@@ -13,7 +11,7 @@ class Execute extends AnnotationInfo {
 
   @pragma('vm:entry-point')
   const Execute._(String importUri, String clsName, String methodName,
-      {bool isRegex})
+      {bool? isRegex})
       : super(
             importUri: importUri,
             clsName: clsName,

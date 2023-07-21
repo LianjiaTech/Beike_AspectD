@@ -1,4 +1,3 @@
-// @dart=2.8
 
 import 'annotation_info.dart';
 
@@ -12,7 +11,7 @@ class Inject extends AnnotationInfo {
 
   @pragma('vm:entry-point')
   const Inject._(String importUri, String clsName, String methodName,
-      {int lineNum, bool isRegex})
+      {int? lineNum, bool? isRegex})
       : super(
             importUri: importUri,
             clsName: clsName,

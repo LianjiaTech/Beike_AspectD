@@ -5,32 +5,32 @@ import 'aop_tranform_utils.dart';
 
 class AopItemInfo {
   AopItemInfo(
-      {this.mode,
-      this.importUri,
-      this.clsName,
-      this.methodName,
+      {required this.mode,
+      required this.importUri,
+      required this.clsName,
+        required this.methodName,
       this.isStatic,
       this.aopMember,
-      this.isRegex,
+      this.isRegex = false,
       this.superCls,
-      this.lineNum,
+        this.lineNum,
       this.excludeCoreLib = false,
       this.fieldName});
 
   final AopMode mode;
   final String importUri;
   final String clsName;
-  final String methodName;
-  final bool isStatic;
+  final String? methodName;
+  final bool? isStatic;
   final bool isRegex;
-  final String superCls;
-  final Member aopMember;
-  final int lineNum;
+  final String? superCls;
+  final Member? aopMember;
+  final int? lineNum;
   final bool excludeCoreLib;
-  final String fieldName;
+  final String? fieldName;
   static String uniqueKeyForMethod(
       String importUri, String clsName, String methodName, bool isStatic,
-      {int lineNum}) {
+      {int? lineNum}) {
     return (importUri ?? '') +
         AopUtils.kAopUniqueKeySeperator +
         (clsName ?? '') +

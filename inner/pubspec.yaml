@@ -4,7 +4,7 @@ version: 0.9.7
 homepage: https://github.com/LianjiaTech/Beike_AspectD
 
 environment:
-  sdk: ">=2.3.0-dev.68.0 <3.0.0"
+  sdk: "2.19.2"
 
 dev_dependencies:
 
@@ -13,7 +13,7 @@ dev_dependencies:
   yaml: any
 
 dependency_overrides:
-  package_config: 1.9.3
+  package_config: 2.1.0
   meta:
     path: pkg/meta
   frontend_server:
@@ -40,3 +40,5 @@ dependency_overrides:
     path: pkg/dev_compiler
   front_end:
     path: pkg/front_end
+  dart2js_info:
+    path: pkg/dart2js_info
